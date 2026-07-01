@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- Favicon: Точилка logo -->
+    <link rel="icon" href="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <!-- Anti-FOUC Script for Themes -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem("tochilka_theme") || "tochilka";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
+
+    <meta name="description" content="Точилка — ежедневник репетитора. Расписание, ученики и финансы в одном месте." />
+    <meta name="theme-color" content="#faf8f5" />
+    <title>Точилка — ежедневник репетитора</title>
+
+    <!-- Preconnect for Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!--
+      =====================================================
+      Yandex Tag Manager — placeholder (не активен)
+      Замените на реальный код YTM при подключении аналитики
+      =====================================================
+      <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+      'https://mc.yandex.ru/metrika/tag.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+      })(window,document,'script','ym','XXXXXXXX');</script>
+      =====================================================
+    -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
