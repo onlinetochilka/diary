@@ -77,14 +77,13 @@ export default function Sidebar({ activePage, onNavigate }) {
       className={cn(
         "hidden lg:flex flex-col",
         "fixed top-0 left-0 h-full w-[240px] z-40",
-        "bg-white/80 backdrop-blur-sm",
-        "border-r border-stone-200",
-        "shadow-sidebar",
+        "bg-ivory",
+        "shadow-neu-xl",
       )}
       aria-label="Основная навигация"
     >
       {/* Logo / Brand */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-stone-100">
+      <div className="flex items-center gap-3 px-5 py-5">
         <img
           src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg"
           alt="Точилка"
@@ -112,17 +111,15 @@ export default function Sidebar({ activePage, onNavigate }) {
               aria-current={isActive ? "page" : undefined}
               onClick={() => onNavigate(item.id)}
               className={cn(
-                "group nav-link w-full",
+                "group nav-link w-full border-none",
                 "transition-all duration-200 ease-out-quart",
-                isActive && [
+                isActive ? [
                   "active",
-                  item.activeBg,
+                  "shadow-neu-sm-inset", // "физическое вдавливание"
                   "font-semibold",
-                  "border-l-[3px]",
-                  item.activeBorder,
-                  "pl-[9px]", // compensate border width
-                ],
-                !isActive && "border-l-[3px] border-transparent"
+                ] : [
+                  "hover:shadow-neu-sm", // hover only raises the non-active items
+                ]
               )}
             >
               <Icon
@@ -131,13 +128,13 @@ export default function Sidebar({ activePage, onNavigate }) {
                 className={cn(
                   "shrink-0 transition-colors duration-200",
                   isActive
-                    ? item.accent.replace("group-[.active]:", "")
-                    : "text-stone-400",
+                    ? "text-blue-500" // vibrant blue for active icon
+                    : "text-slate-400 group-hover:text-slate-500", // slight blue tint
                 )}
               />
               <span className={cn(
                 "transition-colors duration-200",
-                isActive ? "text-stone-900" : "text-stone-600",
+                isActive ? "text-blue-600 font-bold" : "text-slate-500 group-hover:text-slate-700 font-medium",
               )}>
                 {item.label}
               </span>
@@ -147,7 +144,7 @@ export default function Sidebar({ activePage, onNavigate }) {
       </nav>
 
       {/* Footer / version */}
-      <div className="px-5 py-4 border-t border-stone-100">
+      <div className="px-5 py-4">
         <p className="text-xs text-stone-400">v0.1.0 · Точилка</p>
       </div>
     </aside>

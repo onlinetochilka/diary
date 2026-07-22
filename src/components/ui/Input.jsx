@@ -58,16 +58,15 @@ export default function Input({
           defaultValue={defaultValue}
           placeholder={label ? " " : rest.placeholder || " "}
           className={cn(
-            "peer w-full rounded-xl border bg-white/80 backdrop-blur-sm px-3.5 text-sm",
+            "peer w-full rounded-xl bg-ivory px-3.5 text-sm",
             label ? "pb-2 pt-6" : "py-2.5",
             "text-stone-900 outline-none transition-all duration-300 ease-out-quart",
             label && "placeholder:text-transparent focus:placeholder:text-stone-400",
             !label && "placeholder:text-stone-400",
-            "border-stone-200/80 shadow-sm",
-            "hover:border-stone-300",
-            "focus:bg-white focus:border-violet-300 focus:ring-4 focus:ring-violet-500/15 focus:shadow-md",
-            hasError && "border-red-400 focus:border-red-400 focus:ring-red-500/15",
-            disabled && "bg-stone-50 text-stone-400 cursor-not-allowed opacity-60",
+            "border-2 border-transparent shadow-neu-sm-inset",
+            "focus:border-transparent focus:ring-2 focus:ring-brand-teal focus:ring-offset-2 focus:ring-offset-ivory focus:shadow-neu-sm-inset",
+            hasError && "ring-2 ring-brand-red ring-offset-2 ring-offset-ivory",
+            disabled && "opacity-60 cursor-not-allowed",
             leftIcon && "pl-10",
             rightIcon && "pr-10"
           )}
@@ -79,7 +78,7 @@ export default function Input({
           <label
             htmlFor={inputId}
             className={cn(
-              "absolute text-stone-500 cursor-text pointer-events-none select-none",
+              "absolute text-stone-500 cursor-text pointer-events-none select-none truncate max-w-[calc(100%-1rem)]",
               "transition-all duration-300 ease-out-quart",
               // Initial position (acting as placeholder)
               "top-3.5 text-sm",

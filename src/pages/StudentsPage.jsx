@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Users, Plus, Mail, Pencil, PlusCircle, BookOpen, Clock, TrendingUp, Search, Phone } from "lucide-react";
 import { Card, Button, Input, Badge, SegmentedControl } from "../components/ui/index.js";
 import StudentFormDrawer from "../components/students/StudentFormDrawer.jsx";
 import GroupFormDrawer from "../components/students/GroupFormDrawer.jsx";
+import StudentCard from "../components/students/StudentCard.jsx";
+import GroupCard from "../components/students/GroupCard.jsx";
 import EmailGeneratorModal from "../components/students/EmailGeneratorModal.jsx";
 import ProgressModal from "../components/students/ProgressModal.jsx";
 import PriceChangeModal from "../components/students/PriceChangeModal.jsx";
-import { getLessons, getStudents, addStudent, updateStudent, deleteStudent, getGroups, addGroup, updateGroup, deleteGroup, getPrograms, updateLesson } from "../services/database.js";
 import { getEntityColor } from "../utils/colors.js";
+import { useStudents } from "../hooks/useStudents.js";
 
 function PageWrapper({ children, title, subtitle, icon: Icon, accentClass }) {
   return (
@@ -34,10 +36,22 @@ function PageWrapper({ children, title, subtitle, icon: Icon, accentClass }) {
 
 export default function StudentsPage({ onNavigate }) {
   const [viewMode, setViewMode] = useState("students");
-  const [students, setStudents] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  // Cmd+K / Ctrl+K shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('students-search');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   
   // Drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -45,6 +59,13 @@ export default function StudentsPage({ onNavigate }) {
   
   const [isGroupDrawerOpen, setIsGroupDrawerOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
+
+  useEffect(() => {
+    return () => {
+      setIsDrawerOpen(false);
+      setIsGroupDrawerOpen(false);
+    };
+  }, []);
 
   // Modal state
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -72,138 +93,89 @@ export default function StudentsPage({ onNavigate }) {
   // Tab state mapping: studentId -> active subject index
   const [activeTabs, setActiveTabs] = useState({});
 
-  const [programs, setPrograms] = useState([]);
+  const { 
+    students, 
+    groups, 
+    programs, 
+    isLoading, 
+    handleSaveStudent: hookSaveStudent, 
+    confirmPriceChange: hookConfirmPrice, 
+    handleDeleteStudent: hookDeleteStudent, 
+    handleSaveGroup: hookSaveGroup, 
+    handleDeleteGroup: hookDeleteGroup 
+  } = useStudents();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const [studentsData, groupsData, programsData] = await Promise.all([
-        getStudents(),
-        getGroups(),
-        getPrograms(),
-      ]);
-      setStudents(studentsData);
-      setGroups(groupsData);
-      setPrograms(programsData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOpenDrawer = (student = null) => {
+  const handleOpenDrawer = useCallback((student = null) => {
     setEditingStudent(student);
     setIsDrawerOpen(true);
-  };
+  }, []);
 
-  const handleOpenGroupDrawer = (group = null) => {
+  const handleOpenGroupDrawer = useCallback((group = null) => {
     setEditingGroup(group);
     setIsGroupDrawerOpen(true);
-  };
+  }, []);
 
-  const handleOpenEmail = (student) => {
+  const handleOpenEmail = useCallback((student) => {
     setSelectedStudentForEmail(student);
     setIsEmailModalOpen(true);
-  };
+  }, []);
 
-  const handleSaveStudent = async (studentData, id) => {
-    if (id) {
-      // Check for price changes
-      const oldStudent = students.find(s => s.id === id);
-      if (oldStudent && oldStudent.subjects) {
-        let changedSubject = null;
-        let oldPrice = 0;
-        let newPrice = 0;
-        
-        for (const newSubj of studentData.subjects) {
-          const oldSubj = oldStudent.subjects.find(s => s.name === newSubj.name);
-          if (oldSubj && Number(newSubj.price) !== Number(oldSubj.price)) {
-            changedSubject = newSubj.name;
-            oldPrice = Number(oldSubj.price);
-            newPrice = Number(newSubj.price);
-            break;
-          }
-        }
-
-        if (changedSubject) {
-          const stLessons = await getLessons({ studentId: id });
-          const scheduledLessons = stLessons.filter(l => 
-            l.status === 'scheduled' && l.subjectName === changedSubject
-          );
-
-          if (scheduledLessons.length > 0) {
-            setPriceChangeModal({
-              isOpen: true,
-              subjectName: changedSubject,
-              oldPrice,
-              newPrice,
-              lessonsCount: scheduledLessons.length,
-              lessonsToUpdate: scheduledLessons,
-              studentData,
-              studentId: id
-            });
-            return; // Stop standard save
-          }
-        }
+  const handleSaveStudent = async (studentData, id, options = {}) => {
+    try {
+      const result = await hookSaveStudent(studentData, id, options);
+      if (result && result.needsPriceConfirmation) {
+        setPriceChangeModal({
+          isOpen: true,
+          ...result.priceChangeDetails
+        });
+        return;
       }
-      await updateStudent(id, studentData);
-    } else {
-      await addStudent(studentData);
+      setIsDrawerOpen(false);
+    } catch (e) {
+      console.error(e);
+      alert("Ошибка при сохранении");
     }
-    await fetchData();
   };
 
   const confirmPriceChange = async (updateOldLessons) => {
-    const { studentData, studentId, newPrice, lessonsToUpdate } = priceChangeModal;
-    
-    await updateStudent(studentId, studentData);
-    
-    if (updateOldLessons && lessonsToUpdate.length > 0) {
-      for (const lesson of lessonsToUpdate) {
-        await updateLesson(lesson.id, { price: newPrice });
-      }
+    try {
+      await hookConfirmPrice(priceChangeModal, updateOldLessons);
+      setPriceChangeModal(prev => ({ ...prev, isOpen: false }));
+      setIsDrawerOpen(false);
+    } catch (e) {
+      console.error(e);
+      alert("Ошибка при обновлении цены");
     }
-    
-    setPriceChangeModal(prev => ({ ...prev, isOpen: false }));
-    setIsDrawerOpen(false);
-    await fetchData();
   };
 
   const handleDeleteStudent = async (id) => {
     try {
-      await deleteStudent(id);
+      await hookDeleteStudent(id);
       setIsDrawerOpen(false);
-      await fetchData();
     } catch (err) {
       console.error(err);
     }
   };
 
   const handleSaveGroup = async (groupData, id) => {
-    if (id) {
-      await updateGroup(id, groupData);
-    } else {
-      await addGroup(groupData);
-    }
-    await fetchData();
-  };
-
-  const handleDeleteGroup = async (id) => {
     try {
-      await deleteGroup(id);
+      await hookSaveGroup(groupData, id);
       setIsGroupDrawerOpen(false);
-      await fetchData();
     } catch (err) {
       console.error(err);
     }
   };
 
-  const openProgressModalForStudent = (student, subjectIndex, program) => {
+  const handleDeleteGroup = async (id) => {
+    try {
+      await hookDeleteGroup(id);
+      setIsGroupDrawerOpen(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openProgressModalForStudent = useCallback((student, subjectIndex, program) => {
     const subject = student.subjects[subjectIndex];
     const completed = subject.completedTopics?.[program.id] || [];
     
@@ -221,12 +193,12 @@ export default function StudentsPage({ onNavigate }) {
             [progId]: newCompleted
           }
         };
-        await handleSaveStudent({ ...student, subjects: updatedSubjects }, student.id);
+        await handleSaveStudent({ ...student, subjects: updatedSubjects }, student.id, { skipPriceCheck: true });
       }
     });
-  };
+  }, []);
 
-  const openProgressModalForGroup = (group, program) => {
+  const openProgressModalForGroup = useCallback((group, program) => {
     const completed = group.completedTopics?.[program.id] || [];
     
     setProgressModal({
@@ -244,11 +216,11 @@ export default function StudentsPage({ onNavigate }) {
         }, group.id);
       }
     });
-  };
+  }, []);
 
-  const handleTabChange = (studentId, index) => {
+  const handleTabChange = useCallback((studentId, index) => {
     setActiveTabs(prev => ({ ...prev, [studentId]: index }));
-  };
+  }, []);
 
   const handleScheduleLesson = (entityId, type) => {
     localStorage.setItem('intent_schedule_entity', JSON.stringify({ id: entityId, type }));
@@ -257,24 +229,30 @@ export default function StudentsPage({ onNavigate }) {
     }
   };
 
-  const existingSubjects = Array.from(
+  const existingSubjects = useMemo(() => Array.from(
     new Set(
       students.flatMap((s) => (s.subjects || []).map((sub) => sub.name))
         .concat(groups.map(g => g.subjectName))
     )
-  ).filter(Boolean);
+  ).filter(Boolean), [students, groups]);
 
   // Filter out students who have 0 subjects (they are only in groups)
-  const individualStudents = students.filter(s => (s.subjects || []).length > 0);
+  const individualStudents = useMemo(() => 
+    students.filter(s => (s.subjects || []).length > 0),
+  [students]);
   
-  const filteredStudents = individualStudents.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredStudents = useMemo(() => 
+    individualStudents.filter(s => 
+      s.name.toLowerCase().includes(search.toLowerCase())
+    ),
+  [individualStudents, search]);
 
-  const filteredGroups = groups.filter(g => 
-    g.name.toLowerCase().includes(search.toLowerCase()) || 
-    g.subjectName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredGroups = useMemo(() => 
+    groups.filter(g => 
+      g.name.toLowerCase().includes(search.toLowerCase()) || 
+      g.subjectName?.toLowerCase().includes(search.toLowerCase())
+    ),
+  [groups, search]);
 
   return (
     <PageWrapper
@@ -296,13 +274,21 @@ export default function StudentsPage({ onNavigate }) {
         </div>
         
         <div className="flex gap-2 w-full sm:w-auto">
-          <Input 
-            placeholder="Поиск..." 
-            className="flex-1 sm:w-[240px]" 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search size={18} />}
-          />
+          <div className="relative flex-1 sm:w-[240px]">
+            <Input 
+              id="students-search"
+              placeholder="Поиск..." 
+              className="w-full shadow-neu-sm-inset bg-ivory" 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              leftIcon={<Search size={18} />}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <kbd className="hidden sm:inline-block bg-stone-100 text-stone-400 font-sans text-[10px] font-bold px-1.5 py-0.5 rounded border border-stone-200/60 shadow-sm">
+                ⌘K
+              </kbd>
+            </div>
+          </div>
           {viewMode === "students" ? (
             <Button variant="primary" data-action="add_student" onClick={() => handleOpenDrawer()}>
               <Plus size={16} strokeWidth={1.5} />
@@ -326,7 +312,7 @@ export default function StudentsPage({ onNavigate }) {
         // STUDENTS VIEW
         // ==========================================
         filteredStudents.length === 0 ? (
-          <Card variant="glass" className="text-center py-12 px-6">
+          <Card variant="elevated" className="text-center py-12 px-6">
             <Users size={48} strokeWidth={1} className="mx-auto text-violet-300 mb-4" />
             <p className="text-stone-800 font-medium mb-1">
               Здесь появятся ваши индивидуальные ученики.
@@ -337,180 +323,17 @@ export default function StudentsPage({ onNavigate }) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredStudents.map(student => {
-              const activeSubjectIndex = activeTabs[student.id] || 0;
-              const subjects = student.subjects || [];
-              const activeSubject = subjects[activeSubjectIndex] || null;
-
-              return (
-                <Card 
-                  key={student.id} 
-                  variant="glass" 
-                  padding={false}
-                  className="group flex flex-col h-full bg-white/70 backdrop-blur-md transition-all duration-300 ease-out-quart hover:shadow-lg hover:-translate-y-0.5"
-                >
-                  {/* Header info */}
-                  <div className="p-5 pb-3 border-b border-stone-100/50">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-2xl ${getEntityColor(student.name).bg} flex items-center justify-center shrink-0`}>
-                          <span className={`text-sm font-bold ${getEntityColor(student.name).text}`}>
-                            {student.name.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-stone-900 leading-tight">{student.name}</h3>
-                          <p className="text-xs text-stone-500">{student.grade}</p>
-                        </div>
-                      </div>
-                      {(() => {
-                        const bal = student.balance || 0;
-                        if (bal > 0) {
-                          return (
-                            <div className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase shadow-sm border border-emerald-100">
-                              Аванс: {bal} ₽
-                            </div>
-                          );
-                        } else if (bal < 0) {
-                          return (
-                            <div className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase shadow-sm border border-red-100">
-                              Долг: {Math.abs(bal)} ₽
-                            </div>
-                          );
-                        } else {
-                          return (
-                            <div className="bg-stone-800 text-white px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase shadow-sm">
-                              Оплачено
-                            </div>
-                          );
-                        }
-                      })()}
-                    </div>
-                    
-                    <div className="space-y-1 mb-4">
-                      {student.contacts?.student && (
-                        <p className="text-xs text-stone-500 flex items-center gap-1.5">
-                          <Phone size={12} strokeWidth={2} className="shrink-0 text-stone-400" />
-                          {student.contacts.student}
-                        </p>
-                      )}
-                      <p className="text-xs text-stone-500 flex items-center gap-1.5">
-                        <BookOpen size={12} strokeWidth={2} className="shrink-0 text-stone-400" />
-                        0 уроков проведено
-                      </p>
-                    </div>
-
-                    {subjects.length > 1 && (
-                      <div className="flex gap-2 overflow-x-auto scrollbar-thin py-1 mb-1">
-                        {subjects.map((subj, idx) => (
-                          <button
-                            key={subj.id}
-                            onClick={() => handleTabChange(student.id, idx)}
-                            className={`text-xs font-medium px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap ${
-                              activeSubjectIndex === idx 
-                                ? 'bg-violet-100 text-violet-700' 
-                                : 'bg-stone-50 text-stone-500 hover:bg-stone-100'
-                            }`}
-                          >
-                            {subj.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {activeSubject && (
-                    <div className="px-5 py-4 flex-1 flex flex-col">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-2 ${
-                          activeSubject.paymentType === 'subscription' 
-                            ? 'bg-emerald-50 text-emerald-700' 
-                            : 'bg-stone-100 text-stone-700'
-                        }`}>
-                          <span className="font-bold opacity-80">{activeSubject.name}</span>
-                          <span className="w-1 h-1 rounded-full bg-current opacity-30"></span>
-                          <span>
-                            {activeSubject.price}₽ / {
-                              activeSubject.paymentType === 'subscription' 
-                                ? (activeSubject.subscriptionLessons ? `${activeSubject.subscriptionLessons} занятий` : 'абонемент')
-                                : 'урок'
-                            }
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 bg-stone-50/50 rounded-xl p-3 max-h-[140px] overflow-y-auto scrollbar-thin">
-                        <p className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-2">Назначенные программы</p>
-                        {activeSubject.programs && activeSubject.programs.length > 0 ? (
-                          <div className="space-y-3">
-                            {activeSubject.programs.map(prog => {
-                              const total = prog.topics?.length || 0;
-                              const completed = prog.topics?.filter(t => t.isCompleted)?.length || 0; 
-                              const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-                              
-                              return (
-                                <div 
-                                  key={prog.id} 
-                                  className="group/prog cursor-pointer"
-                                  onClick={() => openProgressModalForStudent(student, activeSubjectIndex, prog)}
-                                >
-                                  <div className="flex justify-between items-center mb-1.5">
-                                    <span className="text-sm font-medium text-stone-800 line-clamp-1">{prog.name}</span>
-                                    {total > 0 && (
-                                      <span className="text-xs font-semibold text-stone-500 tabular-nums shrink-0">{percent}%</span>
-                                    )}
-                                  </div>
-                                  {total > 0 && (
-                                    <div className="h-1.5 w-full bg-stone-200/80 rounded-full overflow-hidden">
-                                      <div 
-                                        className="h-full bg-fuchsia-500 rounded-full transition-all duration-500" 
-                                        style={{ width: `${percent}%` }}
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-stone-400 italic">Нет программ</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="p-4 mt-auto border-t border-stone-100/50 flex justify-between gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleOpenDrawer(student)}
-                      aria-label="Изменить"
-                      title="Редактировать профиль"
-                    >
-                      <Pencil size={18} strokeWidth={1.5} className="text-stone-500 hover:text-indigo-600" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleOpenEmail(student)}
-                      aria-label="Письмо"
-                      title="Отправить письмо"
-                    >
-                      <Mail size={18} strokeWidth={1.5} className="text-stone-500 hover:text-emerald-600" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleScheduleLesson(student.id, "individual")}
-                      aria-label="Добавить урок"
-                      title="Запланировать урок"
-                    >
-                      <PlusCircle size={18} strokeWidth={1.5} className="text-stone-500 hover:text-violet-600" />
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
+            {filteredStudents.map(student => (
+              <StudentCard
+                key={student.id}
+                student={student}
+                activeSubjectIndex={activeTabs[student.id] || 0}
+                onTabChange={handleTabChange}
+                onOpenProgressModal={openProgressModalForStudent}
+                onOpenDrawer={handleOpenDrawer}
+                onOpenEmail={handleOpenEmail}
+              />
+            ))}
           </div>
         )
       ) : (
@@ -518,7 +341,7 @@ export default function StudentsPage({ onNavigate }) {
         // GROUPS VIEW
         // ==========================================
         filteredGroups.length === 0 ? (
-          <Card variant="glass" className="text-center py-12 px-6">
+          <Card variant="elevated" className="text-center py-12 px-6">
             <Users size={48} strokeWidth={1} className="mx-auto text-teal-300 mb-4" />
             <p className="text-stone-800 font-medium mb-1">
               У вас еще нет групп.
@@ -529,138 +352,15 @@ export default function StudentsPage({ onNavigate }) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredGroups.map(group => {
-              const studentsInGroup = group.studentIds
-                ? students.filter(s => group.studentIds.includes(s.id))
-                : [];
-
-              return (
-                <Card 
-                  key={group.id} 
-                  variant="glass" 
-                  padding={false}
-                  className="group flex flex-col h-full bg-white/70 backdrop-blur-md transition-all duration-300 ease-out-quart hover:shadow-lg hover:-translate-y-0.5 border-t-4"
-                  style={{ borderTopColor: getEntityColor(group.id).hex }}
-                >
-                  <div className="p-5 pb-3 border-b border-stone-100/50">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex flex-col gap-3 min-w-0">
-                        <div>
-                          <h3 className="font-bold text-stone-900 leading-tight truncate">{group.name}</h3>
-                          <p className="text-xs text-stone-500 mt-0.5">
-                            <span className="font-medium text-teal-600">{group.subjectName}</span>
-                          </p>
-                        </div>
-                        <div className="flex -space-x-2 overflow-hidden shrink-0 py-1">
-                          {studentsInGroup.length > 0 ? studentsInGroup.map((s, i) => {
-                            const c = getEntityColor(s.name);
-                            return (
-                              <div key={s.id} className={`inline-block h-10 w-10 rounded-full ring-2 ring-white ${c.bg} flex items-center justify-center relative z-10`} style={{ zIndex: 10 - i }}>
-                                <span className={`text-sm font-bold ${c.text}`} title={s.name}>{s.name.charAt(0)}</span>
-                              </div>
-                            );
-                          }) : (
-                            <div className="h-10 w-10 rounded-full ring-2 ring-white bg-stone-100 flex items-center justify-center border border-dashed border-stone-300">
-                              <span className="text-xs text-stone-400">?</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="bg-stone-800 text-white px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase shadow-sm shrink-0 ml-2 mt-1">
-                        Активно
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="px-5 py-4 flex-1 flex flex-col">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-2 ${
-                        group.paymentType === 'subscription' 
-                          ? 'bg-emerald-50 text-emerald-700' 
-                          : 'bg-stone-100 text-stone-700'
-                      }`}>
-                        <span className="font-bold opacity-80">{group.price}₽ / {
-                          group.paymentType === 'subscription' 
-                            ? (group.subscriptionLessons ? `${group.subscriptionLessons} занятий` : 'абонемент')
-                            : 'урок'
-                        }</span>
-                      </div>
-                      <div className="px-2.5 py-1 rounded-lg text-xs font-medium bg-stone-50 text-stone-500 border border-stone-100 flex items-center gap-1">
-                        <Clock size={12} /> {group.duration} мин
-                      </div>
-                    </div>
-
-                    <div className="flex-1 bg-stone-50/50 rounded-xl p-3 max-h-[140px] overflow-y-auto scrollbar-thin">
-                      <p className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-2">Назначенные программы</p>
-                      {group.programs && group.programs.length > 0 ? (
-                        <div className="space-y-3">
-                          {group.programs.map(prog => {
-                            const total = prog.topics?.length || 0;
-                            const completed = prog.topics?.filter(t => t.isCompleted)?.length || 0; 
-                            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-                            
-                            return (
-                              <div 
-                                key={prog.id} 
-                                className="group/prog cursor-pointer"
-                                onClick={() => openProgressModalForGroup(group, prog)}
-                              >
-                                <div className="flex justify-between items-center mb-1.5">
-                                  <span className="text-sm font-medium text-stone-800 line-clamp-1">{prog.name}</span>
-                                  {total > 0 && (
-                                    <span className="text-xs font-semibold text-stone-500 tabular-nums shrink-0">{percent}%</span>
-                                  )}
-                                </div>
-                                {total > 0 && (
-                                  <div className="h-1.5 w-full bg-stone-200/80 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full bg-teal-500 rounded-full transition-all duration-500" 
-                                      style={{ width: `${percent}%` }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-stone-400 italic">Нет программ</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="p-4 mt-auto border-t border-stone-100/50 flex justify-between gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleOpenGroupDrawer(group)}
-                      aria-label="Изменить"
-                      title="Редактировать группу"
-                    >
-                      <Pencil size={18} strokeWidth={1.5} className="text-stone-500 hover:text-teal-600" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      disabled
-                      aria-label="Письмо"
-                      title="Отправить сообщение группе (в разработке)"
-                    >
-                      <Mail size={18} strokeWidth={1.5} className="text-stone-300" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleScheduleLesson(group.id, "group")}
-                      aria-label="Добавить урок"
-                      title="Запланировать урок"
-                    >
-                      <PlusCircle size={18} strokeWidth={1.5} className="text-stone-500 hover:text-teal-600" />
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
+            {filteredGroups.map(group => (
+              <GroupCard
+                key={group.id}
+                group={group}
+                studentsInGroup={group.studentIds ? students.filter(s => group.studentIds.includes(s.id)) : []}
+                onOpenProgressModal={openProgressModalForGroup}
+                onOpenDrawer={handleOpenGroupDrawer}
+              />
+            ))}
           </div>
         )
       )}

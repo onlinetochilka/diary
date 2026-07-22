@@ -61,7 +61,7 @@ export default function Modal({
       onClose={onClose}
       className={cn(
         "backdrop:bg-stone-900/40 backdrop:backdrop-blur-sm",
-        "bg-white rounded-2xl shadow-xl w-full p-0 overflow-visible",
+        "bg-ivory rounded-2xl shadow-neu-xl w-full p-0 overflow-visible",
         "open:animate-in open:fade-in-0 open:zoom-in-95 open:duration-200",
         maxWidth,
         className

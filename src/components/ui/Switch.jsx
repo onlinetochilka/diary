@@ -98,7 +98,7 @@ export default function Switch({
           // Focus-visible ring
           "focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
           // Color states
-          checked ? accents[accent] : "bg-stone-200",
+          checked ? accents[accent] : "bg-ivory shadow-neu-sm-inset",
           // Disabled
           disabled && "cursor-not-allowed",
           // Size
@@ -110,7 +110,7 @@ export default function Switch({
         <span
           aria-hidden="true"
           className={cn(
-            "pointer-events-none inline-block rounded-full bg-white shadow-sm",
+            "pointer-events-none inline-block rounded-full bg-ivory shadow-neu-sm",
             "transition-transform duration-200 ease-out-quart",
             "translate-x-0.5",
             checked && s.translateOn,

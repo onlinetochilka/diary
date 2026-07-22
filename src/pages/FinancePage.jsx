@@ -10,13 +10,6 @@ export default function FinancePage() {
   const [students, setStudents] = useState([]);
   const [payments, setPayments] = useState([]);
   const [lessons, setLessons] = useState([]);
-  
-  const [isPaying, setIsPaying] = useState(null); // student object or null
-  const [payAmount, setPayAmount] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const [remindStudent, setRemindStudent] = useState(null); // student object or null
-  const [copied, setCopied] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -85,38 +78,6 @@ export default function FinancePage() {
   // Awaiting payments (debtors)
   const awaitingPayment = students.filter(s => (s.balance || 0) < 0).sort((a, b) => (a.balance || 0) - (b.balance || 0));
 
-  const handlePay = async () => {
-    if (!isPaying || !payAmount) return;
-    setIsSubmitting(true);
-    await addPayment({
-      studentId: isPaying.id,
-      amount: Number(payAmount),
-      currency: "RUB",
-      paidAt: new Date().toISOString(),
-      note: "Оплата занятий"
-    });
-    await fetchData();
-    setIsSubmitting(false);
-    setIsPaying(null);
-    setPayAmount("");
-  };
-
-  const generateReminderText = (student) => {
-    const debt = Math.abs(student.balance || 0);
-    return `Привет! Напоминаю об оплате занятий. У нас накопилось к оплате ${debt} ₽. Перевести можно по номеру привязанному к телефону. Спасибо!`;
-  };
-
-  const handleCopy = async () => {
-    if (!remindStudent) return;
-    try {
-      await navigator.clipboard.writeText(generateReminderText(remindStudent));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   if (loading) {
     return (
       <PageWrapper title="Финансы и Аналитика" icon={Wallet} accentClass="text-emerald-600">
@@ -134,21 +95,21 @@ export default function FinancePage() {
     >
       {/* Stats row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card variant="elevated" className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white border-0">
-          <p className="text-sm text-emerald-100 font-medium">Доход за месяц</p>
-          <p className="text-3xl font-bold mt-2 tracking-tight">{incomeThisMonth.toLocaleString('ru')} ₽</p>
-          <p className="text-xs text-emerald-100 mt-2 opacity-80">Фактические поступления</p>
+        <Card variant="elevated" className="bg-white shadow-sm border-0">
+          <p className="text-sm text-stone-500 font-medium">Доход за месяц</p>
+          <p className="text-3xl font-bold mt-2 tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-teal-400">{incomeThisMonth.toLocaleString('ru')} ₽</p>
+          <p className="text-xs text-stone-400 mt-2">Фактические поступления</p>
         </Card>
         
-        <Card variant="elevated" className="bg-white border-stone-200">
+        <Card variant="elevated">
           <p className="text-sm text-stone-500 font-medium">Прогноз до конца месяца</p>
-          <p className="text-3xl font-bold mt-2 tracking-tight text-stone-900">{forecastThisMonth.toLocaleString('ru')} ₽</p>
+          <p className="text-3xl font-bold mt-2 tracking-tight text-emerald-600">{forecastThisMonth.toLocaleString('ru')} ₽</p>
           <p className="text-xs text-stone-400 mt-2">Доход + Запланированные уроки</p>
         </Card>
 
-        <Card variant="elevated" className="bg-white border-stone-200">
+        <Card variant="elevated">
           <p className="text-sm text-stone-500 font-medium">Уроков за месяц</p>
-          <p className="text-3xl font-bold mt-2 tracking-tight text-stone-900">{lessonsConductedThisMonth}</p>
+          <p className="text-3xl font-bold mt-2 tracking-tight text-stone-800">{lessonsConductedThisMonth}</p>
           <p className="text-xs text-stone-400 mt-2">Проведено занятий</p>
         </Card>
       </div>
@@ -156,7 +117,7 @@ export default function FinancePage() {
       <div className="mt-6 space-y-4">
         {/* Chart */}
         <h2 className="text-base font-bold text-stone-900 tracking-tight">Доход по месяцам</h2>
-        <Card variant="glass" className="h-40 flex flex-col justify-end p-5 pt-8">
+        <Card variant="elevated" className="h-40 flex flex-col justify-end p-5 pt-8">
           {maxMonthIncome === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-stone-400 gap-3">
               <TrendingUp size={32} className="opacity-20" />
@@ -171,14 +132,12 @@ export default function FinancePage() {
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-stone-500 bg-white shadow-sm border border-stone-200 px-1.5 py-0.5 rounded">
                       {d.income.toLocaleString('ru')} ₽
                     </div>
-                    <div className="w-full max-w-[40px] bg-stone-100 rounded-t-md relative overflow-hidden flex flex-col justify-end" style={{ height: '100%' }}>
-                      {d.income > 0 ? (
+                    <div className="w-full max-w-[40px] bg-stone-100/50 shadow-neu-inset rounded-t-md relative flex flex-col justify-end" style={{ height: '100%' }}>
+                      {d.income > 0 && (
                         <div 
-                          className={`w-full rounded-t-md transition-all duration-500 ${d.isCurrent ? 'bg-emerald-500' : 'bg-emerald-200'}`}
+                          className={`w-full rounded-t-md transition-all duration-500 ${d.isCurrent ? 'bg-emerald-500' : 'bg-emerald-400/80'}`}
                           style={{ height: `${height}%` }}
                         />
-                      ) : (
-                        <div className="w-full absolute bottom-0 border-b-2 border-dashed border-stone-200" />
                       )}
                     </div>
                     <span className={`text-xs ${d.isCurrent ? 'text-emerald-700 font-bold' : 'text-stone-400'}`}>{d.label}</span>
@@ -194,93 +153,8 @@ export default function FinancePage() {
         students={students} 
         payments={payments} 
         lessons={lessons} 
-        onRemind={setRemindStudent} 
-        onPay={(s) => { setIsPaying(s); setPayAmount(Math.abs(s.balance).toString()); }} 
+        onRefresh={fetchData}
       />
-
-      {/* Pay Modal */}
-      {isPaying && (
-        <>
-          <div className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-40 transition-opacity" onClick={() => !isSubmitting && setIsPaying(null)} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white rounded-2xl shadow-xl z-50 p-5 animate-in fade-in zoom-in-95">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="font-bold text-lg text-stone-900">Внести оплату</h3>
-                <p className="text-sm text-stone-500 mt-0.5">{isPaying.name}</p>
-              </div>
-              <button 
-                onClick={() => !isSubmitting && setIsPaying(null)}
-                className="p-1.5 text-stone-400 hover:bg-stone-100 rounded-lg transition-colors"
-                disabled={isSubmitting}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-stone-500 uppercase tracking-wider mb-1">Сумма, ₽</label>
-                <Input 
-                  type="number" 
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                  disabled={isSubmitting}
-                  className="text-lg font-medium py-3"
-                  autoFocus
-                />
-              </div>
-              <Button 
-                variant="primary" 
-                className="w-full justify-center h-11"
-                onClick={handlePay}
-                disabled={isSubmitting || !payAmount}
-              >
-                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : "Подтвердить оплату"}
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Reminder Modal */}
-      {remindStudent && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setRemindStudent(null)} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white rounded-2xl shadow-xl z-50 p-5 animate-in fade-in zoom-in-95 border border-stone-200">
-            <div className="flex gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
-                <AlertCircle size={20} />
-              </div>
-              <div>
-                <h3 className="font-bold text-stone-900 leading-tight">Напоминание об оплате</h3>
-                <p className="text-xs text-stone-500 mt-0.5">{remindStudent.name}</p>
-              </div>
-            </div>
-            
-            <div className="bg-stone-50 p-3 rounded-lg text-sm text-stone-700 font-medium mb-4 whitespace-pre-wrap leading-relaxed border border-stone-100 relative">
-              {generateReminderText(remindStudent)}
-            </div>
-            
-            <Button 
-              variant={copied ? "primary" : "secondary"}
-              className={`w-full justify-center h-10 transition-colors ${copied ? 'bg-emerald-500 text-white hover:bg-emerald-600 ring-0' : ''}`}
-              onClick={handleCopy}
-            >
-              {copied ? (
-                <>
-                  <CheckCircle size={16} className="mr-2" />
-                  Скопировано!
-                </>
-              ) : (
-                <>
-                  <Copy size={16} className="mr-2" />
-                  Скопировать текст
-                </>
-              )}
-            </Button>
-          </div>
-        </>
-      )}
     </PageWrapper>
   );
 }

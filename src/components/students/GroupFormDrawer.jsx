@@ -27,6 +27,7 @@ export default function GroupFormDrawer({
   availablePrograms = [],
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     name: "",
     subjectName: "",
@@ -43,41 +44,45 @@ export default function GroupFormDrawer({
   const [initialStateStr, setInitialStateStr] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      let initial;
-      if (initialData) {
-        initial = {
-          name: initialData.name || "",
-          subjectName: initialData.subjectName || "",
-          programs: initialData.programs || [],
-          paymentType: initialData.paymentType || "per_lesson",
-          price: initialData.price?.toString() || "",
-          duration: initialData.duration?.toString() || "90",
-          subscriptionLessons: initialData.subscriptionLessons?.toString() || "4",
-          studentIds: initialData.studentIds || [],
-        };
-      } else {
-        initial = {
-          name: "",
-          subjectName: "",
-          programs: [],
-          paymentType: "per_lesson",
-          price: "",
-          duration: "90",
-          subscriptionLessons: "4",
-          studentIds: [],
-        };
-      }
-      setFormData(initial);
-      setInitialStateStr(JSON.stringify(initial));
-      setIsSubmitting(false);
+    let initial;
+    if (initialData) {
+      initial = {
+        name: initialData.name || "",
+        subjectName: initialData.subjectName || "",
+        programs: initialData.programs || [],
+        paymentType: initialData.paymentType || "per_lesson",
+        price: initialData.price?.toString() || "",
+        duration: initialData.duration?.toString() || "90",
+        subscriptionLessons: initialData.subscriptionLessons?.toString() || "4",
+        studentIds: initialData.studentIds || [],
+      };
+    } else {
+      initial = {
+        name: "",
+        subjectName: "",
+        programs: [],
+        paymentType: "per_lesson",
+        price: "",
+        duration: "90",
+        subscriptionLessons: "4",
+        studentIds: [],
+      };
     }
+    setFormData(initial);
+    setInitialStateStr(JSON.stringify(initial));
+    setIsSubmitting(false);
+    setErrors({});
   }, [isOpen, initialData]);
 
   const isDirty = JSON.stringify(formData) !== initialStateStr;
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
   };
 
   const toggleStudent = (studentId) => {
@@ -126,6 +131,18 @@ export default function GroupFormDrawer({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
+    if (!formData.subjectName || !formData.subjectName.trim()) {
+      setErrors({ subjectName: "Укажите предмет для группы" });
+      return;
+    }
+    
+    if (!formData.studentIds || formData.studentIds.length === 0) {
+      setErrors({ students: "В группе должен быть минимум один ученик" });
+      return;
+    }
+    
     setIsSubmitting(true);
 
     const groupData = {
@@ -189,6 +206,7 @@ export default function GroupFormDrawer({
                   label="Предмет"
                   value={formData.subjectName}
                   onChange={(e) => handleChange("subjectName", e.target.value)}
+                  error={errors.subjectName}
                   required
                   disabled={isSubmitting}
                   list={datalistId}
@@ -263,7 +281,8 @@ export default function GroupFormDrawer({
             
             <div className="grid grid-cols-2 gap-3 pt-1">
               <Input
-                label={formData.paymentType === "subscription" ? "Цена абонемента с человека (₽)" : "Ставка за урок с человека (₽)"}
+                label={formData.paymentType === "subscription" ? "Абонемент (₽)" : "Ставка (₽)"}
+                helperText="Цена за 1 ученика"
                 type="number"
                 value={formData.price}
                 onChange={(e) => handleChange("price", e.target.value)}
@@ -277,6 +296,8 @@ export default function GroupFormDrawer({
                 required
                 disabled={isSubmitting}
               >
+                <option value="30">30 минут</option>
+                <option value="40">40 минут</option>
                 <option value="45">45 минут</option>
                 <option value="60">60 минут</option>
                 <option value="90">90 минут</option>
@@ -311,6 +332,14 @@ export default function GroupFormDrawer({
                 СОСТАВ ГРУППЫ ({formData.studentIds.length})
               </h3>
             </div>
+            {errors.students && (
+              <p role="alert" className="text-[11px] text-red-600 font-medium flex items-center gap-1 px-1 mb-2">
+                <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <path d="M6 1a5 5 0 110 10A5 5 0 016 1zm0 3a.75.75 0 00-.75.75v2.5a.75.75 0 001.5 0v-2.5A.75.75 0 006 4zm0 5a.75.75 0 100-1.5.75.75 0 000 1.5z" />
+                </svg>
+                {errors.students}
+              </p>
+            )}
             
             <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin pr-1">
               {availableStudents.length === 0 ? (

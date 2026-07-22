@@ -4,7 +4,8 @@ import { Card, Button } from "../components/ui/index.js";
 import { LayoutDashboard, Users, TrendingUp, Clock, BookOpen, Plus, Coffee, AlertCircle, CheckCircle2, PlayCircle, Send, Wallet, Bell, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { getLessons, getStudents, getPayments } from "../services/database.js";
 import { getEntityColor } from "../utils/colors.js";
-import EmailGeneratorModal from "../components/students/EmailGeneratorModal.jsx";
+import ActionItemModal from "../components/dashboard/ActionItemModal.jsx";
+import ActionItemCard from "../components/dashboard/ActionItemCard.jsx";
 
 export default function DashboardPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
@@ -16,15 +17,16 @@ export default function DashboardPage({ onNavigate }) {
   
   const [hwDebts, setHwDebts] = useState([]);
   const [moneyDebts, setMoneyDebts] = useState([]);
+  const [actionItems, setActionItems] = useState([]);
   
   const [stats, setStats] = useState({
     todayCount: 0,
-    hwDebtsCount: 0,
-    moneyDebtsCount: 0,
+    activeStudentsCount: 0,
+    hoursWorkedThisMonth: 0,
     incomeMonth: 0
   });
 
-  const [emailModal, setEmailModal] = useState({ isOpen: false, student: null });
+  const [actionModal, setActionModal] = useState({ isOpen: false, item: null, mode: "remind" });
 
   useEffect(() => {
     async function fetchData() {
@@ -107,15 +109,47 @@ export default function DashboardPage({ onNavigate }) {
       
       setMoneyDebts(mDebts);
 
-      // 4. Stats
+      // 5. Action Items (Combined)
+      const combined = [
+        ...mDebts.map(s => ({
+           id: `money-${s.id}`,
+           type: 'money',
+           student: s,
+           amount: Math.abs(s.balance),
+           priority: Math.abs(s.balance)
+        })),
+        ...hwDebtsArr.map(item => ({
+           id: `hw-${item.student.id}`,
+           type: 'hw',
+           student: item.student,
+           count: item.count,
+           priority: item.count * 1000 // Scale up to prioritize HW if there are many
+        }))
+      ];
+      combined.sort((a, b) => b.priority - a.priority);
+      setActionItems(combined);
+
+      // 6. Stats
       const incomeMonth = payments
         .filter(p => new Date(p.paidAt) >= monthStart && new Date(p.paidAt) < nextMonthStart)
         .reduce((sum, p) => sum + Number(p.amount), 0);
+        
+      const monthLessonsStr = monthStart.toISOString().substring(0, 7);
+      
+      const hoursWorkedThisMonth = allLessons
+        .filter(l => l.status === "conducted" && l.date.startsWith(monthLessonsStr))
+        .reduce((total, l) => {
+           if (!l.startTime || !l.endTime) return total;
+           const [h1, m1] = l.startTime.split(':').map(Number);
+           const [h2, m2] = l.endTime.split(':').map(Number);
+           const dur = (h2 + m2 / 60) - (h1 + m1 / 60);
+           return total + (dur > 0 ? dur : 0);
+        }, 0);
 
       setStats({
         todayCount: todayL.length,
-        hwDebtsCount: Object.values(hwMap).reduce((sum, count) => sum + count, 0),
-        moneyDebtsCount: students.filter(s => s.balance < 0).length,
+        activeStudentsCount: students.length,
+        hoursWorkedThisMonth,
         incomeMonth
       });
 
@@ -127,6 +161,12 @@ export default function DashboardPage({ onNavigate }) {
     return () => clearInterval(interval);
   }, []);
 
+  const now = new Date();
+  const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+  const dayNames = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
+  const dateStr = `${now.getDate()} ${monthNames[now.getMonth()].toUpperCase()}`;
+  const dayStr = dayNames[now.getDay()];
+
   return (
     <PageWrapper
       title="Главная"
@@ -134,268 +174,101 @@ export default function DashboardPage({ onNavigate }) {
       icon={LayoutDashboard}
       accentClass="text-stone-600"
     >
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-2">
+      {/* Stat cards (Навигационная панель) */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
         {[
-          { label: "Уроков сегодня", value: loading ? "..." : stats.todayCount,  icon: BookOpen,   color: "text-indigo-600 bg-indigo-50" },
-          { label: "Ждут ДЗ",        value: loading ? "..." : stats.hwDebtsCount, icon: AlertCircle, color: "text-amber-600 bg-amber-50" },
-          { label: "Ожидают оплаты", value: loading ? "..." : stats.moneyDebtsCount, icon: Wallet,  color: "text-red-600 bg-red-50" },
-          { label: "Доход, ₽",       value: loading ? "..." : `${(stats.incomeMonth / 1000).toFixed(1)}К`, icon: TrendingUp,  color: "text-emerald-600 bg-emerald-50" },
-        ].map((s) => (
-          <Card key={s.label} variant="elevated" className="animate-scale-in">
-            <div className={`inline-flex p-2 rounded-xl mb-3 ${s.color.split(" ")[1]}`}>
-              <s.icon size={16} strokeWidth={1.5} className={s.color.split(" ")[0]} />
-            </div>
-            <p className="text-2xl font-bold text-stone-900 leading-none">{s.value}</p>
-            <p className="text-xs text-stone-500 mt-1">{s.label}</p>
-          </Card>
+          { label: dayStr, value: dateStr, color: "bg-clip-text text-transparent bg-gradient-to-br from-blue-600 to-cyan-400", nav: "schedule", navState: { view: "month" }, textClass: "text-2xl sm:text-3xl" },
+          { label: "Уроков сегодня", value: loading ? "..." : stats.todayCount, color: "bg-gradient-to-br from-orange-400 to-rose-500 bg-clip-text text-transparent", nav: "schedule", navState: { view: "agenda" }, textClass: "text-5xl" },
+          { label: `за ${loading ? '...' : Math.round(stats.hoursWorkedThisMonth)} ч`, value: loading ? "..." : `${(stats.incomeMonth / 1000).toFixed(1)}К`, color: "bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-teal-400", nav: "finance", textClass: "text-5xl" },
+          { label: "Активных учеников", value: loading ? "..." : stats.activeStudentsCount, color: "bg-gradient-to-br from-indigo-400 to-purple-500 bg-clip-text text-transparent", nav: "students", textClass: "text-5xl" },
+        ].map((s, i) => (
+          <button 
+             key={i} 
+             onClick={() => onNavigate(s.nav, s.navState)}
+             type="button" 
+             className="group animate-scale-in flex flex-col items-center justify-center py-6 bg-ivory rounded-2xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer select-none"
+          >
+            <p className={`${s.textClass} font-black mb-1.5 transition-transform duration-200 group-active:scale-95 ${s.color}`}>{s.value}</p>
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{s.label}</p>
+          </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-10">
         
-        {/* Left Column: Focus & Timeline */}
-        <div className="lg:col-span-2">
-          
-          {/* Focus Block: Up Next */}
-          {loading ? (
-             <div className="rounded-3xl p-8 mb-6 h-40 bg-stone-100 animate-pulse" />
-          ) : nextLessonState !== "done" && nextLesson ? (
-            <div className={`relative overflow-hidden rounded-3xl p-6 mb-8 text-white shadow-xl transition-all ${
-              nextLessonState === "active" 
-                ? "bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-emerald-500/30 ring-4 ring-emerald-500/20" 
-                : "bg-gradient-to-br from-violet-600 to-indigo-700 shadow-violet-500/30"
-            }`}>
-              {nextLessonState === "active" && (
-                 <div className="absolute top-5 right-5 flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full backdrop-blur-md">
-                   <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                   <span className="text-xs font-bold uppercase tracking-wider">Идет сейчас</span>
-                 </div>
-              )}
-              {nextLessonState === "upcoming" && (
-                 <div className="absolute top-5 right-5 px-3 py-1 bg-white/20 rounded-full backdrop-blur-md">
-                   <span className="text-xs font-bold uppercase tracking-wider">На очереди</span>
-                 </div>
-              )}
-              <div className="mt-2">
-                <div className="text-4xl sm:text-5xl font-black tabular-nums tracking-tight mb-2 opacity-90">
-                  {nextLesson.startTime} <span className="text-2xl opacity-60 font-medium">- {nextLesson.endTime}</span>
-                </div>
-                <div className="text-xl sm:text-2xl font-medium text-white/90 mb-6 tracking-tight">
-                  {nextLesson.displayName} <span className="opacity-60 mx-2">•</span> {nextLesson.subjectName}
-                </div>
-                
-                <div className="flex gap-3">
-                  <Button 
-                    variant="primary" 
-                    className="bg-white text-stone-900 hover:bg-stone-50 border-0 h-11 px-6 shadow-sm"
-                    onClick={() => onNavigate("schedule")}
-                  >
-                    <PlayCircle size={18} className="mr-2 text-stone-500" />
-                    {nextLessonState === "active" ? "К уроку" : "Открыть материалы"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-3xl p-8 mb-8 text-center bg-teal-50/40 border border-teal-100/60 shadow-sm">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-teal-500 mb-4 mx-auto shadow-sm">
-                <Coffee size={28} />
-              </div>
-              <h3 className="text-lg font-bold text-teal-900">Все уроки завершены!</h3>
-              <p className="text-teal-700/70 mt-1">Отличная работа. Самое время выдохнуть и отдохнуть.</p>
-            </div>
-          )}
-
-          {/* Today's Timeline */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-stone-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Clock size={16} className="text-stone-400" />
-              План на сегодня
-            </h3>
-            
-            {loading ? (
-              <div className="h-20 bg-stone-100 rounded-2xl animate-pulse" />
-            ) : todayLessons.length === 0 ? (
-               <p className="text-sm text-stone-500 italic">На сегодня занятий нет.</p>
-            ) : (
-              <div className="space-y-3">
-                {todayLessons.filter(l => l.status === "conducted").length > 0 && (
-                  <div className="mb-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setShowConducted(!showConducted)}
-                      className="text-stone-500 hover:text-stone-700 bg-stone-100/50 hover:bg-stone-100"
-                    >
-                      {showConducted ? <ChevronUp size={14} className="mr-1" /> : <ChevronDown size={14} className="mr-1" />}
-                      {showConducted ? "Скрыть прошедшие" : `Показать прошедшие (${todayLessons.filter(l => l.status === "conducted").length})`}
-                    </Button>
-                  </div>
-                )}
-                
-                <div className="bg-stone-50/50 p-2 rounded-3xl border border-stone-100 space-y-1">
-                  {todayLessons.map((l) => {
-                    const isConducted = l.status === "conducted";
-                    if (isConducted && !showConducted) return null;
-                    
-                    return (
-                      <div
-                        key={l.id}
-                        className={`flex items-center gap-4 p-3 rounded-2xl transition-all ${
-                          isConducted 
-                            ? "opacity-60 grayscale bg-transparent" 
-                            : "bg-white shadow-sm border border-stone-200/60 hover:border-stone-300"
-                        }`}
-                      >
-                        <div className="text-sm font-bold text-stone-500 w-12 text-right tabular-nums">{l.startTime}</div>
-                        <div className={`h-10 w-10 rounded-xl ${getEntityColor(l.displayName).bg} flex items-center justify-center shrink-0`}>
-                          <span className={`text-sm font-bold ${getEntityColor(l.displayName).text}`}>
-                            {l.displayName[0]}
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className={`text-sm font-bold truncate ${isConducted ? "line-through text-stone-500" : "text-stone-900"}`}>
-                            {l.displayName}
-                          </p>
-                          <p className="text-xs text-stone-500">{l.subjectName}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {todayLessons.filter(l => l.status !== "conducted").length === 0 && !showConducted && (
-                    <div className="p-4 text-center text-sm text-stone-500">
-                      Остальных занятий на сегодня нет
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+        {/* Слой 2: Расписание */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Clock size={20} className="text-stone-400" />
+            <h2 className="text-lg font-bold text-stone-800">Расписание на сегодня</h2>
           </div>
           
-        </div>
-
-        {/* Right Column: Where's the fire? */}
-        <div className="space-y-6">
-          <h3 className="text-sm font-bold text-stone-900 uppercase tracking-widest flex items-center gap-2">
-            <AlertCircle size={16} className="text-stone-400" />
-            Где горит?
-          </h3>
-
-          {/* Ожидают оплаты */}
-          <Card variant="elevated" padding={false} className="overflow-hidden border-stone-200/60">
-            <div className="p-4 border-b border-stone-100 flex items-center gap-2 bg-stone-50/50">
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                <Wallet size={16} />
-              </div>
-              <h4 className="font-bold text-stone-900">Ожидают оплаты</h4>
+          {loading ? (
+            <div className="h-20 bg-stone-100 rounded-2xl animate-pulse" />
+          ) : todayLessons.filter(l => l.status !== "conducted").length === 0 ? (
+            <div className="flex items-center gap-3 text-stone-500 py-2">
+              <Coffee fill="currentColor" size={20} />
+              <span className="text-base font-bold">На сегодня всё</span>
             </div>
-            <div className="p-2">
-              {loading ? (
-                <div className="h-16 bg-stone-100 animate-pulse m-2 rounded-xl" />
-              ) : moneyDebts.length === 0 ? (
-                <div className="p-6 text-center">
-                  <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-3 shadow-inner">
-                    <CheckCircle2 size={24} />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {todayLessons.filter(l => l.status !== "conducted").map((l) => (
+                <div
+                  key={l.id}
+                  className="bg-ivory shadow-neu-sm p-4 rounded-2xl flex items-center gap-4 transition-all hover:shadow-neu-md cursor-pointer group"
+                  onClick={() => onNavigate("schedule")}
+                >
+                  <div className={`h-12 w-12 rounded-xl ${getEntityColor(l.displayName).bg} flex items-center justify-center shrink-0 shadow-inner`}>
+                    <span className={`text-base font-bold ${getEntityColor(l.displayName).text}`}>
+                      {l.displayName[0]}
+                    </span>
                   </div>
-                  <p className="text-sm font-medium text-stone-900">Все оплаты получены.</p>
-                  <p className="text-xs text-stone-500 mt-1">Идеально!</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {moneyDebts.map(s => (
-                    <div key={s.id} className="flex items-center justify-between p-2 hover:bg-stone-50 rounded-xl group transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-stone-900 truncate">{s.name}</p>
-                        <p className="text-xs font-bold text-red-500">{s.balance} ₽</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="w-8 h-8 opacity-0 group-hover:opacity-100 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" 
-                          onClick={() => onNavigate("finance")}
-                          title="Отметить оплату"
-                        >
-                          <Check size={16} />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="w-8 h-8 opacity-0 group-hover:opacity-100 text-stone-400 hover:text-violet-600 hover:bg-violet-50 transition-all" 
-                          onClick={() => setEmailModal({ isOpen: true, student: s })}
-                          title="Напомнить"
-                        >
-                          <Bell size={16} />
-                        </Button>
-                      </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-bold text-stone-900 truncate group-hover:text-blue-600 transition-colors">
+                      {l.displayName}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-sm font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md tabular-nums">{l.startTime}</span>
+                      <span className="text-xs text-stone-500 truncate">{l.subjectName}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Ждут ДЗ */}
-          <Card variant="elevated" padding={false} className="overflow-hidden border-stone-200/60">
-            <div className="p-4 border-b border-stone-100 flex items-center gap-2 bg-stone-50/50">
-              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                <BookOpen size={16} />
-              </div>
-              <h4 className="font-bold text-stone-900">Ждут ДЗ</h4>
-            </div>
-            <div className="p-2">
-              {loading ? (
-                <div className="h-16 bg-stone-100 animate-pulse m-2 rounded-xl" />
-              ) : hwDebts.length === 0 ? (
-                <div className="p-6 text-center">
-                  <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-3 shadow-inner">
-                    <CheckCircle2 size={24} />
                   </div>
-                  <p className="text-sm font-medium text-stone-900">Все домашки сданы и проверены.</p>
                 </div>
-              ) : (
-                <div className="space-y-1">
-                  {hwDebts.map(item => (
-                    <div key={item.student.id} className="flex items-center justify-between p-2 hover:bg-stone-50 rounded-xl group transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-stone-900 truncate">{item.student.name}</p>
-                        <p className="text-xs text-amber-600">{item.count} не сдано</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="w-8 h-8 opacity-0 group-hover:opacity-100 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" 
-                          onClick={() => onNavigate("students")}
-                          title="Перейти к карточке ученика"
-                        >
-                          <Check size={16} />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="w-8 h-8 opacity-0 group-hover:opacity-100 text-stone-400 hover:text-amber-600 hover:bg-amber-50 transition-all" 
-                          onClick={() => setEmailModal({ isOpen: true, student: item.student })}
-                          title="Напомнить о ДЗ"
-                        >
-                          <Bell size={16} />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
-          </Card>
+          )}
+        </section>
 
-        </div>
+        {/* Слой 3: Требует внимания (Action Items) */}
+        {!loading && actionItems.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-6">
+              <AlertCircle size={20} className="text-stone-400" />
+              <h2 className="text-lg font-bold text-stone-800">Требует внимания</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {actionItems.map(item => (
+                <ActionItemCard 
+                  key={item.id} 
+                  item={item} 
+                  onMarkDone={(item) => setActionModal({ isOpen: true, item, mode: "mark_done" })}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
       </div>
 
-      <EmailGeneratorModal
-        isOpen={emailModal.isOpen}
-        onClose={() => setEmailModal({ isOpen: false, student: null })}
-        student={emailModal.student}
+      <ActionItemModal
+        isOpen={actionModal.isOpen}
+        onClose={() => setActionModal({ isOpen: false, item: null, mode: "remind" })}
+        item={actionModal.item}
+        mode={actionModal.mode}
+        onConfirm={(item) => {
+          // This would ideally update the DB. For now, we'll just close it.
+          console.log("Confirmed action on", item);
+        }}
       />
     </PageWrapper>
   );

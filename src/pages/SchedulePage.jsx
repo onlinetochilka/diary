@@ -1,8 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, forwardRef } from "react";
 import { CalendarDays, Plus, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileText, PartyPopper, Copy } from "lucide-react";
 import { Card, Button, Switch, SegmentedControl } from "../components/ui/index.js";
-import { getLessons, getStudents, getGroups, deleteLesson, addLesson, updateLesson } from "../services/database.js";
+import { useSchedule } from "../hooks/useSchedule.js";
 import { getEntityColor } from "../utils/colors.js";
+import { DndContext, useDraggable, useDroppable, DragOverlay, pointerWithin, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import LessonDrawer from "../components/schedule/LessonDrawer.jsx";
 
 // ── Shared Section Wrapper ─────────────────────────────────────────────────
@@ -56,8 +59,17 @@ function getSubjectColor(subjectName) {
 // ── Helpers ────────────────────────────────────────────────────────────────
 const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 const getFirstDayOfMonth = (year, month) => {
-  let day = new Date(year, month, 1).getDay();
+  const day = new Date(year, month, 1).getDay();
   return day === 0 ? 6 : day - 1; // 0=Mon, 6=Sun
+};
+
+const getLessonWord = (count) => {
+  const n = Math.abs(count) % 100;
+  const n1 = n % 10;
+  if (n > 10 && n < 20) return "уроков";
+  if (n1 > 1 && n1 < 5) return "урока";
+  if (n1 === 1) return "урок";
+  return "уроков";
 };
 
 // Format date to YYYY-MM-DD
@@ -68,15 +80,25 @@ const ymd = (d) => {
   return `${yy}-${mm}-${dd}`;
 };
 
-export default function SchedulePage() {
-  const [view, setView] = useState("week"); // 'month', 'week', 'agenda'
-  const [currentDate, setCurrentDate] = useState(new Date());
-  
-  const [lessons, setLessons] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function SchedulePage({ pageState }) {
+  const {
+    lessons,
+    students,
+    groups,
+    isLoading,
+    handleSaveLesson: hookSaveLesson,
+    handleDeleteLesson: hookDeleteLesson,
+    handleQuickStatus: hookQuickStatus,
+    handleQuickHomework: hookQuickHomework
+  } = useSchedule();
 
+  const [view, setView] = useState(pageState?.view || "week"); // 'month', 'week', 'agenda'
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    if (pageState?.view) setView(pageState.view);
+  }, [pageState]);
+  
   const [hwDebtOnly, setHwDebtOnly] = useState(false);
   const [colorMode] = useState(() => localStorage.getItem("app_color_mode") || "entity");
 
@@ -84,31 +106,27 @@ export default function SchedulePage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState(null);
 
+  useEffect(() => {
+    return () => {
+      setIsDrawerOpen(false);
+    };
+  }, []);
+  const [drawerInitialTab, setDrawerInitialTab] = useState("info");
+
   // Fast Tracking Popover State
   const [popover, setPopover] = useState(null); // { lesson, x, y }
   
   // Drag-and-Drop Quick Edit State
   const [timeEditPopover, setTimeEditPopover] = useState(null); // { lesson, newDate, isCopy, x, y }
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const [ls, st, gr] = await Promise.all([
-        getLessons(),
-        getStudents(),
-        getGroups()
-      ]);
-      setLessons(ls);
-      setStudents(st);
-      setGroups(gr);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
+  const [activeDragLesson, setActiveDragLesson] = useState(null);
 
   useEffect(() => {
     const intent = localStorage.getItem('intent_schedule_entity');
@@ -129,24 +147,26 @@ export default function SchedulePage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-
     // Auto switch to agenda on mobile
     if (window.innerWidth < 1024) {
-      setView("agenda");
+      setView(prev => prev !== "agenda" ? "agenda" : prev);
     }
     const handleResize = () => {
-      if (window.innerWidth < 1024 && view !== "agenda") {
-        setView("agenda");
-      }
+      setView(prev => {
+        if (window.innerWidth < 1024 && prev !== "agenda") {
+          return "agenda";
+        }
+        return prev;
+      });
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const handleOpenDrawer = (lesson = null) => {
+  const handleOpenDrawer = (lesson = null, initialTab = "info") => {
     setPopover(null);
     setEditingLesson(lesson);
+    setDrawerInitialTab(initialTab);
     setIsDrawerOpen(true);
   };
 
@@ -156,43 +176,23 @@ export default function SchedulePage() {
   };
 
   const handleSaveLesson = async (id, data) => {
-    if (id) {
-      await updateLesson(id, data);
-    } else {
-      await addLesson(data);
-    }
-    
-    // Quick and dirty topic completion
-    if (data._markTopicCompleted && data.type === "individual" && data.studentId && data.programId && data.topicId) {
-      // Not fully implemented: Requires fetching student, updating the specific program's topic, and saving.
-      // For this step, we just save the lesson.
-    }
-
+    await hookSaveLesson(id, data);
     handleCloseDrawer();
-    fetchData();
   };
 
   const handleDeleteLesson = async (id) => {
-    await deleteLesson(id);
+    await hookDeleteLesson(id);
     handleCloseDrawer();
-    fetchData();
   };
 
   const handleQuickStatus = async (lesson, status) => {
     setPopover(null);
-    await updateLesson(lesson.id, { status });
-    fetchData();
+    await hookQuickStatus(lesson, status);
   };
 
   const handleQuickHomework = async (lesson, studentId, isDone) => {
     try {
-      const currentHwDoneBy = lesson.hwDoneBy || [];
-      const newHwDoneBy = isDone 
-        ? [...currentHwDoneBy, studentId]
-        : currentHwDoneBy.filter(id => id !== studentId);
-        
-      await updateLesson(lesson.id, { hwDoneBy: newHwDoneBy });
-      setLessons(prev => prev.map(l => l.id === lesson.id ? { ...l, hwDoneBy: newHwDoneBy } : l));
+      const newHwDoneBy = await hookQuickHomework(lesson, studentId, isDone);
       
       if (lesson.type === "individual") {
         setPopover(null);
@@ -202,6 +202,30 @@ export default function SchedulePage() {
     } catch (e) {
       console.error(e);
       alert("Ошибка при обновлении ДЗ");
+    }
+  };
+
+  const handleDragStart = (event) => {
+    setActiveDragLesson(event.active.data.current);
+  };
+
+  const handleDragEnd = (event) => {
+    setActiveDragLesson(null);
+    const { active, over } = event;
+    if (!over) return;
+    
+    const lesson = active.data.current;
+    const newDateStr = over.data.current.date;
+    const oldDateStr = ymd(new Date(lesson.date));
+    
+    if (lesson && newDateStr && oldDateStr !== newDateStr) {
+      setTimeEditPopover({
+        lesson: lesson,
+        newDate: newDateStr,
+        isCopy: false,
+        x: window.innerWidth / 2 - 150,
+        y: window.innerHeight / 2 - 100
+      });
     }
   };
 
@@ -295,59 +319,138 @@ export default function SchedulePage() {
     return null;
   };
 
-  const LessonCard = ({ lesson, onClick }) => {
-    let title = "Неизвестно";
-    let entityId = null;
-    
-    if (lesson.type === "individual") {
-      const st = students.find(s => s.id === lesson.studentId);
-      title = st ? st.name : "Ученик удален";
-      entityId = lesson.studentId;
-    } else {
-      const gr = groups.find(g => g.id === lesson.groupId);
-      title = gr ? gr.name : "Группа удалена";
-      entityId = lesson.groupId;
-    }
-
-    const isPast = ymd(new Date(lesson.date)) < ymd(new Date()) && lesson.status !== "planned";
-    const isFaded = isPast || hwDebtOnly;
-    
-    // Determine card styling based on colorMode
-    let colorClass = "";
-    if (colorMode === "subject") {
-      colorClass = getSubjectColor(lesson.subjectName);
-    } else {
-      const c = getEntityColor(title);
-      colorClass = `${c.bg} ${c.text} ${c.border}`;
-    }
-
+  const LessonCardView = forwardRef(({ 
+    lesson, onClick, compact = false, isOverlay = false, 
+    isDragging = false, isFaded = false, title, borderColorClass, textColorClass, 
+    listeners = {}, attributes = {}, style = {}
+  }, ref) => {
     return (
       <div 
-        draggable
-        onDragStart={(e) => {
-          e.dataTransfer.effectAllowed = "copyMove";
-          e.dataTransfer.setData("application/json", JSON.stringify(lesson));
+        ref={ref}
+        {...listeners}
+        {...attributes}
+        onClick={(e) => {
+          if (isDragging || isOverlay) return;
+          onClick(e, lesson);
         }}
-        onClick={(e) => onClick(e, lesson)}
-        className={`px-2 py-1.5 rounded-lg border text-xs cursor-pointer hover:shadow-md transition-all relative ${colorClass} ${isFaded ? "opacity-50 grayscale" : ""}`}
+        style={style}
+        className={`pl-2 pr-1.5 ${compact ? 'py-0.5 border-l-[3px]' : 'py-1.5 border-l-4'} rounded-lg cursor-pointer transition-all relative outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${borderColorClass} ${isOverlay ? 'cursor-grabbing bg-white shadow-neu-xl scale-105 rotate-1' : 'bg-white/50 hover:bg-white hover:shadow-neu-sm hover:-translate-y-px active:shadow-neu-sm-inset'} ${isFaded ? "opacity-50 grayscale" : ""}`}
       >
-        <div className="flex items-center justify-between mb-0.5">
-          <span className="font-bold tabular-nums">{lesson.startTime}</span>
+        <div className={`flex items-center justify-between ${compact ? '' : 'mb-0.5'}`}>
+          <span className={`font-bold tabular-nums ${textColorClass} ${compact ? 'text-[9px]' : 'text-xs'}`}>{lesson.startTime}</span>
           <div className="flex gap-1 items-center shrink-0">
             {renderStatusIcon(lesson.status)}
           </div>
         </div>
-        <div className={`font-medium flex items-center justify-between gap-1 ${lesson.status === 'cancelled' ? 'line-through' : ''}`}>
-          <span className="truncate">{title}</span>
+        <div className={`font-medium flex items-center justify-between gap-1 min-w-0 ${lesson.status === 'cancelled' ? 'line-through' : ''}`}>
+          <span className={`truncate min-w-0 flex-1 font-bold text-stone-800 ${compact ? 'text-[9.5px] leading-tight' : 'text-xs'}`}>{title}</span>
           {lesson.homework && (
             <div 
               className="shrink-0 flex items-center justify-center" 
               title={isLessonHwFullyDone(lesson) ? "ДЗ сдано" : "Долг по ДЗ"}
             >
-              <FileText size={10} className={isLessonHwFullyDone(lesson) ? "text-emerald-500" : "text-red-500"} />
+              <FileText size={10} className={isLessonHwFullyDone(lesson) ? "text-[#006584]" : "text-[#B71234]"} strokeWidth={2.5} />
             </div>
           )}
         </div>
+      </div>
+    );
+  });
+
+  const getLessonDisplayData = (lesson) => {
+    let title = "Неизвестно";
+    if (lesson.type === "individual") {
+      const st = students.find(s => s.id === lesson.studentId);
+      title = st ? st.name : "Ученик удален";
+    } else {
+      const gr = groups.find(g => g.id === lesson.groupId);
+      title = gr ? gr.name : "Группа удалена";
+    }
+
+    const isPast = ymd(new Date(lesson.date)) < ymd(new Date()) && lesson.status !== "planned";
+    const isFaded = isPast || hwDebtOnly;
+    
+    let borderColorClass = "";
+    let textColorClass = "";
+    
+    if (lesson.group) {
+      const subjColor = getSubjectColor(lesson.subject);
+      borderColorClass = subjColor.replace('bg-', 'border-');
+      textColorClass = subjColor.replace('bg-', 'text-').replace('100', '700').replace('50', '700');
+    } else {
+      const c = getEntityColor(title);
+      borderColorClass = c.border;
+      textColorClass = c.text;
+    }
+    
+    if (!borderColorClass.includes('border-')) borderColorClass = 'border-indigo-400';
+    if (!textColorClass.includes('text-')) textColorClass = 'text-indigo-700';
+
+    return { title, isFaded, borderColorClass, textColorClass };
+  };
+
+  const LessonCardOverlay = ({ lesson, compact = false }) => {
+    const { title, isFaded, borderColorClass, textColorClass } = getLessonDisplayData(lesson);
+    return (
+      <LessonCardView 
+        lesson={lesson}
+        onClick={() => {}}
+        compact={compact}
+        isOverlay={true}
+        isDragging={false}
+        isFaded={isFaded}
+        title={title}
+        borderColorClass={borderColorClass}
+        textColorClass={textColorClass}
+        style={{
+          boxShadow: "var(--shadow-neu-xl)",
+          cursor: "grabbing",
+          zIndex: 50,
+          margin: 0
+        }}
+      />
+    );
+  };
+
+  const LessonCard = ({ lesson, onClick, compact = false }) => {
+    const { title, isFaded, borderColorClass, textColorClass } = getLessonDisplayData(lesson);
+    
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+      id: `lesson-${lesson.id}`,
+      data: lesson
+    });
+
+    return (
+      <LessonCardView 
+        ref={setNodeRef}
+        lesson={lesson}
+        onClick={onClick}
+        compact={compact}
+        isOverlay={false}
+        isDragging={isDragging}
+        isFaded={isFaded}
+        title={title}
+        borderColorClass={borderColorClass}
+        textColorClass={textColorClass}
+        listeners={listeners}
+        attributes={attributes}
+        style={{ opacity: isDragging ? 0.3 : 1 }}
+      />
+    );
+  };
+
+  const DroppableSlot = ({ id, date, isToday, children, className }) => {
+    const { isOver, setNodeRef } = useDroppable({
+      id: id,
+      data: { date }
+    });
+    
+    return (
+      <div 
+        ref={setNodeRef} 
+        className={`${className} transition-all duration-300 ${isOver ? 'shadow-neu-sm-inset bg-stone-200/20' : ''}`}
+      >
+        {children}
       </div>
     );
   };
@@ -363,56 +466,78 @@ export default function SchedulePage() {
     const todayStr = ymd(new Date());
 
     return (
-      <div className="flex-1 min-h-0 bg-white border border-stone-200/60 rounded-2xl overflow-hidden flex flex-col shadow-sm">
-        <div className="grid grid-cols-7 bg-stone-50 border-b border-stone-200/60 shrink-0">
+      <div className="flex-1 min-h-0 rounded-2xl overflow-hidden flex flex-col">
+        <div className="grid grid-cols-7 shrink-0 border-b border-white/70">
           {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-            <div key={d} className="py-2 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest border-r border-stone-200/60 last:border-0">
+            <div key={d} className="py-2 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest border-r border-white/70 last:border-0">
               {d}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 flex-1 overflow-y-auto">
+        <div 
+          className="grid grid-cols-7 flex-1 overflow-hidden"
+          style={{ gridTemplateRows: `repeat(${days.length / 7}, minmax(0, 1fr))` }}
+        >
           {days.map((day, idx) => {
-            if (!day) return <div key={idx} className="border-r border-b border-stone-100 bg-stone-50/30 p-1" />;
+            if (!day) return <div key={idx} className="min-w-0 border-r border-b border-white/70 bg-transparent opacity-50 p-1" />;
             
             const dateStr = ymd(new Date(year, currentDate.getMonth(), day));
             const dayLessons = lessonsByDate[dateStr] || [];
             const isToday = dateStr === todayStr;
+            const isPast = dateStr < todayStr;
 
             return (
-              <div key={idx} className={`group/day border-r border-b border-stone-100 p-1.5 flex flex-col min-h-[100px] ${isToday ? "bg-indigo-50/20" : ""}`}>
-                <div className="flex items-center justify-between mb-1.5 px-1 shrink-0">
-                  <span className={`text-xs font-semibold ${isToday ? "bg-indigo-600 text-white w-5 h-5 rounded-full flex items-center justify-center" : "text-stone-500"}`}>
-                    {day}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={() => handleOpenDrawer({ date: dateStr })}
-                      className="opacity-0 group-hover/day:opacity-100 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 p-0.5 rounded transition-all"
-                      title="Добавить урок"
-                    >
-                      <Plus size={14} strokeWidth={2.5} />
-                    </button>
-                    {dayLessons.length > 0 && (
-                      <span className="text-[10px] text-stone-400">{dayLessons.length} ур.</span>
-                    )}
+              <DroppableSlot 
+                key={idx} 
+                id={`month-slot-${dateStr}`} 
+                date={dateStr}
+                className={`group/day min-w-0 border-r border-b border-white/70 p-1 flex flex-col min-h-0 ${isToday ? "bg-white/30 shadow-neu-sm-inset" : "bg-transparent hover:bg-white/30 transition-colors"}`}
+                onClick={() => {
+                  setView("agenda");
+                  setTimeout(() => {
+                    const el = document.getElementById(`agenda-date-${dateStr}`);
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 100);
+                }}
+              >
+                <div className={`flex-1 flex flex-col min-h-0 ${isPast ? "opacity-40 grayscale pointer-events-none" : ""}`}>
+                  <div className="flex items-center justify-between mb-1.5 px-1 shrink-0">
+                    <span className={`text-xs font-semibold ${isToday ? "bg-[#006584] shadow-neu-sm text-white w-6 h-6 rounded-full flex items-center justify-center" : "text-stone-500"}`}>
+                      {day}
+                    </span>
+                    <div className="flex items-center gap-1 pointer-events-auto">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleOpenDrawer({ date: dateStr }); }}
+                        className="opacity-0 group-hover/day:opacity-100 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 p-0.5 rounded transition-all"
+                        title="Добавить урок"
+                      >
+                        <Plus size={14} strokeWidth={2.5} />
+                      </button>
+                      {dayLessons.length > 0 && (
+                        <span className="text-[10px] text-stone-400">{dayLessons.length} ур.</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex-1 space-y-1 overflow-y-auto scrollbar-thin pr-0.5">
-                  {dayLessons.slice(0, 3).map(l => (
+                <div className="flex-1 space-y-0.5 overflow-hidden px-0.5 mt-0.5">
+                  {dayLessons.slice(0, 2).map(l => (
                     <LessonCard 
                       key={l.id} 
-                      lesson={l} 
+                      lesson={l}
+                      compact={true}
                       onClick={(e) => {
+                        e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
                         setPopover({ lesson: l, x: rect.left, y: rect.bottom });
                       }} 
                     />
                   ))}
-                  {dayLessons.length > 3 && (
+                </div>
+                {dayLessons.length > 2 && (
+                  <div className="text-center pb-0.5">
                     <button 
-                      className="w-full text-[10px] font-semibold text-stone-500 bg-stone-100/50 hover:bg-stone-100 border border-stone-200/50 rounded-lg py-1 mt-1 transition-colors"
-                      onClick={() => {
+                      className="inline-block bg-black/5 hover:bg-black/10 text-stone-500 text-[10px] font-medium rounded-full px-1.5 py-0.5 cursor-pointer transition-colors mt-0.5 pointer-events-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setView("agenda");
                         setTimeout(() => {
                           const el = document.getElementById(`agenda-date-${dateStr}`);
@@ -420,11 +545,12 @@ export default function SchedulePage() {
                         }, 100);
                       }}
                     >
-                      +{dayLessons.length - 3} урока
+                      + {dayLessons.length - 2} {getLessonWord(dayLessons.length - 2)}
                     </button>
-                  )}
+                  </div>
+                )}
                 </div>
-              </div>
+              </DroppableSlot>
             );
           })}
         </div>
@@ -446,58 +572,41 @@ export default function SchedulePage() {
     const todayStr = ymd(new Date());
 
     return (
-      <div className="flex-1 min-h-0 flex gap-2 overflow-x-auto snap-x pb-2 scrollbar-thin">
+      <div className="flex-1 min-h-0 flex gap-1 lg:gap-2 overflow-hidden pb-2">
         {weekDays.map((wd, i) => {
           const dateStr = ymd(wd);
           const isToday = dateStr === todayStr;
           const isPast = dateStr < todayStr;
+          const isWeekend = i === 5 || i === 6;
           const dayName = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'][i];
           const dayLessons = lessonsByDate[dateStr] || [];
+          const isNarrow = isWeekend && dayLessons.length === 0;
 
           return (
-            <div key={dateStr} className={`min-w-[180px] sm:min-w-[200px] flex-1 flex flex-col snap-center transition-opacity ${isPast ? 'opacity-60 grayscale-[10%]' : ''}`}>
-              <div className={`p-3 rounded-t-xl border border-b-0 shrink-0 ${isPast ? 'bg-stone-50 border-stone-200/40' : 'bg-white border-stone-200/60'}`}>
-                <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${isToday ? 'text-indigo-600' : 'text-stone-400'}`}>{dayName}</div>
-                <div className={`text-2xl font-bold leading-none flex items-center justify-center w-9 h-9 rounded-full ${isToday ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'text-stone-800'}`}>
-                  {wd.getDate()}
+            <div key={dateStr} className={`group ${isNarrow ? 'w-10 sm:w-12 shrink-0' : 'flex-1 min-w-0'} flex flex-col transition-all rounded-xl ${isToday ? "bg-white/30 shadow-neu-sm-inset" : isPast ? "bg-transparent opacity-60" : "bg-transparent hover:bg-white/30"}`}>
+              <div className={`p-2 sm:p-3 shrink-0 ${isPast ? 'opacity-60' : ''}`}>
+                <div className="text-center font-medium leading-tight">
+                  <div className={`text-[9px] sm:text-[10px] font-bold tracking-widest uppercase mb-1 sm:mb-2 ${isToday ? 'text-[#006584]' : 'text-stone-400'}`}>{dayName}</div>
+                </div>
+                <div className="flex justify-center">
+                  <div className={`text-lg sm:text-2xl font-bold leading-none flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full ${isToday ? 'bg-[#006584] text-white shadow-neu-sm' : 'text-stone-800'}`}>
+                    {wd.getDate()}
+                  </div>
                 </div>
               </div>
-              <div 
-                className={`flex-1 min-h-0 border rounded-b-xl p-2 flex flex-col transition-colors ${isPast ? 'bg-stone-50 border-stone-200/40' : 'bg-white border-stone-200/60 border-t-0'}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  const isCopying = e.altKey || e.ctrlKey || e.metaKey;
-                  e.dataTransfer.dropEffect = isCopying ? "copy" : "move";
-                  e.currentTarget.classList.add("bg-indigo-50/50");
-                }}
-                onDragLeave={(e) => {
-                  e.currentTarget.classList.remove("bg-indigo-50/50");
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove("bg-indigo-50/50");
-                  try {
-                    const dataStr = e.dataTransfer.getData("application/json");
-                    if (!dataStr) return;
-                    const lessonData = JSON.parse(dataStr);
-                    setTimeEditPopover({
-                      lesson: lessonData,
-                      newDate: dateStr,
-                      isCopy: e.altKey || e.ctrlKey || e.metaKey,
-                      x: e.clientX,
-                      y: e.clientY
-                    });
-                  } catch (err) {}
-                }}
+              <DroppableSlot 
+                id={`week-slot-${dateStr}`}
+                date={dateStr}
+                className={`flex-1 min-h-[140px] p-1 sm:p-2 flex flex-col transition-colors border-l border-white/70 ${isPast ? 'opacity-60' : ''}`}
               >
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  className="w-full mb-3 border-dashed shrink-0"
-                  onClick={() => handleOpenDrawer({ date: dateStr })}
-                >
-                  <Plus size={14} className="mr-1" /> Добавить
-                </Button>
+                {!isNarrow && (
+                  <button 
+                    className="w-full mb-2 flex items-center justify-center py-1.5 text-stone-400 font-medium text-[11px] bg-transparent hover:shadow-neu-sm-inset rounded-xl transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] opacity-30 md:opacity-0 md:group-hover:opacity-100"
+                    onClick={() => handleOpenDrawer({ date: dateStr })}
+                  >
+                    <Plus size={14} className="mr-1" /> Добавить
+                  </button>
+                )}
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
                   {dayLessons.map(l => (
                     <LessonCard 
@@ -509,11 +618,11 @@ export default function SchedulePage() {
                       }} 
                     />
                   ))}
-                  {dayLessons.length === 0 && (
-                    <div className="h-20 flex flex-col items-center justify-center text-xs text-stone-400 opacity-60 text-center px-2">
+                  {dayLessons.length === 0 && !isNarrow && (
+                    <div className="h-20 flex flex-col items-center justify-center text-[11px] text-stone-400 opacity-60 text-center px-1">
                       {hwDebtOnly ? (
                         <>
-                          <PartyPopper size={20} className="text-emerald-400 mb-1 opacity-80" strokeWidth={1.5} />
+                          <PartyPopper size={16} className="text-emerald-400 mb-1 opacity-80" strokeWidth={1.5} />
                           <span>Все долги сданы</span>
                         </>
                       ) : (
@@ -522,7 +631,7 @@ export default function SchedulePage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </DroppableSlot>
             </div>
           );
         })}
@@ -534,151 +643,176 @@ export default function SchedulePage() {
     const sortedDates = Object.keys(lessonsByDate).sort();
     
     return (
-      <div className="flex-1 overflow-y-auto space-y-6 pr-2 scrollbar-thin pb-8">
-        {sortedDates.length === 0 && (
-          <div className="text-center py-12 text-stone-500 bg-white rounded-2xl border border-stone-200/60 flex flex-col items-center justify-center">
-            {hwDebtOnly ? (
-              <>
-                <div className="bg-emerald-50 p-3 rounded-full mb-3">
-                  <PartyPopper size={28} className="text-emerald-500" strokeWidth={1.5} />
-                </div>
-                <span className="font-medium text-stone-800 mb-1 text-base">Ура! Все долги сданы</span>
-                <span className="text-sm text-stone-400">Ученики молодцы</span>
-              </>
-            ) : (
-              "Нет запланированных уроков."
-            )}
-          </div>
-        )}
-        {sortedDates.map(dateStr => {
-          const dayLessons = lessonsByDate[dateStr];
-          const d = new Date(dateStr);
-          const formattedDate = d.toLocaleString("ru", { weekday: 'long', day: 'numeric', month: 'long' });
-          
-          return (
-            <div key={dateStr} id={`agenda-date-${dateStr}`}>
-              <div className="sticky top-0 bg-[#FBFBFA] z-10 border-b border-stone-200/50 py-2 mb-3 flex items-center justify-between group/agenda">
-                <h3 className="text-sm font-bold text-stone-800 capitalize">
-                  {formattedDate}
-                </h3>
-                <button 
-                  onClick={() => handleOpenDrawer({ date: dateStr })}
-                  className="opacity-0 group-hover/agenda:opacity-100 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded-lg transition-all flex items-center gap-1 text-xs font-medium"
-                >
-                  <Plus size={14} /> Добавить
-                </button>
-              </div>
-              <div className="space-y-2">
-                {dayLessons.map(l => {
-                  const topicTitle = getLessonTopic(l);
-                  let title = "Неизвестно";
-                  let entityId = null;
-                  if (l.type === "individual") {
-                    const st = students.find(s => s.id === l.studentId);
-                    title = st ? st.name : "Ученик удален";
-                    entityId = l.studentId;
-                  } else {
-                    const gr = groups.find(g => g.id === l.groupId);
-                    title = gr ? gr.name : "Группа удалена";
-                    entityId = l.groupId;
-                  }
-                  
-                  return (
-                  <div 
-                    key={l.id} 
-                    className="flex gap-3 bg-white border border-stone-200/60 p-3 rounded-xl shadow-sm items-center cursor-pointer hover:border-indigo-200 transition-colors"
-                    onClick={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setPopover({ lesson: l, x: rect.left, y: rect.bottom });
-                    }}
-                  >
-                    <div className="w-16 text-center shrink-0">
-                      <div className="text-lg font-bold text-stone-800">{l.startTime}</div>
-                      <div className="text-[10px] text-stone-500 uppercase">{l.endTime}</div>
-                    </div>
-                    {colorMode === "subject" ? (
-                      <div className={`w-1 h-10 rounded-full shrink-0 ${getSubjectColor(l.subjectName).split(' ')[0]}`} />
-                    ) : (
-                      <div className={`w-1 h-10 rounded-full shrink-0 ${getEntityColor(title).bg}`} />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-stone-800 truncate">
-                        {title}
-                      </div>
-                      <div className="text-xs text-stone-500 truncate flex items-center gap-1.5">
-                        <span className="font-medium text-stone-600">{l.subjectName}</span>
-                        {renderStatusIcon(l.status)}
-                        {topicTitle && (
-                          <>
-                            <span className="text-stone-300">•</span>
-                            <span className="truncate" title={topicTitle}>{topicTitle}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {l.homework && l.homework.trim() !== "" && (
-                      <div className="shrink-0 flex items-center gap-1.5 px-2 py-1 bg-stone-50 rounded-lg border border-stone-200/60" title={isLessonHwFullyDone(l) ? "ДЗ выполнено" : "ДЗ не выполнено"}>
-                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">ДЗ</span>
-                        {isLessonHwFullyDone(l) ? (
-                          <CheckCircle2 size={14} className="text-emerald-500" />
-                        ) : (
-                          <XCircle size={14} className="text-red-400" />
-                        )}
-                      </div>
-                    )}
+      <div className="flex-1 overflow-y-auto scrollbar-thin pb-8">
+        <div className="max-w-4xl mx-auto space-y-6 pr-2">
+          {sortedDates.length === 0 && (
+            <div className="text-center py-12 text-stone-500 bg-ivory shadow-neu-sm-inset rounded-2xl flex flex-col items-center justify-center">
+              {hwDebtOnly ? (
+                <>
+                  <div className="bg-emerald-50 p-3 rounded-full mb-3">
+                    <PartyPopper size={28} className="text-emerald-500" strokeWidth={1.5} />
                   </div>
-                )})}
-              </div>
+                  <span className="font-medium text-stone-800 mb-1 text-base">Ура! Все долги сданы</span>
+                  <span className="text-sm text-stone-400">Ученики молодцы</span>
+                </>
+              ) : (
+                "Нет запланированных уроков."
+              )}
             </div>
-          );
-        })}
+          )}
+          {sortedDates.map(dateStr => {
+            const dayLessons = lessonsByDate[dateStr];
+            const d = new Date(dateStr);
+            const formattedDate = d.toLocaleString("ru", { weekday: 'long', day: 'numeric', month: 'long' });
+            
+            return (
+              <div key={dateStr} id={`agenda-date-${dateStr}`}>
+                <div className="sticky top-0 backdrop-blur-md bg-[rgb(var(--ivory))]/80 z-10 border-b border-stone-200/50 py-2 mb-3 flex items-center justify-between group/agenda">
+                  <h3 className="text-sm font-bold text-stone-800 capitalize">
+                    {formattedDate}
+                  </h3>
+                  <button 
+                    onClick={() => handleOpenDrawer({ date: dateStr })}
+                    className="opacity-0 group-hover/agenda:opacity-100 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded-lg transition-all flex items-center gap-1 text-xs font-medium"
+                  >
+                    <Plus size={14} /> Добавить
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {dayLessons.map(l => {
+                    const topicTitle = getLessonTopic(l);
+                    const { title, borderColorClass, textColorClass } = getLessonDisplayData(l);
+                    
+                    return (
+                    <div 
+                      key={l.id} 
+                      className={`border-l-4 ${borderColorClass} flex flex-col sm:flex-row gap-3 bg-ivory shadow-neu-sm p-4 rounded-2xl items-start sm:items-center justify-between cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[#006584] group @media (hover: hover) { hover:shadow-neu-md hover:-translate-y-px }`}
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setPopover({ lesson: l, x: rect.left, y: rect.bottom });
+                      }}
+                    >
+                      <div className="flex gap-4 items-center">
+                        <div className={`font-bold tabular-nums text-lg flex items-center justify-center shrink-0 pr-4 border-r-2 border-[#006584]/20 ${textColorClass}`}>
+                          <span>{l.startTime} — {l.endTime}</span>
+                        </div>
+                        <div>
+                          <div className="font-bold text-stone-800 text-base">{title}</div>
+                          <div className="text-xs text-stone-500 font-medium flex items-center gap-1.5 mt-0.5">
+                            <span>{l.subjectName}</span>
+                            {renderStatusIcon(l.status)}
+                            {topicTitle && (
+                              <>
+                                <span className="text-stone-300">•</span>
+                                <span className="truncate max-w-[150px] sm:max-w-[300px]" title={topicTitle}>{topicTitle}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mt-3 sm:mt-0 self-end sm:self-auto w-full sm:w-auto justify-end">
+                        {l.homework && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDrawer(l, "hw");
+                            }}
+                            className={`flex flex-col items-center justify-center w-11 h-11 shrink-0 rounded-xl font-bold text-[10px] uppercase transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isLessonHwFullyDone(l) ? 'text-[#006584] shadow-neu-sm-inset' : 'bg-ivory shadow-neu-sm active:shadow-neu-sm-inset text-[#B71234]'}`}
+                          >
+                            <span className="leading-none mb-0.5">ДЗ</span>
+                            {isLessonHwFullyDone(l) ? <CheckCircle2 size={12} strokeWidth={2.5}/> : <XCircle size={12} strokeWidth={2.5}/>}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
 
   return (
-    <PageWrapper
-      title="Расписание"
+    <PageWrapper 
+      title="Расписание" 
       subtitle="Управление уроками и долгами"
       icon={CalendarDays}
-      accentClass="text-indigo-600"
-      extraHeader={
-        <Button variant="primary" onClick={() => handleOpenDrawer()}>
-          <Plus size={16} strokeWidth={2} className="mr-2" />
-          Новый урок
-        </Button>
-      }
+      accentClass="text-[#006584]"
     >
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 shrink-0">
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" className="px-2" onClick={prevPeriod}><ChevronLeft size={18} /></Button>
-          <Button variant="secondary" size="sm" onClick={goToday}>Сегодня</Button>
-          <Button variant="secondary" size="sm" className="px-2" onClick={nextPeriod}><ChevronRight size={18} /></Button>
-          <span className="text-lg font-bold text-stone-800 ml-2 w-32">{headerTitle}</span>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4">
-          <label className="flex items-center gap-2 text-sm font-medium text-stone-600 bg-stone-100 px-3 py-1.5 rounded-lg cursor-pointer">
-            <Switch checked={hwDebtOnly} onChange={() => setHwDebtOnly(!hwDebtOnly)} accent="red" />
-            Долги по ДЗ
-          </label>
-          <div className="hidden lg:block">
-            <SegmentedControl
-              options={[
-                { label: "Месяц", value: "month" },
-                { label: "Неделя", value: "week" },
-                { label: "Список", value: "agenda" }
-              ]}
-              value={view}
-              onChange={setView}
-            />
+      <div className="h-full flex flex-col pt-4 overflow-hidden relative">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex bg-ivory shadow-neu-sm rounded-xl p-1 shrink-0">
+              <button onClick={prevPeriod} className="w-10 h-10 flex items-center justify-center rounded-lg text-stone-600 hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
+                <ChevronLeft size={20} />
+              </button>
+              <button onClick={goToday} className="px-4 h-10 flex items-center justify-center rounded-lg text-stone-700 font-bold text-sm hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
+                Сегодня
+              </button>
+              <button onClick={nextPeriod} className="w-10 h-10 flex items-center justify-center rounded-lg text-stone-600 hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
+                <ChevronRight size={20} />
+              </button>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-stone-800 tracking-tight whitespace-nowrap min-w-[140px]">
+              {headerTitle}
+            </h2>
+          </div>
+          
+          <div className="flex items-center justify-between md:justify-end gap-4 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+            <div className="flex items-center gap-2 shrink-0">
+              <Switch checked={hwDebtOnly} onChange={setHwDebtOnly} />
+              <span className="text-sm font-bold text-stone-700 cursor-pointer select-none" onClick={() => setHwDebtOnly(!hwDebtOnly)}>Долги по ДЗ</span>
+            </div>
+
+            <div className="flex bg-ivory shadow-neu-sm-inset rounded-xl p-1 shrink-0">
+              {['month', 'week', 'agenda'].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`px-4 h-9 rounded-lg text-sm font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${view === v ? 'bg-ivory shadow-neu-sm text-[#006584]' : 'text-stone-500 hover:text-stone-700'}`}
+                >
+                  {v === 'month' ? 'Месяц' : v === 'week' ? 'Неделя' : 'Список'}
+                </button>
+              ))}
+            </div>
+            
+            <button 
+              className="px-4 h-11 flex items-center justify-center bg-ivory text-[#006584] font-bold rounded-xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ml-2 shrink-0"
+              onClick={() => handleOpenDrawer()}
+            >
+              <Plus size={18} strokeWidth={3} className="mr-2" />
+              Новый урок
+            </button>
           </div>
         </div>
-      </div>
 
-      {view === "month" && renderMonth()}
-      {view === "week" && renderWeek()}
-      {view === "agenda" && renderAgenda()}
+        {/* Content Area */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl p-0 sm:p-2">
+          <DndContext 
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd} 
+            onDragCancel={() => setActiveDragLesson(null)}
+          >
+            {view === "month" && renderMonth()}
+            {view === "week" && renderWeek()}
+            {view === "agenda" && renderAgenda()}
+            <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
+              {activeDragLesson ? (
+                <LessonCardOverlay 
+                  lesson={activeDragLesson} 
+                  compact={view === 'month'} 
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
 
       <LessonDrawer 
         isOpen={isDrawerOpen}
@@ -686,6 +820,7 @@ export default function SchedulePage() {
         onSubmit={handleSaveLesson}
         onDelete={handleDeleteLesson}
         initialData={editingLesson}
+        initialTab={drawerInitialTab}
         students={students}
         groups={groups}
         lessons={lessons}
@@ -695,7 +830,7 @@ export default function SchedulePage() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setPopover(null)} />
           <div 
-            className="fixed z-50 bg-white rounded-xl shadow-xl border border-stone-200/60 p-2 w-56 animate-in fade-in zoom-in duration-200"
+            className="fixed z-50 bg-ivory rounded-xl shadow-neu-xl p-2 w-56 animate-in fade-in zoom-in duration-200"
             style={{ 
               top: Math.min(popover.y + 4, window.innerHeight - 200), 
               left: Math.min(popover.x, window.innerWidth - 224) 
@@ -821,7 +956,7 @@ export default function SchedulePage() {
         <>
           <div className="fixed inset-0 z-40 bg-stone-900/10" onClick={() => setTimeEditPopover(null)} />
           <div 
-            className="fixed z-50 bg-white rounded-xl shadow-xl border border-stone-200/60 p-4 w-60 animate-in fade-in zoom-in duration-200 flex flex-col gap-3"
+            className="fixed z-50 bg-ivory rounded-xl shadow-neu-xl p-4 w-60 animate-in fade-in zoom-in duration-200 flex flex-col gap-3"
             style={{ 
               top: Math.min(timeEditPopover.y, window.innerHeight - 150), 
               left: Math.min(timeEditPopover.x, window.innerWidth - 240) 
@@ -887,6 +1022,7 @@ export default function SchedulePage() {
           <span>Зажмите <strong>Ctrl</strong> (или <strong>Alt/Option</strong>) при перетаскивании, чтобы скопировать урок.</span>
         </div>
       )}
+      </div>
     </PageWrapper>
   );
 }

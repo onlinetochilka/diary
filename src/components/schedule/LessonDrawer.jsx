@@ -8,12 +8,14 @@ export default function LessonDrawer({
   onSubmit,
   onDelete,
   initialData = null,
+  initialTab = "info",
   students = [],
   groups = [],
   lessons = []
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState("info"); // 'info' | 'hw' | 'notes'
+  const [errors, setErrors] = useState({});
+  const [activeTab, setActiveTab] = useState(initialTab); // 'info' | 'hw' | 'notes'
   
   const [formData, setFormData] = useState({
     type: "individual", // 'individual' or 'group'
@@ -35,6 +37,7 @@ export default function LessonDrawer({
 
   useEffect(() => {
     if (isOpen) {
+      setActiveTab(initialTab);
       let initial;
       if (initialData) {
         initial = {
@@ -113,6 +116,8 @@ export default function LessonDrawer({
 
       return next;
     });
+    // Clear errors when fields change
+    setErrors({});
   };
 
   // Derived state for programs and topics
@@ -137,6 +142,32 @@ export default function LessonDrawer({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
+    // Validate Time Inversion
+    const startObj = new Date(`1970-01-01T${formData.startTime}:00Z`);
+    const endObj = new Date(`1970-01-01T${formData.endTime}:00Z`);
+    if (startObj >= endObj) {
+      setErrors({ time: "Время начала должно быть раньше времени окончания" });
+      return;
+    }
+
+    // Validate Time Overlap
+    const isOverlapping = lessons.some(l => {
+      if (initialData?.id && l.id === initialData.id) return false;
+      if (l.date !== formData.date) return false;
+      
+      const lStart = new Date(`1970-01-01T${l.startTime}:00Z`);
+      const lEnd = new Date(`1970-01-01T${l.endTime}:00Z`);
+      
+      return startObj < lEnd && endObj > lStart;
+    });
+
+    if (isOverlapping) {
+      setErrors({ time: "На это время уже запланирован другой урок" });
+      return;
+    }
+
     setIsSubmitting(true);
     
     // Auto-update topic progress if lesson is conducted
@@ -297,23 +328,35 @@ export default function LessonDrawer({
                     )}
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <Input
-                    label="Начало"
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) => handleChange("startTime", e.target.value)}
-                    required
-                    disabled={isSubmitting}
-                  />
-                  <Input
-                    label="Конец"
-                    type="time"
-                    value={formData.endTime}
-                    onChange={(e) => handleChange("endTime", e.target.value)}
-                    required
-                    disabled={isSubmitting}
-                  />
+                <div className="pt-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Начало"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={(e) => handleChange("startTime", e.target.value)}
+                      error={!!errors.time}
+                      required
+                      disabled={isSubmitting}
+                    />
+                    <Input
+                      label="Конец"
+                      type="time"
+                      value={formData.endTime}
+                      onChange={(e) => handleChange("endTime", e.target.value)}
+                      error={!!errors.time}
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {errors.time && (
+                    <p role="alert" className="text-[11px] text-red-600 font-medium flex items-center gap-1 px-1 mt-2">
+                      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                        <path d="M6 1a5 5 0 110 10A5 5 0 016 1zm0 3a.75.75 0 00-.75.75v2.5a.75.75 0 001.5 0v-2.5A.75.75 0 006 4zm0 5a.75.75 0 100-1.5.75.75 0 000 1.5z" />
+                      </svg>
+                      {errors.time}
+                    </p>
+                  )}
                 </div>
               </div>
 

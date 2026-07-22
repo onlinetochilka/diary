@@ -26,6 +26,7 @@ export default function StudentFormDrawer({
   availablePrograms = [],
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     name: "",
     grade: "",
@@ -54,56 +55,55 @@ export default function StudentFormDrawer({
   const [initialStateStr, setInitialStateStr] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      let initial;
-      if (initialData) {
-        initial = {
-          name: initialData.name || "",
-          grade: initialData.grade || "",
-          timezone: initialData.timezone || "UTC+3 (Москва)",
-          billingTo: initialData.contacts?.billingTo || "parent",
-          studentContact: initialData.contacts?.student || "",
-          parentName: initialData.contacts?.parentName || "",
-          parentContact: initialData.contacts?.parent || "",
-          autoRemind: initialData.contacts?.autoRemind || false,
-          subjects: initialData.subjects?.length > 0 
-            ? initialData.subjects.map(s => ({
-                id: s.id || generateId(),
-                name: s.name || "",
-                programs: s.programs || [],
-                price: s.price?.toString() || "",
-                duration: s.duration?.toString() || "60",
-                paymentType: s.paymentType || "per_lesson",
-                subscriptionLessons: s.subscriptionLessons?.toString() || "4",
-              }))
-            : [createEmptySubject()],
-        };
-      } else {
-        initial = {
-          name: "",
-          grade: "",
-          timezone: "UTC+3 (Москва)",
-          billingTo: "parent",
-          studentContact: "",
-          parentName: "",
-          parentContact: "",
-          autoRemind: false,
-          subjects: [createEmptySubject()],
-        };
-      }
-      // Remove auto-generated IDs when comparing to prevent false dirtiness on empty subjects
-      const stripIds = (state) => ({
-        ...state,
-        subjects: state.subjects.map(s => {
-          const { id, ...rest } = s;
-          return rest;
-        })
-      });
-      
-      setFormData(initial);
-      setInitialStateStr(JSON.stringify(stripIds(initial)));
-      setIsSubmitting(false);
+    let initial;
+    if (initialData) {
+      initial = {
+        name: initialData.name || "",
+        grade: initialData.grade || "",
+        timezone: initialData.timezone || "UTC+3 (Москва)",
+        billingTo: initialData.contacts?.billingTo || "parent",
+        studentContact: initialData.contacts?.student || "",
+        parentName: initialData.contacts?.parentName || "",
+        parentContact: initialData.contacts?.parent || "",
+        autoRemind: initialData.contacts?.autoRemind || false,
+        subjects: initialData.subjects?.length > 0 
+          ? initialData.subjects.map(s => ({
+              id: s.id || generateId(),
+              name: s.name || "",
+              programs: s.programs || [],
+              price: s.price?.toString() || "",
+              duration: s.duration?.toString() || "60",
+              paymentType: s.paymentType || "per_lesson",
+              subscriptionLessons: s.subscriptionLessons?.toString() || "4",
+            }))
+          : [createEmptySubject()],
+      };
+    } else {
+      initial = {
+        name: "",
+        grade: "",
+        timezone: "UTC+3 (Москва)",
+        billingTo: "parent",
+        studentContact: "",
+        parentName: "",
+        parentContact: "",
+        autoRemind: false,
+        subjects: [createEmptySubject()],
+      };
     }
+    // Remove auto-generated IDs when comparing to prevent false dirtiness on empty subjects
+    const stripIds = (state) => ({
+      ...state,
+      subjects: state.subjects.map(s => {
+        const { id, ...rest } = s;
+        return rest;
+      })
+    });
+    
+    setFormData(initial);
+    setInitialStateStr(JSON.stringify(stripIds(initial)));
+    setIsSubmitting(false);
+    setErrors({});
   }, [isOpen, initialData]);
 
   const stripIds = (state) => ({
@@ -117,6 +117,11 @@ export default function StudentFormDrawer({
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
   };
 
   const handleSubjectChange = (index, field, value) => {
@@ -124,6 +129,11 @@ export default function StudentFormDrawer({
       const newSubjects = [...prev.subjects];
       newSubjects[index] = { ...newSubjects[index], [field]: value };
       return { ...prev, subjects: newSubjects };
+    });
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[`subject-${index}-${field}`];
+      return next;
     });
   };
 
@@ -183,6 +193,53 @@ export default function StudentFormDrawer({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
+    const newErrors = {};
+    const nameStr = formData.name || "";
+    if (!nameStr.trim()) {
+      newErrors.name = "Укажите имя ученика";
+    } else if (nameStr.length > 500) {
+      newErrors.name = "Имя слишком длинное (до 500 символов)";
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+
+    if (formData.studentContact && formData.studentContact.includes('@')) {
+      if (!emailRegex.test(formData.studentContact)) {
+         newErrors.studentContact = "Некорректный формат email";
+      }
+    } else if (formData.studentContact) {
+      if (!phoneRegex.test(formData.studentContact) || formData.studentContact.length < 5) {
+         newErrors.studentContact = "Некорректный формат телефона";
+      }
+    }
+
+    if (formData.parentContact && formData.parentContact.includes('@')) {
+      if (!emailRegex.test(formData.parentContact)) {
+         newErrors.parentContact = "Некорректный формат email";
+      }
+    } else if (formData.parentContact) {
+      if (!phoneRegex.test(formData.parentContact) || formData.parentContact.length < 5) {
+         newErrors.parentContact = "Некорректный формат телефона";
+      }
+    }
+
+    formData.subjects.forEach((subj, idx) => {
+      if (subj.price !== "") {
+        const priceNum = Number(subj.price);
+        if (isNaN(priceNum) || priceNum < 0) {
+          newErrors[`subject-${idx}-price`] = "Цена не может быть отрицательной";
+        }
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
     setIsSubmitting(true);
 
     const formattedSubjects = formData.subjects.map((subj) => ({
@@ -248,6 +305,7 @@ export default function StudentFormDrawer({
               label="Имя ученика"
               value={formData.name}
               onChange={(e) => handleChange("name", e.target.value)}
+              error={errors.name}
               required
               disabled={isSubmitting}
             />
@@ -312,6 +370,7 @@ export default function StudentFormDrawer({
                 label="Контакт ученика"
                 value={formData.studentContact}
                 onChange={(e) => handleChange("studentContact", e.target.value)}
+                error={errors.studentContact}
                 disabled={isSubmitting}
               />
               
@@ -332,6 +391,7 @@ export default function StudentFormDrawer({
                       label="Email родителя"
                       value={formData.parentContact}
                       onChange={(e) => handleChange("parentContact", e.target.value)}
+                      error={errors.parentContact}
                       disabled={isSubmitting}
                     />
                   </div>
@@ -405,10 +465,11 @@ export default function StudentFormDrawer({
                     
                     <div className="grid grid-cols-2 gap-3">
                       <Input
-                        label={subj.paymentType === "subscription" ? "Цена абонемента (₽)" : "Ставка за урок (₽)"}
+                        label={subj.paymentType === "subscription" ? "Абонемент (₽)" : "Ставка (₽)"}
                         type="number"
                         value={subj.price}
                         onChange={(e) => handleSubjectChange(index, "price", e.target.value)}
+                        error={errors[`subject-${index}-price`]}
                         required
                         disabled={isSubmitting}
                       />
@@ -419,6 +480,8 @@ export default function StudentFormDrawer({
                         required
                         disabled={isSubmitting}
                       >
+                        <option value="30">30 минут</option>
+                        <option value="40">40 минут</option>
                         <option value="45">45 минут</option>
                         <option value="60">60 минут</option>
                         <option value="90">90 минут</option>

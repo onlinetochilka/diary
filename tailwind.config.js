@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -31,9 +34,14 @@ export default {
           600: "rgb(var(--indigo-600) / <alpha-value>)",
           700: "rgb(var(--indigo-700) / <alpha-value>)",
         },
+        // Brand colors from timer
+        brand: {
+          burgundy: "#B71234",
+          blue: "#006584",
+        },
         // Section accent palette
         finance:  { DEFAULT: "#10b981", light: "#d1fae5", ring: "#6ee7b7" }, // emerald
-        schedule: { DEFAULT: "#6366f1", light: "#e0e7ff", ring: "#a5b4fc" }, // indigo
+        schedule: { DEFAULT: "#006584", light: "#e0e7ff", ring: "#a5b4fc" }, // brand teal
         students: { DEFAULT: "#8b5cf6", light: "#ede9fe", ring: "#c4b5fd" }, // violet
         settings: { DEFAULT: "#78716c", light: "#f5f5f4", ring: "#d6d3d1" }, // stone
       },
@@ -44,10 +52,17 @@ export default {
         "out-quart": "cubic-bezier(0.165, 0.84, 0.44, 1)",
       },
       boxShadow: {
-        float:  "0 4px 6px -1px rgb(0 0 0 / .06), 0 10px 24px -4px rgb(0 0 0 / .08)",
-        card:   "0 1px 2px rgb(0 0 0 / .04), 0 4px 12px -2px rgb(0 0 0 / .06)",
-        "card-hover": "0 4px 6px -1px rgb(0 0 0 / .08), 0 12px 28px -4px rgb(0 0 0 / .10)",
-        sidebar: "2px 0 8px rgb(0 0 0 / .05)",
+        // Neumorphism shadows mapping
+        "neu-sm": "4px 4px 10px var(--shadow-dark-color), -4px -4px 10px var(--shadow-light-color)",
+        "neu-sm-inset": "inset 3px 3px 8px var(--shadow-dark-color), inset -3px -3px 8px var(--shadow-light-color)",
+        "neu-md": "6px 6px 16px var(--shadow-dark-color), -6px -6px 16px var(--shadow-light-color)",
+        "neu-md-inset": "inset 5px 5px 12px var(--shadow-dark-color), inset -5px -5px 12px var(--shadow-light-color)",
+        "neu-lg": "14px 14px 36px var(--shadow-dark-color), -14px -14px 36px var(--shadow-light-color)",
+        "neu-lg-inset": "inset 10px 10px 24px var(--shadow-dark-color), inset -10px -10px 24px var(--shadow-light-color)",
+        "neu-xl": "20px 20px 60px var(--shadow-dark-color), -20px -20px 60px var(--shadow-light-color)",
+        "neu-focus": "0 0 0 2px #006584", // using brand-blue for focus glow
+        "neu-focus-burgundy": "0 0 0 2px #B71234",
+        "sidebar": "2px 0 8px rgb(var(--shadow-dark) / 0.5)",
       },
       backdropBlur: {
         xs: "4px",

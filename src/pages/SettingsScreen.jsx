@@ -85,12 +85,8 @@ function SaveOnBlurInput({ label, value, onChange, onSave, multiline, disabled, 
 }
 
 const THEMES = [
-  { id: "tochilka", name: "Точилка", color: "#faf8f5", border: "#e8ddd0", icon: "text-stone-900" },
-  { id: "dark", name: "Темная", color: "#1c1917", border: "#292524", icon: "text-white" },
-  { id: "girly", name: "Нежная", color: "#fff1f2", border: "#fecdd3", icon: "text-pink-600" },
-  { id: "academic", name: "Строгая", color: "#f8fafc", border: "#e2e8f0", icon: "text-slate-800" },
-  { id: "coffee", name: "Кофейная", color: "#fdf8f6", border: "#e3d5ca", icon: "text-amber-900" },
-  { id: "cringe", name: "Умереть не встать", color: "#000000", border: "#39ff14", icon: "text-[#39ff14]" },
+  { id: "tochilka", name: "Точилка", color: "#e0e5ec", border: "#b8c2d1", icon: "text-stone-900" },
+  { id: "dark", name: "Темная", color: "#1c2433", border: "#263044", icon: "text-white" },
 ];
 
 const DAYS = [

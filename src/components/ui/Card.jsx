@@ -13,10 +13,10 @@ import { cn } from "../../utils/cn.js";
 
 const variants = {
   flat: [
-    "bg-white border border-stone-200",
+    "bg-ivory border border-stone-200/30",
   ],
   elevated: [
-    "bg-white shadow-card",
+    "bg-ivory shadow-neu-sm",
   ],
   glass: [
     "glass-card",     // defined in index.css
@@ -50,8 +50,8 @@ export default function Card({
         ...variants[variant],
         // Hover lift animation
         hoverLift && [
-          "transition-all duration-250 ease-out-quart",
-          "hover:shadow-card-hover hover:-translate-y-0.5",
+          "transition-all duration-300 ease-out-quart",
+          "hover:shadow-neu-md hover:-translate-y-0.5",
         ],
         // Default padding
         padding && "p-5",

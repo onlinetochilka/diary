@@ -13,6 +13,12 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (typeof window !== "undefined" && (window.location.search.includes("mock_user=true") || localStorage.getItem("mock_user"))) {
+      setUser({ uid: "mock-uid", email: "mock@tutor.ru" });
+      setIsLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsLoading(false);

@@ -41,9 +41,9 @@ function RootApp() {
   return (
     <ErrorBoundary>
       <AppShell defaultPage="dashboard">
-        {(activePage, onNavigate) => {
+        {(activePage, onNavigate, pageState) => {
           const Page = PAGE_MAP[activePage] ?? DashboardPage;
-          return <Page onNavigate={onNavigate} />;
+          return <Page onNavigate={onNavigate} pageState={pageState} />;
         }}
       </AppShell>
     </ErrorBoundary>

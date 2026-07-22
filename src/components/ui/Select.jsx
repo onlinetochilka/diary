@@ -50,14 +50,13 @@ export default function Select({
           value={value}
           defaultValue={defaultValue}
           className={cn(
-            "peer w-full rounded-xl border bg-white/80 backdrop-blur-sm px-3.5 pb-2 pt-6 text-sm",
+            "peer w-full rounded-xl bg-ivory px-3.5 pb-2 pt-6 text-sm",
             "text-stone-900 outline-none appearance-none cursor-pointer",
             "transition-all duration-300 ease-out-quart",
-            "border-stone-200/80 shadow-sm",
-            "hover:border-stone-300",
-            "focus:bg-white focus:border-violet-300 focus:ring-4 focus:ring-violet-500/15 focus:shadow-md",
-            hasError && "border-red-400 focus:border-red-400 focus:ring-red-500/15",
-            disabled && "bg-stone-50 text-stone-400 cursor-not-allowed opacity-60",
+            "border-2 border-transparent shadow-neu-sm-inset",
+            "focus:border-transparent focus:ring-2 focus:ring-brand-teal focus:ring-offset-2 focus:ring-offset-ivory focus:shadow-neu-sm-inset",
+            hasError && "ring-2 ring-brand-red ring-offset-2 ring-offset-ivory",
+            disabled && "opacity-60 cursor-not-allowed",
             leftIcon && "pl-10",
             "pr-10" // Space for chevron
           )}

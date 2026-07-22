@@ -187,7 +187,7 @@ export default function ProgramsPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fuchsia-600"></div>
         </div>
       ) : programs.length === 0 ? (
-        <Card variant="glass" className="text-center py-12 px-6">
+        <Card variant="elevated" className="text-center py-12 px-6">
           <BookOpen size={48} strokeWidth={1} className="mx-auto text-fuchsia-300 mb-4" />
           <p className="text-stone-800 font-medium mb-1">
             У вас еще нет учебных программ.
@@ -201,7 +201,7 @@ export default function ProgramsPage() {
           {programs.map(prog => (
             <Card 
               key={prog.id} 
-              variant="glass" 
+              variant="elevated" 
               className="flex flex-col group cursor-pointer hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 border-l-4 border-l-fuchsia-400"
               onClick={() => { setEditingProgram(prog); setIsDrawerOpen(true); }}
             >

@@ -4,7 +4,14 @@
 
 /* ─── Custom Properties ─────────────────────────────────── */
 :root, [data-theme="tochilka"] {
-  --ivory: 250 248 245;
+  /* Base Neumorphic Colors */
+  --ivory: 237 242 247; /* #edf2f7 - pearl gray, much lighter for vibrant colors to pop */
+  --shadow-light: 255 255 255;   /* for any legacy usages */
+  --shadow-dark: 209 217 230;    /* for any legacy usages */
+  --shadow-light-color: #ffffff;
+  --shadow-dark-color: #d1d9e6; /* Lighter shadow to match the pearl-gray background */
+
+  /* Keep stone palette for text & grays (using existing values) */
   --stone-50: 250 250 249;
   --stone-100: 245 245 244;
   --stone-200: 231 229 228;
@@ -15,12 +22,11 @@
   --stone-700: 68 64 60;
   --stone-800: 41 37 36;
   --stone-900: 28 25 23;
+
   --indigo-500: 99 102 241;
   --indigo-600: 79 70 229;
   --indigo-700: 67 56 202;
 
-  --shadow-card:     0 1px 2px rgb(0 0 0 / .04), 0 4px 12px -2px rgb(0 0 0 / .06);
-  --shadow-float:    0 4px 6px -1px rgb(0 0 0 / .06), 0 10px 24px -4px rgb(0 0 0 / .08);
   --sidebar-width:   240px;
 
   /* Easing tokens */
@@ -29,7 +35,14 @@
 }
 
 [data-theme="dark"] {
-  --ivory: 18 18 18;
+  /* Neumorphism tokens from timer (Dark) */
+  --ivory: 28 36 51;             /* #1c2433 */
+  --shadow-light: 38 48 68;      /* for legacy */
+  --shadow-dark: 14 19 28;       /* for legacy */
+  --shadow-light-color: #263044;
+  --shadow-dark-color: #0e131c;
+
+  /* In dark mode, invert the stone palette so text is light */
   --stone-50: 28 25 23;
   --stone-100: 41 37 36;
   --stone-200: 68 64 60;
@@ -40,77 +53,10 @@
   --stone-700: 231 229 228;
   --stone-800: 245 245 244;
   --stone-900: 250 250 249;
+
   --indigo-500: 129 140 248;
   --indigo-600: 99 102 241;
   --indigo-700: 79 70 229;
-}
-
-[data-theme="girly"] {
-  --ivory: 255 241 242;
-  --stone-50: 255 228 230;
-  --stone-100: 254 205 211;
-  --stone-200: 253 164 175;
-  --stone-300: 251 113 133;
-  --stone-400: 244 63 94;
-  --stone-500: 225 29 72;
-  --stone-600: 190 18 60;
-  --stone-700: 159 18 57;
-  --stone-800: 136 19 55;
-  --stone-900: 76 5 25;
-  --indigo-500: 244 114 182;
-  --indigo-600: 219 39 119;
-  --indigo-700: 190 24 93;
-}
-
-[data-theme="academic"] {
-  --ivory: 248 250 252;
-  --stone-50: 241 245 249;
-  --stone-100: 226 232 240;
-  --stone-200: 203 213 225;
-  --stone-300: 148 163 184;
-  --stone-400: 100 116 139;
-  --stone-500: 71 85 105;
-  --stone-600: 51 65 85;
-  --stone-700: 30 41 59;
-  --stone-800: 15 23 42;
-  --stone-900: 2 6 23;
-  --indigo-500: 37 99 235;
-  --indigo-600: 29 78 216;
-  --indigo-700: 30 64 175;
-}
-
-[data-theme="coffee"] {
-  --ivory: 253 248 246;
-  --stone-50: 245 235 224;
-  --stone-100: 227 213 202;
-  --stone-200: 213 189 175;
-  --stone-300: 200 176 155;
-  --stone-400: 178 150 125;
-  --stone-500: 154 123 79;
-  --stone-600: 128 92 56;
-  --stone-700: 107 76 42;
-  --stone-800: 84 56 30;
-  --stone-900: 61 38 19;
-  --indigo-500: 217 119 6;
-  --indigo-600: 180 83 9;
-  --indigo-700: 146 64 14;
-}
-
-[data-theme="cringe"] {
-  --ivory: 0 0 0;
-  --stone-50: 10 10 10;
-  --stone-100: 26 26 26;
-  --stone-200: 38 38 38;
-  --stone-300: 64 64 64;
-  --stone-400: 82 82 82;
-  --stone-500: 115 115 115;
-  --stone-600: 163 163 163;
-  --stone-700: 212 212 212;
-  --stone-800: 229 229 229;
-  --stone-900: 57 255 20;
-  --indigo-500: 255 0 60;
-  --indigo-600: 255 0 60;
-  --indigo-700: 204 0 48;
 }
 
 /* ─── Base Layer ─────────────────────────────────────────── */
@@ -127,7 +73,7 @@
   }
 
   body {
-    background-color: var(--ivory);
+    background-color: rgb(var(--ivory));
     color: theme("colors.stone.800");
     font-family: "Inter", system-ui, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -144,13 +90,13 @@
     flex-direction: column;
   }
 
-  /* ── Focus Visible Ring System ──
+  /* ── Focus Visible Glow System ──
      NEVER suppress focus outlines without a visible replacement.
-     We use :focus-visible so mouse clicks don't show the ring. */
+     We use a glowing shadow in the primary brand-blue color. */
   :focus-visible {
-    outline: 2px solid theme("colors.indigo.500");
-    outline-offset: 2px;
-    border-radius: 6px;
+    outline: none;
+    box-shadow: 0 0 0 2px rgb(var(--ivory)), 0 0 0 4px #006584, 0 0 15px 4px rgba(0, 101, 132, 0.4) !important;
+    border-radius: inherit;
   }
 
   /* Remove default focus for mouse users */
@@ -264,4 +210,37 @@
 
   /* Text balance for headings */
   .text-balance { text-wrap: balance; }
+
+  /* Neumorphism Shadows (added here for bulletproof HMR) */
+  .shadow-neu-sm {
+    box-shadow: 4px 4px 10px var(--shadow-dark-color), -4px -4px 10px var(--shadow-light-color) !important;
+  }
+  .shadow-neu-sm-inset {
+    box-shadow: inset 3px 3px 8px var(--shadow-dark-color), inset -3px -3px 8px var(--shadow-light-color) !important;
+  }
+  .shadow-neu-md {
+    box-shadow: 6px 6px 16px var(--shadow-dark-color), -6px -6px 16px var(--shadow-light-color) !important;
+  }
+  .shadow-neu-md-inset {
+    box-shadow: inset 5px 5px 12px var(--shadow-dark-color), inset -5px -5px 12px var(--shadow-light-color) !important;
+  }
+  .shadow-neu-lg {
+    box-shadow: 14px 14px 36px var(--shadow-dark-color), -14px -14px 36px var(--shadow-light-color) !important;
+  }
+  .shadow-neu-lg-inset {
+    box-shadow: inset 10px 10px 24px var(--shadow-dark-color), inset -10px -10px 24px var(--shadow-light-color) !important;
+  }
+  .shadow-neu-xl {
+    box-shadow: 20px 20px 60px var(--shadow-dark-color), -20px -20px 60px var(--shadow-light-color) !important;
+  }
+
+  /* Brand Colors (added here for bulletproof HMR since config changes are cached) */
+  .text-brand-blue { color: #006584 !important; }
+  .text-brand-burgundy { color: #B71234 !important; }
+  .bg-brand-blue { background-color: #006584 !important; }
+  .bg-brand-burgundy { background-color: #B71234 !important; }
+  .border-brand-blue { border-color: #006584 !important; }
+  .border-brand-burgundy { border-color: #B71234 !important; }
+  .ring-brand-blue { --tw-ring-color: #006584 !important; }
+  .ring-brand-burgundy { --tw-ring-color: #B71234 !important; }
 }

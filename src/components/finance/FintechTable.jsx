@@ -1,13 +1,60 @@
 import React, { useState, useMemo, Fragment } from "react";
-import { Bell, ChevronDown, ChevronUp, ArrowDownUp, Check, Plus, ChevronRight } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, ArrowDownUp, Check, Plus, ChevronRight, Wallet, CheckCircle, Copy, Loader2, X } from "lucide-react";
 import { getEntityColor } from "../../utils/colors.js";
+import { Input, Button } from "../ui/index.js";
+import { addPayment } from "../../services/database.js";
 
-export default function FintechTable({ students, payments, lessons, onRemind, onPay }) {
+export default function FintechTable({ students, payments, lessons, onRefresh }) {
   const [activeTab, setActiveTab] = useState("debtors"); // 'debtors' | 'students' | 'all'
   const [sortField, setSortField] = useState("balance"); // 'balance' | 'date' | 'lessons' | 'payments'
   const [sortOrder, setSortOrder] = useState("asc");
   const [visiblePayments, setVisiblePayments] = useState(20);
   const [expandedStudentId, setExpandedStudentId] = useState(null);
+  
+  // Inline actions state for debtors
+  const [activeAction, setActiveAction] = useState(null); // { studentId, type: 'pay' | 'remind' }
+  const [payAmount, setPayAmount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const generateReminderText = (student) => {
+    const debt = Math.abs(student.balance || 0);
+    return `Привет! Напоминаю об оплате занятий. У нас накопилось к оплате ${debt} ₽. Перевести можно по номеру привязанному к телефону. Спасибо!`;
+  };
+
+  const handleCopy = async (student) => {
+    try {
+      await navigator.clipboard.writeText(generateReminderText(student));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handlePay = async (student) => {
+    if (!payAmount) return;
+    setIsSubmitting(true);
+    await addPayment({
+      studentId: student.id,
+      amount: Number(payAmount),
+      currency: "RUB",
+      paidAt: new Date().toISOString(),
+      note: "Оплата занятий"
+    });
+    
+    if (onRefresh) await onRefresh();
+    
+    setIsSubmitting(false);
+    setShowSuccess(true);
+    
+    setTimeout(() => {
+      setShowSuccess(false);
+      setActiveAction(null);
+    }, 1000);
+  };
+
 
   const studentData = useMemo(() => {
     return students.map(s => {
@@ -220,43 +267,111 @@ export default function FintechTable({ students, payments, lessons, onRemind, on
                   const c = getEntityColor(s.name);
                   
                   return (
-                    <tr key={s.id} className="hover:bg-stone-50/50 transition-colors">
-                      <td className="py-3 px-5">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-9 w-9 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
-                            <span className={`text-xs font-bold ${c.text}`}>{s.name.charAt(0)}</span>
+                    <Fragment key={s.id}>
+                      <tr className={`hover:bg-stone-50/50 transition-colors ${activeAction?.studentId === s.id ? 'bg-stone-50' : ''}`}>
+                        <td className="py-3 px-5">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-9 w-9 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
+                              <span className={`text-xs font-bold ${c.text}`}>{s.name.charAt(0)}</span>
+                            </div>
+                            <div>
+                              <p className="font-bold text-stone-900 text-sm leading-tight">{s.name}</p>
+                              <p className="text-xs text-stone-500 mt-0.5">{s.subjectName}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-stone-900 text-sm leading-tight">{s.name}</p>
-                            <p className="text-xs text-stone-500 mt-0.5">{s.subjectName}</p>
+                        </td>
+                        <td className="py-3 px-5 text-right">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase whitespace-nowrap bg-rose-500/10 text-rose-600">
+                            - {Math.abs(s.balance).toLocaleString('ru')} ₽
+                          </span>
+                        </td>
+                        <td className="py-3 px-5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setActiveAction(activeAction?.studentId === s.id && activeAction?.type === 'remind' ? null : { studentId: s.id, type: 'remind' })}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
+                                activeAction?.studentId === s.id && activeAction?.type === 'remind'
+                                  ? 'bg-stone-200 text-indigo-600'
+                                  : 'text-stone-500 hover:text-indigo-600 hover:bg-stone-100/50'
+                              }`}
+                            >
+                              <Bell size={14} className="hidden lg:block" />
+                              <span>Напомнить</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (activeAction?.studentId === s.id && activeAction?.type === 'pay') {
+                                  setActiveAction(null);
+                                } else {
+                                  setActiveAction({ studentId: s.id, type: 'pay' });
+                                  setPayAmount(Math.abs(s.balance).toString());
+                                }
+                              }}
+                              className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors shadow-neu ${
+                                activeAction?.studentId === s.id && activeAction?.type === 'pay'
+                                  ? 'bg-stone-200 text-blue-600 shadow-neu-inset'
+                                  : 'bg-ivory text-brand-blue hover:text-blue-600 hover:bg-stone-50'
+                              }`}
+                            >
+                              <Wallet size={18} />
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-5 text-right">
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-red-50 text-red-600">
-                          Долг: {Math.abs(s.balance).toLocaleString('ru')} ₽
-                        </span>
-                      </td>
-                      <td className="py-3 px-5 text-right">
-                        {/* Always visible actions for debtors */}
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => onRemind(s)}
-                            className="px-3 py-1.5 text-xs font-bold text-stone-600 bg-stone-100 rounded-lg hover:text-stone-900 hover:bg-stone-200 transition-colors flex items-center gap-1.5"
-                          >
-                            <Bell size={14} className="hidden lg:block" />
-                            <span>Напомнить</span>
-                          </button>
-                          <button
-                            onClick={() => onPay(s)}
-                            className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-1.5"
-                          >
-                            <Plus size={14} className="hidden lg:block" />
-                            <span>+ Оплата</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
+                      {activeAction?.studentId === s.id && (
+                        <tr>
+                          <td colSpan="3" className="p-0 border-b-0">
+                            <div className="overflow-hidden bg-stone-50 border-b border-stone-200 animate-in slide-in-from-top-2 fade-in duration-200">
+                              <div className="p-4 sm:p-5 sm:pl-16">
+                                {activeAction.type === 'remind' ? (
+                                  <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                    <div className="flex-1 w-full relative">
+                                      <textarea 
+                                        className="w-full text-sm bg-white border border-stone-200 rounded-xl p-3 text-stone-700 min-h-[80px] focus:outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none shadow-sm"
+                                        defaultValue={generateReminderText(s)}
+                                        readOnly
+                                      />
+                                    </div>
+                                    <div className="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0">
+                                      <Button 
+                                        variant={copied ? "primary" : "secondary"}
+                                        className={`w-full sm:w-auto justify-center transition-colors ${copied ? 'bg-emerald-500 text-white hover:bg-emerald-600 ring-0' : ''}`}
+                                        onClick={() => handleCopy(s)}
+                                      >
+                                        {copied ? <><CheckCircle size={16} className="mr-2" />Скопировано!</> : <><Copy size={16} className="mr-2" />Копировать</>}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col sm:flex-row gap-4 items-center">
+                                    <div className="relative max-w-[200px] w-full">
+                                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span className="text-stone-400 font-medium">₽</span>
+                                      </div>
+                                      <input 
+                                        type="number"
+                                        className="w-full text-lg font-bold bg-white border border-stone-200 rounded-xl py-2 pl-8 pr-4 text-stone-900 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-sm"
+                                        value={payAmount}
+                                        onChange={(e) => setPayAmount(e.target.value)}
+                                        disabled={isSubmitting || showSuccess}
+                                        autoFocus
+                                      />
+                                    </div>
+                                    <Button 
+                                      className={`w-full sm:w-auto px-6 h-11 text-white font-medium ${showSuccess ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'} shadow-lg rounded-xl transition-all flex items-center justify-center`}
+                                      onClick={() => handlePay(s)}
+                                      disabled={isSubmitting || showSuccess || !payAmount}
+                                    >
+                                      {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : showSuccess ? <Check size={18} className="animate-in zoom-in" /> : "Подтвердить оплату"}
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })
               )
@@ -303,12 +418,12 @@ export default function FintechTable({ students, payments, lessons, onRemind, on
                         </td>
                         <td className="py-3 px-5 text-right">
                           {isDebtor ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-red-50 text-red-600">
-                              Долг: {Math.abs(s.balance).toLocaleString('ru')} ₽
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase whitespace-nowrap bg-rose-500/10 text-rose-600">
+                              - {Math.abs(s.balance).toLocaleString('ru')} ₽
                             </span>
                           ) : s.balance > 0 ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-600">
-                              Баланс: +{Math.abs(s.balance).toLocaleString('ru')} ₽
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase whitespace-nowrap bg-emerald-500/10 text-emerald-600">
+                              + {Math.abs(s.balance).toLocaleString('ru')} ₽
                             </span>
                           ) : (
                             <span className="text-sm font-bold text-stone-400">

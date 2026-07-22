@@ -11,28 +11,32 @@ import { cn } from "../../utils/cn.js";
 
 const variants = {
   primary: [
-    "bg-indigo-600 text-white border border-indigo-600",
-    "hover:bg-indigo-700 hover:border-indigo-700",
-    "focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory-100",
-    "disabled:bg-indigo-300 disabled:border-indigo-300",
+    "bg-ivory text-brand-teal font-bold shadow-neu-md",
+    "hover:shadow-neu-lg hover:-translate-y-0.5",
+    "active:shadow-neu-md-inset active:translate-y-0",
+    "focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 focus-visible:ring-offset-ivory border-transparent",
+    "disabled:opacity-50 disabled:shadow-none disabled:active:shadow-none",
   ],
   secondary: [
-    "bg-white text-stone-700 border border-stone-200",
-    "hover:bg-stone-50 hover:border-stone-300",
-    "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2",
-    "disabled:bg-stone-50 disabled:text-stone-400 disabled:border-stone-200",
+    "bg-ivory text-stone-600 font-medium shadow-neu-sm",
+    "hover:shadow-neu-md hover:text-stone-800",
+    "active:shadow-neu-sm-inset",
+    "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory border-transparent",
+    "disabled:opacity-50 disabled:shadow-none",
   ],
   ghost: [
     "bg-transparent text-stone-600 border border-transparent",
-    "hover:bg-stone-100 hover:text-stone-900",
-    "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2",
+    "hover:bg-ivory hover:shadow-neu-sm hover:text-stone-900",
+    "active:shadow-neu-sm-inset",
+    "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory",
     "disabled:text-stone-400",
   ],
   danger: [
-    "bg-red-600 text-white border border-red-600",
-    "hover:bg-red-700 hover:border-red-700",
-    "focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2",
-    "disabled:bg-red-300 disabled:border-red-300",
+    "bg-ivory text-brand-red font-bold shadow-neu-md",
+    "hover:shadow-neu-lg hover:-translate-y-0.5",
+    "active:shadow-neu-md-inset active:translate-y-0",
+    "focus-visible:ring-2 focus-visible:ring-brand-red focus-visible:ring-offset-2 focus-visible:ring-offset-ivory border-transparent",
+    "disabled:opacity-50 disabled:shadow-none",
   ],
 };
 
@@ -40,6 +44,7 @@ const sizes = {
   sm: "h-8 px-3 text-xs gap-1.5 rounded-lg",
   md: "h-10 px-4 text-sm gap-2 rounded-xl",
   lg: "h-12 px-6 text-base gap-2.5 rounded-xl",
+  icon: "h-10 w-10 p-0 rounded-full",
 };
 
 // Minimal inline spinner — no extra deps

@@ -20,9 +20,11 @@ import BottomTabs from "./BottomTabs.jsx";
  */
 export default function AppShell({ children, defaultPage = "dashboard" }) {
   const [activePage, setActivePage] = useState(defaultPage);
+  const [pageState, setPageState] = useState(null);
 
-  function handleNavigate(page) {
+  function handleNavigate(page, state = null) {
     setActivePage(page);
+    setPageState(state);
     // Scroll to top on page change
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -30,7 +32,7 @@ export default function AppShell({ children, defaultPage = "dashboard" }) {
   // Support render prop pattern
   const content =
     typeof children === "function"
-      ? children(activePage, handleNavigate)
+      ? children(activePage, handleNavigate, pageState)
       : children;
 
   return (

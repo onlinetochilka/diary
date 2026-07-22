@@ -27,6 +27,7 @@ export default function TagsInput({
   const inputRef = useRef(null);
   
   const hasValue = value.length > 0 || inputValue.length > 0;
+  const hasError = Boolean(error);
 
   const addTags = (texts) => {
     const newTags = texts
@@ -70,12 +71,13 @@ export default function TagsInput({
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div 
         className={cn(
-          "relative flex flex-wrap items-center gap-1.5 p-2 rounded-xl border bg-white/80 backdrop-blur-sm min-h-[56px]",
+          "relative flex flex-wrap items-center w-full rounded-xl bg-ivory px-3.5 py-2.5 text-sm",
           "transition-all duration-300 ease-out-quart",
-          "border-stone-200/80 shadow-sm cursor-text",
-          "hover:border-stone-300",
-          "focus-within:bg-white focus-within:border-violet-300 focus-within:ring-4 focus-within:ring-violet-500/15 focus-within:shadow-md",
-          disabled && "bg-stone-50 opacity-60 cursor-not-allowed"
+          "border-2 border-transparent shadow-neu-sm-inset cursor-text",
+          "hover:border-stone-300/30",
+          "focus-within:bg-ivory focus-within:border-transparent focus-within:ring-2 focus-within:ring-brand-teal focus-within:ring-offset-2 focus-within:ring-offset-ivory focus-within:shadow-neu-sm-inset",
+          hasError && "ring-2 ring-brand-red ring-offset-2 ring-offset-ivory",
+          disabled && "opacity-60 cursor-not-allowed",
         )}
         onClick={() => inputRef.current?.focus()}
       >

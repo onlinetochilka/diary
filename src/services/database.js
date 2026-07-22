@@ -320,7 +320,7 @@ export async function addLesson(data) {
       const ref = await addDoc(col.lessons(), lessonDataToSave);
       lastRefId = ref.id;
       
-      if (lessonDataToSave.status === "conducted") {
+      if (lessonDataToSave.status === "conducted" || lessonDataToSave.status === "skipped_paid") {
         await applyLessonBalanceChange(lessonDataToSave, false);
       }
       
@@ -342,7 +342,7 @@ export async function addLesson(data) {
     };
     const ref = await addDoc(col.lessons(), lessonDataToSave);
     
-    if (lessonDataToSave.status === "conducted") {
+    if (lessonDataToSave.status === "conducted" || lessonDataToSave.status === "skipped_paid") {
       await applyLessonBalanceChange(lessonDataToSave, false);
     }
     
@@ -366,9 +366,12 @@ export async function updateLesson(id, data) {
   });
 
   if (oldData && data.status !== undefined && data.status !== oldData.status) {
-    if (data.status === "conducted") {
+    const isOldPaid = oldData.status === "conducted" || oldData.status === "skipped_paid";
+    const isNewPaid = data.status === "conducted" || data.status === "skipped_paid";
+    
+    if (isNewPaid && !isOldPaid) {
       await applyLessonBalanceChange({ ...oldData, ...data }, false);
-    } else if (oldData.status === "conducted") {
+    } else if (!isNewPaid && isOldPaid) {
       await applyLessonBalanceChange(oldData, true);
     }
   }
@@ -383,7 +386,7 @@ export async function deleteLesson(id) {
   const oldSnap = await getDoc(doc(col.lessons(), id));
   if (oldSnap.exists()) {
     const oldData = oldSnap.data();
-    if (oldData.status === "conducted") {
+    if (oldData.status === "conducted" || oldData.status === "skipped_paid") {
       await applyLessonBalanceChange(oldData, true);
     }
   }

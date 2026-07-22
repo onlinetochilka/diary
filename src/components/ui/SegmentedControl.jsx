@@ -48,9 +48,8 @@ export default function SegmentedControl({
         ref={containerRef}
         className="flex p-0.5 rounded-xl bg-stone-100/50 relative isolate"
       >
-        {/* Sliding Pill Background */}
         <div 
-          className="absolute inset-y-0.5 left-0 bg-white rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-all duration-300 ease-out-quart z-0"
+          className="absolute inset-y-0.5 left-0 bg-ivory rounded-[10px] shadow-neu-sm transition-all duration-300 ease-out-quart z-0"
           style={pillStyle}
         />
 

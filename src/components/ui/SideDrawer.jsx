@@ -88,7 +88,7 @@ export default function SideDrawer({
         className={cn(
           "backdrop:bg-stone-900/40 backdrop:backdrop-blur-sm",
           "fixed inset-y-0 left-auto right-0 ml-auto m-0 h-full max-h-none overflow-y-auto",
-          "bg-white shadow-2xl p-0 w-full sm:rounded-l-2xl",
+          "bg-ivory shadow-neu-xl p-0 w-full sm:rounded-l-2xl",
           "open:animate-in open:slide-in-from-right open:duration-300",
           width,
           className
