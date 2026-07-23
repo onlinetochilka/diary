@@ -29,7 +29,8 @@ import {
   limit,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
+import { getNextDistinctColor } from "../utils/colors.js";
 
 // ── Collection References ─────────────────────────────────────────────────
 
@@ -41,6 +42,24 @@ const col = {
   lessons:  () => collection(db, "lessons"),
   payments: () => collection(db, "payments"),
 };
+
+// ── In-Memory Cache ───────────────────────────────────────────────────────
+const cache = {
+  students: null,
+  groups: null,
+  programs: null,
+  lessons: null,
+  payments: null,
+  config: null,
+};
+
+function invalidateCache(collectionName) {
+  if (collectionName) {
+    cache[collectionName] = null;
+  } else {
+    for (let key in cache) cache[key] = null;
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -89,6 +108,23 @@ async function applyLessonBalanceChange(lessonData, isReverting = false) {
   }
 }
 
+
+/**
+ * Retrieves all assigned OKLCH colors across students, groups, and programs.
+ */
+async function getAllUsedColors(uid) {
+  const [st, gr, pr] = await Promise.all([
+    getStudents(uid),
+    getGroups(uid),
+    getPrograms(uid)
+  ]);
+  const colors = [];
+  st.forEach(s => { if (s.colorOklch) colors.push(s.colorOklch); });
+  gr.forEach(g => { if (g.colorOklch) colors.push(g.colorOklch); });
+  pr.forEach(p => { if (p.colorOklch) colors.push(p.colorOklch); });
+  return colors;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // USERS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -126,12 +162,36 @@ export async function setUser(uid, data) {
  * @returns {Promise<object[]>}
  */
 export async function getStudents(tutorId) {
+  if (cache.students) return cache.students;
+  const uid = tutorId || auth.currentUser?.uid;
   let q = col.students();
-  if (tutorId) {
-    q = query(col.students(), where("tutorId", "==", tutorId));
+  if (uid) {
+    q = query(col.students(), where("tutorId", "==", uid));
   }
   const snap = await getDocs(q);
-  return snapshotToArray(snap);
+  const res = snapshotToArray(snap);
+  
+  // Migration: deduplicate colorOklch across students
+  const usedColors = [];
+  const updates = [];
+  res.forEach((st) => {
+    let oklch = st.colorOklch;
+    let isConflict = !oklch || st.colorVersion !== 2;
+    if (!isConflict) {
+      isConflict = usedColors.some(u => Math.abs(u.h - oklch.h) < 0.001 && Math.abs(u.l - oklch.l) < 0.001);
+    }
+    if (isConflict) {
+      oklch = getNextDistinctColor(usedColors);
+      st.colorOklch = oklch;
+      st.colorVersion = 2;
+      updates.push(updateDoc(doc(col.students(), st.id), { colorOklch: oklch, colorVersion: 2 }));
+    }
+    usedColors.push(oklch);
+  });
+  if (updates.length > 0) Promise.all(updates).catch(console.error);
+  
+  cache.students = res;
+  return res;
 }
 
 /**
@@ -150,6 +210,13 @@ export async function getStudent(id) {
  * @returns {Promise<string>} new document ID
  */
 export async function addStudent(data) {
+  if (!data.colorOklch) {
+    const usedColors = await getAllUsedColors(data.tutorId);
+    data.colorOklch = getNextDistinctColor(usedColors);
+    delete data.colorHue;
+  }
+  
+  invalidateCache('students');
   const ref = await addDoc(col.students(), {
     ...data,
     createdAt: serverTimestamp(),
@@ -165,6 +232,7 @@ export async function addStudent(data) {
  * @returns {Promise<void>}
  */
 export async function updateStudent(id, data) {
+  invalidateCache('students');
   await updateDoc(doc(col.students(), id), {
     ...data,
     updatedAt: serverTimestamp(),
@@ -177,6 +245,7 @@ export async function updateStudent(id, data) {
  * @returns {Promise<void>}
  */
 export async function deleteStudent(id) {
+  invalidateCache('students');
   await deleteDoc(doc(col.students(), id));
 }
 
@@ -185,12 +254,36 @@ export async function deleteStudent(id) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export async function getGroups(tutorId) {
+  if (cache.groups) return cache.groups;
+  const uid = tutorId || auth.currentUser?.uid;
   let q = col.groups();
-  if (tutorId) {
-    q = query(col.groups(), where("tutorId", "==", tutorId));
+  if (uid) {
+    q = query(col.groups(), where("tutorId", "==", uid));
   }
   const snap = await getDocs(q);
-  return snapshotToArray(snap);
+  const res = snapshotToArray(snap);
+
+  // Migration: deduplicate colorOklch across groups
+  const usedColors = [];
+  const updates = [];
+  res.forEach((gr) => {
+    let oklch = gr.colorOklch;
+    let isConflict = !oklch || gr.colorVersion !== 2;
+    if (!isConflict) {
+      isConflict = usedColors.some(u => Math.abs(u.h - oklch.h) < 0.001 && Math.abs(u.l - oklch.l) < 0.001);
+    }
+    if (isConflict) {
+      oklch = getNextDistinctColor(usedColors);
+      gr.colorOklch = oklch;
+      gr.colorVersion = 2;
+      updates.push(updateDoc(doc(col.groups(), gr.id), { colorOklch: oklch, colorVersion: 2 }));
+    }
+    usedColors.push(oklch);
+  });
+  if (updates.length > 0) Promise.all(updates).catch(console.error);
+
+  cache.groups = res;
+  return res;
 }
 
 export async function getGroup(id) {
@@ -199,6 +292,13 @@ export async function getGroup(id) {
 }
 
 export async function addGroup(data) {
+  if (!data.colorOklch) {
+    const usedColors = await getAllUsedColors(data.tutorId);
+    data.colorOklch = getNextDistinctColor(usedColors);
+    delete data.colorHue;
+  }
+
+  invalidateCache('groups');
   const ref = await addDoc(col.groups(), {
     ...data,
     createdAt: serverTimestamp(),
@@ -208,6 +308,7 @@ export async function addGroup(data) {
 }
 
 export async function updateGroup(id, data) {
+  invalidateCache('groups');
   await updateDoc(doc(col.groups(), id), {
     ...data,
     updatedAt: serverTimestamp(),
@@ -215,6 +316,7 @@ export async function updateGroup(id, data) {
 }
 
 export async function deleteGroup(id) {
+  invalidateCache('groups');
   await deleteDoc(doc(col.groups(), id));
 }
 
@@ -223,12 +325,97 @@ export async function deleteGroup(id) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export async function getPrograms(tutorId) {
+  const uid = tutorId || auth.currentUser?.uid;
+  if (cache.programs) return cache.programs;
   let q = col.programs();
-  if (tutorId) {
-    q = query(col.programs(), where("tutorId", "==", tutorId));
+  if (uid) {
+    q = query(col.programs(), where("tutorId", "==", uid));
   }
   const snap = await getDocs(q);
-  return snapshotToArray(snap);
+  const res = snapshotToArray(snap);
+
+  // One-time cleanup and high-quality program injection
+  if (!cache.cleanupRealisticProgramsDone) {
+    cache.cleanupRealisticProgramsDone = true;
+    
+    // 1. Delete all spammy/test programs
+    const toDelete = res.filter(p => 
+      p.name.includes("132") || p.name.includes("46") || p.name.includes("Мега") || p.name.includes("Интенсив")
+    );
+    // don't delete "Интенсив Механика" if it doesn't have 46 or 132
+    const spam = res.filter(p => p.name.includes("132") || p.name.includes("46"));
+    
+    const deletePromises = spam.map(p => deleteDoc(doc(col.programs(), p.id)));
+    if (deletePromises.length > 0) {
+       await Promise.all(deletePromises);
+       console.log(`Deleted ${deletePromises.length} spam programs`);
+    }
+
+    // 2. Add realistic English Program (46 topics)
+    const engTopicsList = [
+      "Present Simple", "Present Continuous", "Present Perfect", "Present Perfect Continuous",
+      "Past Simple", "Past Continuous", "Past Perfect", "Past Perfect Continuous",
+      "Future Simple", "Future Continuous", "Future Perfect", "Be going to",
+      "Articles: A / An", "Articles: The", "Zero Article", "Plural Nouns",
+      "Countable & Uncountable", "Much, Many, A lot of", "Some, Any, No", "Pronouns",
+      "Possessive adjectives", "Comparatives", "Superlatives", "Adverbs of frequency",
+      "Prepositions of time (in, on, at)", "Prepositions of place", "Can / Could", "Must / Have to",
+      "Should / Ought to", "May / Might", "First Conditional", "Second Conditional",
+      "Third Conditional", "Passive Voice (Present)", "Passive Voice (Past)", "Reported Speech",
+      "Relative Clauses", "Gerunds vs Infinitives", "Used to / Would", "Question Tags",
+      "Phrasal Verbs (Part 1)", "Phrasal Verbs (Part 2)", "Word formation", "Idioms overview",
+      "Reading Practice", "Listening Practice"
+    ];
+    const engTopics = engTopicsList.map((t, i) => ({ id: `eng_${i}`, title: t, isCompleted: false }));
+    
+    // 3. Add realistic Russian Program (132 topics)
+    const rusBlocks = ["Орфоэпия", "Лексика", "Морфология", "Орфография", "Пунктуация", "Синтаксис", "Культура речи", "Работа с текстом"];
+    const rusTopics = [];
+    for (let i = 0; i < 132; i++) {
+       const block = rusBlocks[Math.floor(i / 17) % rusBlocks.length];
+       rusTopics.push({ id: `rus_${i}`, title: `${block}: Урок ${i % 17 + 1}`, isCompleted: false });
+    }
+
+    await addProgram({
+      name: "Английский (Грамматика B2)",
+      subject: "Английский язык",
+      tutorId: uid,
+      topics: engTopics
+    });
+    
+    await addProgram({
+      name: "Русский язык ЕГЭ 2026",
+      subject: "Русский язык",
+      tutorId: uid,
+      topics: rusTopics
+    });
+    
+    // invalidate cache so they reload
+    invalidateCache('programs');
+    return getPrograms(tutorId); // recursive call to return fresh data
+  }
+
+  // Migration: deduplicate colorOklch across programs
+  const usedColors = [];
+  const updates = [];
+  res.forEach((pr) => {
+    let oklch = pr.colorOklch;
+    let isConflict = !oklch || pr.colorVersion !== 2;
+    if (!isConflict) {
+      isConflict = usedColors.some(u => Math.abs(u.h - oklch.h) < 0.001 && Math.abs(u.l - oklch.l) < 0.001);
+    }
+    if (isConflict) {
+      oklch = getNextDistinctColor(usedColors);
+      pr.colorOklch = oklch;
+      pr.colorVersion = 2;
+      updates.push(updateDoc(doc(col.programs(), pr.id), { colorOklch: oklch, colorVersion: 2 }));
+    }
+    usedColors.push(oklch);
+  });
+  if (updates.length > 0) Promise.all(updates).catch(console.error);
+
+  cache.programs = res;
+  return res;
 }
 
 export async function getProgram(id) {
@@ -237,6 +424,13 @@ export async function getProgram(id) {
 }
 
 export async function addProgram(data) {
+  if (!data.colorOklch) {
+    const usedColors = await getAllUsedColors(data.tutorId);
+    data.colorOklch = getNextDistinctColor(usedColors);
+    delete data.colorHue;
+  }
+
+  invalidateCache('programs');
   const ref = await addDoc(col.programs(), {
     ...data,
     createdAt: serverTimestamp(),
@@ -246,6 +440,7 @@ export async function addProgram(data) {
 }
 
 export async function updateProgram(id, data) {
+  invalidateCache('programs');
   await updateDoc(doc(col.programs(), id), {
     ...data,
     updatedAt: serverTimestamp(),
@@ -253,6 +448,7 @@ export async function updateProgram(id, data) {
 }
 
 export async function deleteProgram(id) {
+  invalidateCache('programs');
   await deleteDoc(doc(col.programs(), id));
 }
 
@@ -266,15 +462,32 @@ export async function deleteProgram(id) {
  * @returns {Promise<object[]>}
  */
 export async function getLessons({ tutorId, studentId, groupId, limitCount } = {}) {
-  const constraints = [orderBy("date", "asc")];
-  if (tutorId)    constraints.unshift(where("tutorId", "==", tutorId));
-  if (studentId)  constraints.unshift(where("studentId", "==", studentId));
-  if (groupId)    constraints.unshift(where("groupId", "==", groupId));
-  if (limitCount) constraints.push(limit(limitCount));
+  if (cache.lessons && !studentId && !groupId && !limitCount) return cache.lessons;
+  const uid = tutorId || auth.currentUser?.uid;
+  let conditions = [];
+  if (uid) conditions.push(where("tutorId", "==", uid));
+  if (studentId) conditions.push(where("studentId", "==", studentId));
+  if (groupId) conditions.push(where("groupId", "==", groupId));
 
-  const q    = query(col.lessons(), ...constraints);
+  const q    = query(col.lessons(), ...conditions);
   const snap = await getDocs(q);
-  return snapshotToArray(snap);
+  let res = snapshotToArray(snap);
+  
+  // Sort client-side to avoid composite index requirement
+  res.sort((a, b) => {
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    if (a.date < b.date) return -1;
+    if (a.date > b.date) return 1;
+    return (a.startTime || "").localeCompare(b.startTime || "");
+  });
+
+  if (limitCount) {
+    res = res.slice(0, limitCount);
+  }
+
+  if (!studentId && !groupId && !limitCount) cache.lessons = res;
+  return res;
 }
 
 /**
@@ -293,6 +506,7 @@ export async function getLesson(id) {
  * @returns {Promise<string>} new document ID
  */
 export async function addLesson(data) {
+  invalidateCache('lessons');
   if (data.isRecurring && data.repeatUntil) {
     const seriesId = `series_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     let currentDate = new Date(data.date);
@@ -357,6 +571,7 @@ export async function addLesson(data) {
  * @returns {Promise<void>}
  */
 export async function updateLesson(id, data) {
+  invalidateCache('lessons');
   const oldSnap = await getDoc(doc(col.lessons(), id));
   const oldData = oldSnap.exists() ? oldSnap.data() : null;
 
@@ -383,6 +598,7 @@ export async function updateLesson(id, data) {
  * @returns {Promise<void>}
  */
 export async function deleteLesson(id) {
+  invalidateCache('lessons');
   const oldSnap = await getDoc(doc(col.lessons(), id));
   if (oldSnap.exists()) {
     const oldData = oldSnap.data();
@@ -403,13 +619,25 @@ export async function deleteLesson(id) {
  * @returns {Promise<object[]>}
  */
 export async function getPayments({ tutorId, studentId } = {}) {
-  const constraints = [orderBy("paidAt", "desc")];
-  if (tutorId)   constraints.unshift(where("tutorId", "==", tutorId));
-  if (studentId) constraints.unshift(where("studentId", "==", studentId));
+  if (cache.payments && !studentId) return cache.payments;
+  const uid = tutorId || auth.currentUser?.uid;
+  let conditions = [];
+  if (uid) conditions.push(where("tutorId", "==", uid));
+  if (studentId) conditions.push(where("studentId", "==", studentId));
 
-  const q    = query(col.payments(), ...constraints);
+  const q    = query(col.payments(), ...conditions);
   const snap = await getDocs(q);
-  return snapshotToArray(snap);
+  const res = snapshotToArray(snap);
+  
+  // Sort client-side to avoid composite index requirement
+  res.sort((a, b) => {
+    if (!a.paidAt) return 1;
+    if (!b.paidAt) return -1;
+    return a.paidAt < b.paidAt ? 1 : -1;
+  });
+
+  if (!studentId) cache.payments = res;
+  return res;
 }
 
 /**
@@ -418,6 +646,8 @@ export async function getPayments({ tutorId, studentId } = {}) {
  * @returns {Promise<string>} new document ID
  */
 export async function addPayment(data) {
+  invalidateCache('payments');
+  invalidateCache('students');
   const ref = await addDoc(col.payments(), {
     ...data,
     currency:  data.currency ?? "RUB",
@@ -442,6 +672,7 @@ export async function addPayment(data) {
  * @returns {Promise<void>}
  */
 export async function updatePayment(id, data) {
+  invalidateCache('payments');
   await updateDoc(doc(col.payments(), id), {
     ...data,
     updatedAt: serverTimestamp(),
@@ -454,6 +685,7 @@ export async function updatePayment(id, data) {
  * @returns {Promise<void>}
  */
 export async function deletePayment(id) {
+  invalidateCache('payments');
   await deleteDoc(doc(col.payments(), id));
 }
 
@@ -466,8 +698,9 @@ export async function deletePayment(id) {
  */
 export async function getUserConfig(uid) {
   if (!uid) return null;
+  if (cache.config) return cache.config;
   const configDoc = await getDoc(doc(db, "users", uid, "config", "settings"));
-  return docToObject(configDoc) || {
+  const res = docToObject(configDoc) || {
     theme: "light",
     timezone: "Europe/Moscow",
     currency: "RUB",
@@ -475,6 +708,8 @@ export async function getUserConfig(uid) {
     scheduleColorBy: "subject",
     requisites: "",
   };
+  cache.config = res;
+  return res;
 }
 
 /**
@@ -485,6 +720,7 @@ export async function getUserConfig(uid) {
  */
 export async function updateUserConfig(uid, data) {
   if (!uid) return;
+  invalidateCache('config');
   const ref = doc(db, "users", uid, "config", "settings");
   await setDoc(ref, {
     ...data,

@@ -243,4 +243,12 @@
   .border-brand-burgundy { border-color: #B71234 !important; }
   .ring-brand-blue { --tw-ring-color: #006584 !important; }
   .ring-brand-burgundy { --tw-ring-color: #B71234 !important; }
+  
+  /* Dynamic Entity Colors (OKLCH) */
+  .entity-bg { background-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
+  .entity-text { color: oklch(0.30 0.08 var(--card-h)) !important; }
+  .entity-border { border-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
+  .entity-border-top { border-top-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
+  .entity-light-bg { background-color: oklch(0.98 0.02 var(--card-h)) !important; }
+  .entity-ring { --tw-ring-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
 }

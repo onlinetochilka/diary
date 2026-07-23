@@ -107,6 +107,7 @@ export default function GroupFormDrawer({
       const snapshot = {
         id: globalProgId,
         name: globalProg.name,
+        colorOklch: globalProg.colorOklch,
         topics: globalProg.topics?.map(t => ({ ...t, isCompleted: false })) || []
       };
 

@@ -8,7 +8,7 @@ import GroupCard from "../components/students/GroupCard.jsx";
 import EmailGeneratorModal from "../components/students/EmailGeneratorModal.jsx";
 import ProgressModal from "../components/students/ProgressModal.jsx";
 import PriceChangeModal from "../components/students/PriceChangeModal.jsx";
-import { getEntityColor } from "../utils/colors.js";
+
 import { useStudents } from "../hooks/useStudents.js";
 
 function PageWrapper({ children, title, subtitle, icon: Icon, accentClass }) {
@@ -256,8 +256,8 @@ export default function StudentsPage({ onNavigate }) {
 
   return (
     <PageWrapper
-      title="Ученики"
-      subtitle="Управление базой учеников и группами"
+      title="Управление базой"
+      subtitle="Ученики, группы и их прогресс"
       icon={Users}
       accentClass="text-violet-600"
     >
@@ -278,16 +278,12 @@ export default function StudentsPage({ onNavigate }) {
             <Input 
               id="students-search"
               placeholder="Поиск..." 
-              className="w-full shadow-neu-sm-inset bg-ivory" 
+              className="w-full" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               leftIcon={<Search size={18} />}
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-              <kbd className="hidden sm:inline-block bg-stone-100 text-stone-400 font-sans text-[10px] font-bold px-1.5 py-0.5 rounded border border-stone-200/60 shadow-sm">
-                ⌘K
-              </kbd>
-            </div>
+
           </div>
           {viewMode === "students" ? (
             <Button variant="primary" data-action="add_student" onClick={() => handleOpenDrawer()}>

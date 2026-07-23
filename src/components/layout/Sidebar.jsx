@@ -13,7 +13,13 @@ import {
   Wallet,
   Settings,
   BookOpen,
+  PlaySquare,
+  LogOut
 } from "lucide-react";
+import { auth } from "../../services/firebase.js";
+import { signInAnonymously, signOut } from "firebase/auth";
+import { generateDemoData, clearAllTutorData } from "../../utils/demoData.js";
+import { useState } from "react";
 
 export const NAV_ITEMS = [
   {
@@ -72,6 +78,37 @@ export const NAV_ITEMS = [
  * @param {(page: string) => void} props.onNavigate
  */
 export default function Sidebar({ activePage, onNavigate }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const isAnonymous = auth.currentUser?.isAnonymous;
+
+  const handleToggleDemo = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    try {
+      if (isAnonymous) {
+        // Exit demo: delete all fake data, then sign out
+        await clearAllTutorData(auth.currentUser.uid);
+        await signOut(auth);
+        window.location.reload();
+      } else {
+        // Enter demo: confirm, sign out, sign in anonymously, generate data
+        if (!window.confirm("Это выведет вас из текущего аккаунта и запустит изолированный демо-режим. Продолжить?")) {
+          setIsLoading(false);
+          return;
+        }
+        await signOut(auth);
+        const cred = await signInAnonymously(auth);
+        await generateDemoData(cred.user.uid);
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Произошла ошибка при переключении режима.");
+      setIsLoading(false);
+    }
+  };
+
   return (
     <aside
       className={cn(
@@ -144,8 +181,32 @@ export default function Sidebar({ activePage, onNavigate }) {
       </nav>
 
       {/* Footer / version */}
-      <div className="px-5 py-4">
-        <p className="text-xs text-stone-400">v0.1.0 · Точилка</p>
+      <div className="px-3 pb-4">
+        <button
+          type="button"
+          onClick={handleToggleDemo}
+          disabled={isLoading}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-sm",
+            isAnonymous 
+              ? "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200" 
+              : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200"
+          )}
+        >
+          {isLoading ? (
+            <span className="animate-pulse mx-auto">Подождите...</span>
+          ) : isAnonymous ? (
+            <>
+              <LogOut size={16} strokeWidth={2.5} />
+              Выйти из демо
+            </>
+          ) : (
+            <>
+              <PlaySquare size={16} strokeWidth={2.5} />
+              Демо-режим
+            </>
+          )}
+        </button>
       </div>
     </aside>
   );

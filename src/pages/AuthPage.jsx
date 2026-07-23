@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from "firebase/auth";
 import { auth } from "../services/firebase.js";
+import { generateDemoData } from "../utils/demoData.js";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Input, Button } from "../components/ui/index.js";
 
@@ -41,6 +42,21 @@ export default function AuthPage() {
       } else {
         setError("Что-то пошло не так. Проверьте интернет-соединение.");
       }
+      setIsLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const cred = await signInAnonymously(auth);
+      // Let's generate demo data for this new anonymous user
+      await generateDemoData(cred.user.uid);
+      // They will be automatically redirected by the auth observer in App.jsx
+    } catch (err) {
+      console.error(err);
+      setError("Не удалось запустить демо-режим. Попробуйте позже.");
       setIsLoading(false);
     }
   };
@@ -135,6 +151,22 @@ export default function AuthPage() {
                 {isLogin ? "Нет аккаунта? Зарегистрируйтесь" : "Уже есть аккаунт? Войти"}
               </button>
             </div>
+            
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-stone-200"></div>
+              <span className="flex-shrink-0 mx-4 text-stone-400 text-xs">ИЛИ</span>
+              <div className="flex-grow border-t border-stone-200"></div>
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isLoading}
+              onClick={handleDemoLogin}
+              className="w-full h-12 bg-white hover:bg-stone-50 text-stone-700 rounded-xl border border-stone-200 shadow-sm"
+            >
+              Попробовать демо-версию
+            </Button>
           </form>
         </div>
         

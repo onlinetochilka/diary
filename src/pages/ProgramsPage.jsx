@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Plus, Pencil, Trash2, ListChecks } from "lucide-react";
-import { Card, Button, Input, SideDrawer, TagsInput } from "../components/ui/index.js";
+import { Card, Button, Input, SideDrawer, ListInput } from "../components/ui/index.js";
 import { getPrograms, addProgram, updateProgram, deleteProgram } from "../services/database.js";
+import { getEntityStyle, getEntityColorClasses } from "../utils/colors.js";
 
 function PageWrapper({ children, title, subtitle, icon: Icon, accentClass }) {
   return (
@@ -96,9 +97,9 @@ function ProgramDrawer({ isOpen, onClose, onSubmit, onDelete, initialData }) {
             value={formData.subject}
             onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
           />
-          <TagsInput 
+          <ListInput 
             label="Темы занятий" 
-            helperText="Введите тему и нажмите Enter (или вставьте готовый список из Word/Excel)."
+            helperText="Нажмите Enter для добавления (или вставьте готовый список из Word/Excel)."
             value={formData.topics}
             onChange={(topics) => setFormData(prev => ({ ...prev, topics }))}
           />
@@ -169,9 +170,9 @@ export default function ProgramsPage() {
   };
 
   return (
-    <PageWrapper
-      title="Программы обучения"
-      subtitle="Управление целями и учебными планами"
+    <PageWrapper 
+      title="Учебные планы" 
+      subtitle="Программы подготовки и темы"
       icon={BookOpen}
       accentClass="text-fuchsia-600"
     >
@@ -198,17 +199,20 @@ export default function ProgramsPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {programs.map(prog => (
+          {programs.map(prog => {
+            const c = getEntityColorClasses();
+            return (
             <Card 
               key={prog.id} 
               variant="elevated" 
-              className="flex flex-col group cursor-pointer hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 border-l-4 border-l-fuchsia-400"
+              className={`flex flex-col group cursor-pointer hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 border-l-4 ${c.border}`}
+              style={getEntityStyle(prog)}
               onClick={() => { setEditingProgram(prog); setIsDrawerOpen(true); }}
             >
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h3 className="font-bold text-stone-900">{prog.name}</h3>
-                  {prog.subject && <p className="text-xs font-medium text-fuchsia-600 mt-1">{prog.subject}</p>}
+                  {prog.subject && <p className={`text-xs font-medium ${c.text} mt-1`}>{prog.subject}</p>}
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                   <button
@@ -234,7 +238,8 @@ export default function ProgramsPage() {
                 <span>Тем в программе: <strong>{prog.topics?.length || 0}</strong></span>
               </div>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

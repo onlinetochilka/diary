@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Modal, Button } from "../ui/index.js";
 import { CheckCircle2, Circle } from "lucide-react";
+import { getEntityStyle } from "../../utils/colors.js";
 
 export default function ProgressModal({ 
   isOpen, 
@@ -48,12 +49,12 @@ export default function ProgressModal({
           <span className="text-sm font-medium text-stone-700">Пройдено тем: {checkedTopics.length} из {topics.length}</span>
           <span className="text-sm font-bold text-fuchsia-600">{percent}%</span>
         </div>
-        <div className="h-2 w-full bg-stone-200 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-fuchsia-500 rounded-full transition-all duration-500" 
-            style={{ width: `${percent}%` }}
-          />
-        </div>
+          <div className="h-2 bg-stone-50 rounded-full overflow-hidden">
+            <div 
+              className="h-full rounded-full transition-all duration-500" 
+              style={{ ...getEntityStyle(program), backgroundColor: 'oklch(var(--card-l) 0.08 var(--card-h))', width: `${percent}%` }}
+            />
+          </div>
       </div>
 
       <div className="space-y-1.5 max-h-[40vh] overflow-y-auto scrollbar-thin px-1 mb-6">

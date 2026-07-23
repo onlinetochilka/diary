@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, forwardRef } from "react";
 import { CalendarDays, Plus, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileText, PartyPopper, Copy } from "lucide-react";
 import { Card, Button, Switch, SegmentedControl } from "../components/ui/index.js";
 import { useSchedule } from "../hooks/useSchedule.js";
-import { getEntityColor } from "../utils/colors.js";
+import { getEntityStyle, getEntityColorClasses } from "../utils/colors.js";
 import { DndContext, useDraggable, useDroppable, DragOverlay, pointerWithin, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
@@ -11,8 +11,8 @@ import LessonDrawer from "../components/schedule/LessonDrawer.jsx";
 // ── Shared Section Wrapper ─────────────────────────────────────────────────
 function PageWrapper({ children, title, subtitle, icon: Icon, accentClass, extraHeader }) {
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 flex flex-col h-[calc(100vh-theme(spacing.16))] sm:h-[100dvh]">
-      <header className="flex items-start justify-between gap-4 shrink-0">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 flex flex-col h-[calc(100vh-theme(spacing.16))] sm:h-[100dvh]">
+      <header className="max-w-6xl mx-auto w-full flex items-start justify-between gap-4 shrink-0">
         <div className="flex items-center gap-3">
           <span className={`p-2.5 rounded-2xl ${accentClass} bg-opacity-15`}>
             <Icon size={22} strokeWidth={1.5} className={accentClass} />
@@ -28,7 +28,7 @@ function PageWrapper({ children, title, subtitle, icon: Icon, accentClass, extra
         </div>
         {extraHeader && <div>{extraHeader}</div>}
       </header>
-      <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 w-full">
         {children}
       </div>
     </div>
@@ -249,7 +249,8 @@ export default function SchedulePage({ pageState }) {
   const goToday = () => setCurrentDate(new Date());
 
   const isLessonHwFullyDone = (l) => {
-    if (!l.homework || l.homework.trim() === "") return true;
+    const hwText = typeof l.homework === 'string' ? l.homework : (l.homework?.text || "");
+    if (!hwText || hwText.trim() === "") return true;
     if (l.type === "individual") {
       return l.hwDoneBy?.includes(l.studentId);
     } else {
@@ -358,13 +359,16 @@ export default function SchedulePage({ pageState }) {
   });
 
   const getLessonDisplayData = (lesson) => {
-    let title = "Неизвестно";
+    let title = "";
+    let entity = null;
     if (lesson.type === "individual") {
       const st = students.find(s => s.id === lesson.studentId);
-      title = st ? st.name : "Ученик удален";
+      title = st ? st.name : "Неизвестный ученик";
+      entity = st;
     } else {
       const gr = groups.find(g => g.id === lesson.groupId);
       title = gr ? gr.name : "Группа удалена";
+      entity = gr;
     }
 
     const isPast = ymd(new Date(lesson.date)) < ymd(new Date()) && lesson.status !== "planned";
@@ -373,24 +377,27 @@ export default function SchedulePage({ pageState }) {
     let borderColorClass = "";
     let textColorClass = "";
     
+    let entityStyle = {};
+    
     if (lesson.group) {
       const subjColor = getSubjectColor(lesson.subject);
       borderColorClass = subjColor.replace('bg-', 'border-');
       textColorClass = subjColor.replace('bg-', 'text-').replace('100', '700').replace('50', '700');
     } else {
-      const c = getEntityColor(title);
+      const c = getEntityColorClasses();
+      entityStyle = getEntityStyle(entity || title);
       borderColorClass = c.border;
       textColorClass = c.text;
     }
     
-    if (!borderColorClass.includes('border-')) borderColorClass = 'border-indigo-400';
-    if (!textColorClass.includes('text-')) textColorClass = 'text-indigo-700';
+    if (!borderColorClass.includes('border-') && !borderColorClass.includes('entity-border')) borderColorClass = 'border-indigo-400';
+    if (!textColorClass.includes('text-') && !textColorClass.includes('entity-text')) textColorClass = 'text-indigo-700';
 
-    return { title, isFaded, borderColorClass, textColorClass };
+    return { title, isFaded, borderColorClass, textColorClass, entityStyle };
   };
 
   const LessonCardOverlay = ({ lesson, compact = false }) => {
-    const { title, isFaded, borderColorClass, textColorClass } = getLessonDisplayData(lesson);
+    const { title, isFaded, borderColorClass, textColorClass, entityStyle } = getLessonDisplayData(lesson);
     return (
       <LessonCardView 
         lesson={lesson}
@@ -403,6 +410,7 @@ export default function SchedulePage({ pageState }) {
         borderColorClass={borderColorClass}
         textColorClass={textColorClass}
         style={{
+          ...entityStyle,
           boxShadow: "var(--shadow-neu-xl)",
           cursor: "grabbing",
           zIndex: 50,
@@ -413,7 +421,7 @@ export default function SchedulePage({ pageState }) {
   };
 
   const LessonCard = ({ lesson, onClick, compact = false }) => {
-    const { title, isFaded, borderColorClass, textColorClass } = getLessonDisplayData(lesson);
+    const { title, isFaded, borderColorClass, textColorClass, entityStyle } = getLessonDisplayData(lesson);
     
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
       id: `lesson-${lesson.id}`,
@@ -434,7 +442,7 @@ export default function SchedulePage({ pageState }) {
         textColorClass={textColorClass}
         listeners={listeners}
         attributes={attributes}
-        style={{ opacity: isDragging ? 0.3 : 1 }}
+        style={{ ...entityStyle, opacity: isDragging ? 0.3 : 1 }}
       />
     );
   };
@@ -466,7 +474,7 @@ export default function SchedulePage({ pageState }) {
     const todayStr = ymd(new Date());
 
     return (
-      <div className="flex-1 min-h-0 rounded-2xl overflow-hidden flex flex-col">
+      <div className="max-w-6xl mx-auto w-full flex-1 min-h-0 rounded-2xl overflow-hidden flex flex-col">
         <div className="grid grid-cols-7 shrink-0 border-b border-white/70">
           {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
             <div key={d} className="py-2 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest border-r border-white/70 last:border-0">
@@ -572,7 +580,7 @@ export default function SchedulePage({ pageState }) {
     const todayStr = ymd(new Date());
 
     return (
-      <div className="flex-1 min-h-0 flex gap-1 lg:gap-2 overflow-hidden pb-2">
+      <div className="max-w-6xl mx-auto w-full flex-1 min-h-0 flex gap-1 lg:gap-2 overflow-hidden pb-2">
         {weekDays.map((wd, i) => {
           const dateStr = ymd(wd);
           const isToday = dateStr === todayStr;
@@ -643,8 +651,8 @@ export default function SchedulePage({ pageState }) {
     const sortedDates = Object.keys(lessonsByDate).sort();
     
     return (
-      <div className="flex-1 overflow-y-auto scrollbar-thin pb-8">
-        <div className="max-w-4xl mx-auto space-y-6 pr-2">
+      <div className="flex-1 overflow-y-auto scrollbar-thin pb-8 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8">
+        <div className="max-w-4xl mx-auto space-y-6">
           {sortedDates.length === 0 && (
             <div className="text-center py-12 text-stone-500 bg-ivory shadow-neu-sm-inset rounded-2xl flex flex-col items-center justify-center">
               {hwDebtOnly ? (
@@ -681,12 +689,13 @@ export default function SchedulePage({ pageState }) {
                 <div className="space-y-4">
                   {dayLessons.map(l => {
                     const topicTitle = getLessonTopic(l);
-                    const { title, borderColorClass, textColorClass } = getLessonDisplayData(l);
+                    const { title, borderColorClass, textColorClass, entityStyle } = getLessonDisplayData(l);
                     
                     return (
                     <div 
                       key={l.id} 
                       className={`border-l-4 ${borderColorClass} flex flex-col sm:flex-row gap-3 bg-ivory shadow-neu-sm p-4 rounded-2xl items-start sm:items-center justify-between cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[#006584] group @media (hover: hover) { hover:shadow-neu-md hover:-translate-y-px }`}
+                      style={entityStyle}
                       onClick={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setPopover({ lesson: l, x: rect.left, y: rect.bottom });
@@ -739,21 +748,21 @@ export default function SchedulePage({ pageState }) {
 
   return (
     <PageWrapper 
-      title="Расписание" 
-      subtitle="Управление уроками и долгами"
+      title="Управление уроками" 
+      subtitle="Запланированные занятия и долги"
       icon={CalendarDays}
       accentClass="text-[#006584]"
     >
-      <div className="h-full flex flex-col pt-4 overflow-hidden relative">
+      <div className="h-full flex flex-col pt-4 relative">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-4 shrink-0">
+        <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-4 shrink-0 px-2 sm:px-0">
           <div className="flex items-center gap-3">
             <div className="flex bg-ivory shadow-neu-sm rounded-xl p-1 shrink-0">
               <button onClick={prevPeriod} className="w-10 h-10 flex items-center justify-center rounded-lg text-stone-600 hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
                 <ChevronLeft size={20} />
               </button>
               <button onClick={goToday} className="px-4 h-10 flex items-center justify-center rounded-lg text-stone-700 font-bold text-sm hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
-                Сегодня
+                {view === 'month' ? 'Текущий месяц' : view === 'week' ? 'Текущая неделя' : 'Сегодня'}
               </button>
               <button onClick={nextPeriod} className="w-10 h-10 flex items-center justify-center rounded-lg text-stone-600 hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
                 <ChevronRight size={20} />
@@ -764,7 +773,7 @@ export default function SchedulePage({ pageState }) {
             </h2>
           </div>
           
-          <div className="flex items-center justify-between md:justify-end gap-4 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+          <div className="flex items-center justify-between md:justify-end gap-4 flex-wrap">
             <div className="flex items-center gap-2 shrink-0">
               <Switch checked={hwDebtOnly} onChange={setHwDebtOnly} />
               <span className="text-sm font-bold text-stone-700 cursor-pointer select-none" onClick={() => setHwDebtOnly(!hwDebtOnly)}>Долги по ДЗ</span>
@@ -777,18 +786,19 @@ export default function SchedulePage({ pageState }) {
                   onClick={() => setView(v)}
                   className={`px-4 h-9 rounded-lg text-sm font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${view === v ? 'bg-ivory shadow-neu-sm text-[#006584]' : 'text-stone-500 hover:text-stone-700'}`}
                 >
-                  {v === 'month' ? 'Месяц' : v === 'week' ? 'Неделя' : 'Список'}
+                  {v === 'month' ? 'Месяц' : v === 'week' ? 'Неделя' : 'День'}
                 </button>
               ))}
             </div>
             
-            <button 
-              className="px-4 h-11 flex items-center justify-center bg-ivory text-[#006584] font-bold rounded-xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ml-2 shrink-0"
+            <Button 
+              variant="primary"
+              className="ml-2 h-[42px] px-5"
               onClick={() => handleOpenDrawer()}
             >
-              <Plus size={18} strokeWidth={3} className="mr-2" />
+              <Plus size={20} strokeWidth={2.5} className="mr-1.5 opacity-90" />
               Новый урок
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -830,10 +840,10 @@ export default function SchedulePage({ pageState }) {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setPopover(null)} />
           <div 
-            className="fixed z-50 bg-ivory rounded-xl shadow-neu-xl p-2 w-56 animate-in fade-in zoom-in duration-200"
+            className="fixed z-50 bg-ivory rounded-xl shadow-neu-xl p-2 w-56 animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[85vh]"
             style={{ 
-              top: Math.min(popover.y + 4, window.innerHeight - 200), 
-              left: Math.min(popover.x, window.innerWidth - 224) 
+              top: Math.max(20, Math.min(popover.y + 4, window.innerHeight - 380)), 
+              left: Math.max(16, Math.min(popover.x, window.innerWidth - 240)) 
             }}
           >
             <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 px-2 pt-1">Действия</div>
@@ -855,7 +865,7 @@ export default function SchedulePage({ pageState }) {
               <Copy size={14} className="text-stone-400" /> Дублировать...
             </button>
 
-            {popover.lesson.homework && popover.lesson.homework.trim() !== "" && (
+            {popover.lesson.homework && (typeof popover.lesson.homework === 'string' ? popover.lesson.homework : popover.lesson.homework.text)?.trim() !== "" && (
               <>
                 <div className="my-1 border-t border-stone-100" />
                 <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 px-2 pt-1">Домашка</div>
@@ -958,8 +968,8 @@ export default function SchedulePage({ pageState }) {
           <div 
             className="fixed z-50 bg-ivory rounded-xl shadow-neu-xl p-4 w-60 animate-in fade-in zoom-in duration-200 flex flex-col gap-3"
             style={{ 
-              top: Math.min(timeEditPopover.y, window.innerHeight - 150), 
-              left: Math.min(timeEditPopover.x, window.innerWidth - 240) 
+              top: Math.max(20, Math.min(timeEditPopover.y, window.innerHeight - 180)), 
+              left: Math.max(16, Math.min(timeEditPopover.x, window.innerWidth - 260)) 
             }}
           >
             <div>

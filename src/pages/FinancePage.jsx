@@ -88,8 +88,8 @@ export default function FinancePage() {
 
   return (
     <PageWrapper
-      title="Финансы и Аналитика"
-      subtitle="Сводка доходов и контроль оплат"
+      title="Управление балансом"
+      subtitle="Статистика доходов и оплат"
       icon={Wallet}
       accentClass="text-emerald-600"
     >

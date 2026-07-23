@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { Clock, Pencil, Mail } from "lucide-react";
 import { Card, Button } from "../ui/index.js";
-import { getEntityColor } from "../../utils/colors.js";
+import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
 const GroupCard = memo(({
   group,
@@ -14,8 +14,8 @@ const GroupCard = memo(({
       variant="elevated" 
       padding={false}
       hoverLift={true}
-      className="group flex flex-col h-full border-t-4"
-      style={{ borderTopColor: getEntityColor(group.id).hex }}
+      className="group flex flex-col h-full border-t-4 entity-border-top"
+      style={getEntityStyle(group)}
     >
       <div className="p-5 pb-3">
         <div className="flex justify-between items-start mb-3">
@@ -30,11 +30,16 @@ const GroupCard = memo(({
               {studentsInGroup.length > 0 ? (
                 <>
                   {studentsInGroup.slice(0, 4).map((s, i) => {
-                    const c = getEntityColor(s.name);
-                    return (
-                      <div key={s.id} className={`inline-block h-10 w-10 rounded-full ring-2 ring-[#FBFBFA] ${c.bg} flex items-center justify-center relative z-10`} style={{ zIndex: 10 - i }}>
-                        <span className={`text-sm font-bold ${c.text}`} title={s.name}>{s.name.charAt(0)}</span>
-                      </div>
+                    const c = getEntityColorClasses();
+                  
+                  return (
+                    <div 
+                      key={s.id} 
+                      className={`inline-block h-10 w-10 rounded-full ring-2 ring-[#FBFBFA] ${c.bg} flex items-center justify-center relative z-10`}
+                      style={{ ...getEntityStyle(s), zIndex: 10 - i }}
+                    >
+                      <span className={`text-sm font-bold ${c.text}`} title={s.name}>{s.name.charAt(0)}</span>
+                    </div>
                     );
                   })}
                   {studentsInGroup.length > 4 && (
@@ -96,10 +101,10 @@ const GroupCard = memo(({
                       )}
                     </div>
                     {total > 0 && (
-                      <div className="h-1 w-full bg-stone-200/80 rounded-full overflow-hidden">
+                      <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-teal-500 rounded-full transition-all duration-500" 
-                          style={{ width: `${percent}%` }}
+                          className="h-full rounded-full transition-all duration-500" 
+                          style={{ ...getEntityStyle(prog), backgroundColor: 'oklch(var(--card-l) 0.08 var(--card-h))', width: `${percent}%` }}
                         />
                       </div>
                     )}

@@ -29,11 +29,13 @@ export default function StudentFormDrawer({
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     name: "",
+    studentGender: "unknown",
     grade: "",
     timezone: "UTC+3 (Москва)",
     billingTo: "parent",
     studentContact: "",
     parentName: "",
+    parentGender: "unknown",
     parentContact: "",
     autoRemind: false,
     subjects: [], // will initialize in useEffect
@@ -59,11 +61,13 @@ export default function StudentFormDrawer({
     if (initialData) {
       initial = {
         name: initialData.name || "",
+        studentGender: initialData.studentGender || "unknown",
         grade: initialData.grade || "",
         timezone: initialData.timezone || "UTC+3 (Москва)",
         billingTo: initialData.contacts?.billingTo || "parent",
         studentContact: initialData.contacts?.student || "",
         parentName: initialData.contacts?.parentName || "",
+        parentGender: initialData.contacts?.parentGender || "unknown",
         parentContact: initialData.contacts?.parent || "",
         autoRemind: initialData.contacts?.autoRemind || false,
         subjects: initialData.subjects?.length > 0 
@@ -81,11 +85,13 @@ export default function StudentFormDrawer({
     } else {
       initial = {
         name: "",
+        studentGender: "unknown",
         grade: "",
         timezone: "UTC+3 (Москва)",
         billingTo: "parent",
         studentContact: "",
         parentName: "",
+        parentGender: "unknown",
         parentContact: "",
         autoRemind: false,
         subjects: [createEmptySubject()],
@@ -165,6 +171,7 @@ export default function StudentFormDrawer({
       const snapshot = {
         id: globalProgId,
         name: globalProg.name,
+        colorOklch: globalProg.colorOklch,
         topics: globalProg.topics?.map(t => ({ ...t, isCompleted: false })) || []
       };
 
@@ -254,11 +261,13 @@ export default function StudentFormDrawer({
 
     const studentData = {
       name: formData.name,
+      studentGender: formData.studentGender,
       grade: formData.grade,
       timezone: formData.timezone,
       contacts: {
         student: formData.studentContact,
         parentName: formData.parentName,
+        parentGender: formData.parentGender,
         parent: formData.parentContact,
         billingTo: formData.billingTo,
         autoRemind: formData.autoRemind,
@@ -301,14 +310,26 @@ export default function StudentFormDrawer({
           <div className="bg-stone-50/50 backdrop-blur-sm border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОСНОВНОЕ</h3>
             
-            <Input
-              label="Имя ученика"
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              error={errors.name}
-              required
-              disabled={isSubmitting}
-            />
+            <div className="grid grid-cols-[1fr_120px] gap-3">
+              <Input
+                label="Имя ученика"
+                value={formData.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+                error={errors.name}
+                required
+                disabled={isSubmitting}
+              />
+              <Select
+                label="Пол"
+                value={formData.studentGender}
+                onChange={(e) => handleChange("studentGender", e.target.value)}
+                disabled={isSubmitting}
+              >
+                <option value="unknown">Не указан</option>
+                <option value="male">Мужской</option>
+                <option value="female">Женский</option>
+              </Select>
+            </div>
             
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -380,13 +401,23 @@ export default function StudentFormDrawer({
                 }`}
               >
                 <div className="overflow-hidden space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+                  <div className="grid grid-cols-[1fr_120px_1fr] sm:grid-cols-[1fr_120px_1fr] gap-3 pt-3">
                     <Input
                       label="Имя родителя"
                       value={formData.parentName}
                       onChange={(e) => handleChange("parentName", e.target.value)}
                       disabled={isSubmitting}
                     />
+                    <Select
+                      label="Пол"
+                      value={formData.parentGender}
+                      onChange={(e) => handleChange("parentGender", e.target.value)}
+                      disabled={isSubmitting}
+                    >
+                      <option value="unknown">Не указан</option>
+                      <option value="male">Мужской</option>
+                      <option value="female">Женский</option>
+                    </Select>
                     <Input
                       label="Email родителя"
                       value={formData.parentContact}

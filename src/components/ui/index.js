@@ -12,3 +12,4 @@ export { default as SegmentedControl } from "./SegmentedControl.jsx";
 export { default as Select } from "./Select.jsx";
 export { default as Checkbox } from "./Checkbox.jsx";
 export { default as TagsInput } from "./TagsInput.jsx";
+export { default as ListInput } from "./ListInput.jsx";

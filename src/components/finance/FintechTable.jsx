@@ -1,6 +1,6 @@
 import React, { useState, useMemo, Fragment } from "react";
 import { Bell, ChevronDown, ChevronUp, ArrowDownUp, Check, Plus, ChevronRight, Wallet, CheckCircle, Copy, Loader2, X } from "lucide-react";
-import { getEntityColor } from "../../utils/colors.js";
+import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import { Input, Button } from "../ui/index.js";
 import { addPayment } from "../../services/database.js";
 
@@ -264,14 +264,17 @@ export default function FintechTable({ students, payments, lessons, onRefresh })
                 </tr>
               ) : (
                 sortedStudents.map(s => {
-                  const c = getEntityColor(s.name);
+                  const c = getEntityColorClasses();
                   
                   return (
                     <Fragment key={s.id}>
                       <tr className={`hover:bg-stone-50/50 transition-colors ${activeAction?.studentId === s.id ? 'bg-stone-50' : ''}`}>
                         <td className="py-3 px-5">
                           <div className="flex items-center gap-3">
-                            <div className={`h-9 w-9 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
+                            <div 
+                              className={`h-9 w-9 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}
+                              style={getEntityStyle(s)}
+                            >
                               <span className={`text-xs font-bold ${c.text}`}>{s.name.charAt(0)}</span>
                             </div>
                             <div>
@@ -349,10 +352,11 @@ export default function FintechTable({ students, payments, lessons, onRefresh })
                                         <span className="text-stone-400 font-medium">₽</span>
                                       </div>
                                       <input 
-                                        type="number"
+                                        type="text"
+                                        inputMode="numeric"
                                         className="w-full text-lg font-bold bg-white border border-stone-200 rounded-xl py-2 pl-8 pr-4 text-stone-900 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-sm"
-                                        value={payAmount}
-                                        onChange={(e) => setPayAmount(e.target.value)}
+                                        value={payAmount ? String(payAmount).replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, " ") : ""}
+                                        onChange={(e) => setPayAmount(e.target.value.replace(/\D/g, ""))}
                                         disabled={isSubmitting || showSuccess}
                                         autoFocus
                                       />
@@ -386,7 +390,7 @@ export default function FintechTable({ students, payments, lessons, onRefresh })
                 </tr>
               ) : (
                 sortedStudents.map(s => {
-                  const c = getEntityColor(s.name);
+                  const c = getEntityColorClasses();
                   const isDebtor = s.balance < 0;
                   const isExpanded = expandedStudentId === s.id;
                   
@@ -398,7 +402,10 @@ export default function FintechTable({ students, payments, lessons, onRefresh })
                       >
                         <td className="py-3 px-5">
                           <div className="flex items-center gap-3">
-                            <div className={`h-9 w-9 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
+                            <div 
+                              className={`h-9 w-9 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}
+                              style={getEntityStyle(s)}
+                            >
                               <span className={`text-xs font-bold ${c.text}`}>{s.name.charAt(0)}</span>
                             </div>
                             <div>
@@ -507,17 +514,20 @@ export default function FintechTable({ students, payments, lessons, onRefresh })
                   </td>
                 </tr>
               ) : (
-                sortedPayments.slice(0, visiblePayments).map(p => {
+                sortedPayments.slice(0, visiblePayments).map((p, idx) => {
                   const s = students.find(st => st.id === p.studentId);
                   const name = s ? s.name : "Удаленный ученик";
-                  const c = getEntityColor(name);
                   const date = new Date(p.paidAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+                  const c = getEntityColorClasses();
                   
                   return (
-                    <tr key={p.id} className="group hover:bg-stone-50/50 transition-colors">
+                    <tr key={idx} className="hover:bg-stone-50/50 transition-colors">
                       <td className="py-3 px-5">
                         <div className="flex items-center gap-3">
-                          <div className={`h-9 w-9 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
+                          <div 
+                            className={`h-9 w-9 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}
+                            style={getEntityStyle(student || name)}
+                          >
                             <span className={`text-xs font-bold ${c.text}`}>{name.charAt(0)}</span>
                           </div>
                           <p className="font-bold text-stone-900 text-sm">{name}</p>

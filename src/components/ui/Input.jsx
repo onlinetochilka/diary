@@ -30,6 +30,25 @@ export default function Input({
   // It can be controlled (value) or uncontrolled (defaultValue/local state)
   const isControlled = value !== undefined;
   const hasValue = isControlled ? String(value).length > 0 : false;
+  
+  const isNumberFormat = rest.type === "number";
+  
+  let displayValue = value;
+  if (isNumberFormat && value !== undefined && value !== null && value !== "") {
+    displayValue = String(value).replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+
+  const handleChange = (e) => {
+    if (isNumberFormat) {
+      const raw = e.target.value.replace(/\D/g, "");
+      rest.onChange?.({
+        ...e,
+        target: { ...e.target, value: raw, name: e.target.name }
+      });
+    } else {
+      rest.onChange?.(e);
+    }
+  };
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
@@ -54,8 +73,11 @@ export default function Input({
           disabled={disabled}
           aria-invalid={hasError}
           aria-describedby={describedBy}
-          value={value}
+          value={displayValue}
           defaultValue={defaultValue}
+          onChange={handleChange}
+          type={isNumberFormat ? "text" : rest.type}
+          inputMode={isNumberFormat ? "numeric" : rest.inputMode}
           placeholder={label ? " " : rest.placeholder || " "}
           className={cn(
             "peer w-full rounded-xl bg-ivory px-3.5 text-sm",

@@ -1,6 +1,28 @@
 import { useState, useEffect } from "react";
 import { Check, Bell, Copy, Send, MessageCircle, Mail } from "lucide-react";
 
+function getHwText(n) {
+  if (!n) return 'Нет долгов по ДЗ';
+  const lastDigit = n % 10;
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 19) return `${n} долгов по ДЗ`;
+  if (lastDigit === 1) return `${n} долг по ДЗ`;
+  if (lastDigit >= 2 && lastDigit <= 4) return `${n} долга по ДЗ`;
+  return `${n} долгов по ДЗ`;
+}
+
+function getMoneyText(n, amount) {
+  if (!n || n < 1) return `${amount} ₽`;
+  const lastDigit = n % 10;
+  const lastTwo = n % 100;
+  let text = '';
+  if (lastTwo >= 11 && lastTwo <= 19) text = `${n} неоплаченных занятий`;
+  else if (lastDigit === 1) text = `${n} неоплаченное занятие`;
+  else if (lastDigit >= 2 && lastDigit <= 4) text = `${n} неоплаченных занятия`;
+  else text = `${n} неоплаченных занятий`;
+  return `${text} (${amount} ₽)`;
+}
+
 export default function ActionItemCard({ item, onMarkDone }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [text, setText] = useState("");
@@ -40,7 +62,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
         <div className="min-w-0 flex-1 pl-1">
           <p className="text-sm font-bold text-stone-800 truncate">{item.student.name}</p>
           <p className={`text-xs font-bold mt-0.5 ${isMoney ? 'text-[#B71234]' : 'text-[#006584]'}`}>
-            {isMoney ? `${item.amount} ₽` : `${item.count} не сдано`}
+            {isMoney ? getMoneyText(item.count, item.amount) : getHwText(item.count)}
           </p>
         </div>
         <div className="flex gap-2">

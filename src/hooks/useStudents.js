@@ -3,8 +3,9 @@ import {
   getStudents, getGroups, getPrograms, 
   addStudent, updateStudent, deleteStudent, 
   addGroup, updateGroup, deleteGroup, 
-  getLessons, updateLesson 
+  getLessons, updateLesson, updateProgram, addProgram 
 } from "../services/database.js";
+import { getNextDistinctColor } from '../utils/colors.js';
 
 export function useStudents() {
   const [students, setStudents] = useState([]);
@@ -20,6 +21,59 @@ export function useStudents() {
         getGroups(),
         getPrograms(),
       ]);
+
+      // Global color deduplication (version 3 migration)
+      const allEntities = [...studentsData, ...groupsData, ...programsData];
+      const usedGlobalColors = [];
+      
+      for (const ent of allEntities) {
+        let isConflict = !ent.colorOklch || ent.globalColorVersion !== 3;
+        if (!isConflict) {
+          isConflict = usedGlobalColors.some(u => 
+             Math.abs(u.h - ent.colorOklch.h) < 0.001 && Math.abs(u.l - ent.colorOklch.l) < 0.001
+          );
+        }
+        
+        if (isConflict) {
+          const newColor = getNextDistinctColor(usedGlobalColors);
+          ent.colorOklch = newColor;
+          ent.globalColorVersion = 3;
+          
+          if (studentsData.includes(ent)) updateStudent(ent.id, { colorOklch: newColor, globalColorVersion: 3 });
+          else if (groupsData.includes(ent)) updateGroup(ent.id, { colorOklch: newColor, globalColorVersion: 3 });
+          else if (programsData.includes(ent)) updateProgram(ent.id, { colorOklch: newColor, globalColorVersion: 3 });
+        }
+        usedGlobalColors.push(ent.colorOklch);
+      }
+
+      // Sync nested program colors with master programs
+      const progMap = {};
+      programsData.forEach(p => progMap[p.id] = p.colorOklch);
+
+      studentsData.forEach(st => {
+        let changed = false;
+        st.subjects?.forEach(sub => {
+          sub.programs?.forEach(p => {
+            if (progMap[p.id] && (!p.colorOklch || p.colorOklch.h !== progMap[p.id].h || p.colorOklch.l !== progMap[p.id].l)) {
+              p.colorOklch = progMap[p.id];
+              changed = true;
+            }
+          });
+        });
+        if (changed) updateStudent(st.id, { subjects: st.subjects });
+      });
+
+      groupsData.forEach(gr => {
+        let changed = false;
+        gr.programs?.forEach(p => {
+          if (progMap[p.id] && (!p.colorOklch || p.colorOklch.h !== progMap[p.id].h || p.colorOklch.l !== progMap[p.id].l)) {
+            p.colorOklch = progMap[p.id];
+            changed = true;
+          }
+        });
+        if (changed) updateGroup(gr.id, { programs: gr.programs });
+      });
+
       setStudents(studentsData);
       setGroups(groupsData);
       setPrograms(programsData);

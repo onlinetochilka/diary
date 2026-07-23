@@ -9,6 +9,7 @@ import { useAuth } from "../contexts/AuthContext.jsx";
 import { getUserConfig, updateUserConfig, getStudents, getPayments, getLessons } from "../services/database.js";
 import { auth } from "../services/firebase.js";
 import { signOut } from "firebase/auth";
+import { clearAllTutorData } from "../utils/demoData.js";
 
 // --- Components ---
 
@@ -95,29 +96,40 @@ const DAYS = [
 ];
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   
   // Danger zone state
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [icalCopied, setIcalCopied] = useState(false);
 
   useEffect(() => {
     async function load() {
-      if (user?.uid) {
-        const c = await getUserConfig(user.uid);
-        setConfig(c);
-        if (c?.theme) {
-          document.documentElement.setAttribute('data-theme', c.theme);
-          localStorage.setItem("tochilka_theme", c.theme);
+      if (authLoading) return; // Wait for auth to resolve
+      
+      try {
+        if (user?.uid) {
+          const c = await getUserConfig(user.uid);
+          setConfig(c || {});
+          if (c?.theme) {
+            document.documentElement.setAttribute('data-theme', c.theme);
+            localStorage.setItem("tochilka_theme", c.theme);
+          }
+        } else {
+          setConfig({});
         }
+      } catch (error) {
+        console.error("Failed to load user config:", error);
+        setConfig({}); // Provide fallback so page can render
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     load();
-  }, [user]);
+  }, [user, authLoading]);
 
   const updateConfig = async (key, value) => {
     const newConfig = { ...config, [key]: value };
@@ -181,8 +193,8 @@ export default function SettingsPage() {
 
   return (
     <PageWrapper 
-      title="Настройки" 
-      subtitle="Персонализация и управление аккаунтом"
+      title="Настройки профиля" 
+      subtitle="Конфигурация приложения"
       icon={SettingsIcon}
       accentClass="text-stone-600"
     >
@@ -336,9 +348,31 @@ export default function SettingsPage() {
               </Button>
             </div>
             
+            <div className="flex justify-between items-center pb-4 border-b border-red-100">
+              <div>
+                <span className="text-sm font-bold text-red-900 block">Сброс данных профиля</span>
+                <span className="text-xs text-red-600/80">Удаляет всех учеников, уроки и финансы, оставляя аккаунт чистым.</span>
+              </div>
+              <Button 
+                variant="secondary" 
+                className="border-red-200 text-red-600 hover:bg-red-50 ml-4 shrink-0" 
+                disabled={isResetting}
+                onClick={async () => {
+                  if (window.confirm("Вы уверены? Это необратимо удалит все ваши данные!")) {
+                    setIsResetting(true);
+                    await clearAllTutorData(user.uid);
+                    window.location.reload();
+                  }
+                }}
+              >
+                {isResetting ? <Loader2 size={16} className="animate-spin mr-2" /> : <Trash2 size={16} className="mr-2" />}
+                Очистить данные
+              </Button>
+            </div>
+            
             <div className="pt-2">
               <p className="text-sm font-bold text-red-900 mb-1">Удаление профиля</p>
-              <p className="text-xs text-red-600/80 mb-4">Это действие навсегда удалит все данные без возможности восстановления.</p>
+              <p className="text-xs text-red-600/80 mb-4">Это действие навсегда удалит ваш аккаунт без возможности восстановления.</p>
               
               <div className="flex gap-2 max-w-xs">
                 <Input 

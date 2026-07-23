@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { Phone, BookOpen, Pencil, Mail } from "lucide-react";
 import { Card, Button } from "../ui/index.js";
-import { getEntityColor } from "../../utils/colors.js";
+import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
 const StudentCard = memo(({
   student,
@@ -19,14 +19,15 @@ const StudentCard = memo(({
       variant="elevated" 
       padding={false}
       hoverLift={true}
-      className="group flex flex-col h-full"
+      className="group flex flex-col h-full border-t-4 entity-border-top"
+      style={getEntityStyle(student)}
     >
       {/* Header info */}
       <div className="p-5 pb-3">
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-2xl ${getEntityColor(student.name).bg} flex items-center justify-center shrink-0`}>
-              <span className={`text-sm font-bold ${getEntityColor(student.name).text}`}>
+            <div className={`h-10 w-10 rounded-2xl ${getEntityColorClasses().bg} flex items-center justify-center shrink-0`}>
+              <span className={`text-sm font-bold ${getEntityColorClasses().text}`}>
                 {student.name.charAt(0)}
               </span>
             </div>
@@ -128,10 +129,10 @@ const StudentCard = memo(({
                         )}
                       </div>
                       {total > 0 && (
-                        <div className="h-1 w-full bg-stone-200/80 rounded-full overflow-hidden">
+                        <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-fuchsia-500 rounded-full transition-all duration-500" 
-                            style={{ width: `${percent}%` }}
+                            className="h-full rounded-full transition-all duration-500" 
+                            style={{ ...getEntityStyle(prog), backgroundColor: 'oklch(var(--card-l) 0.08 var(--card-h))', width: `${percent}%` }}
                           />
                         </div>
                       )}
