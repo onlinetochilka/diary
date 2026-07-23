@@ -196,13 +196,25 @@
   /* Scrollbar styling */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: theme("colors.stone.200") transparent;
+    scrollbar-color: rgb(var(--stone-400) / 0.3) transparent;
   }
   .scrollbar-thin::-webkit-scrollbar       { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track  { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb  {
-    background-color: theme("colors.stone.200");
+    background-color: rgb(var(--stone-400) / 0.3);
     border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--stone-400) / 0.5);
+  }
+
+  /* Hide scrollbar entirely */
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 
   /* Interactive scale active */
@@ -251,4 +263,41 @@
   .entity-border-top { border-top-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
   .entity-light-bg { background-color: oklch(0.98 0.02 var(--card-h)) !important; }
   .entity-ring { --tw-ring-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
+
+  /* ── Skeleton loading lines ─────────────────────────────────────────────
+     Usage: <div class="skeleton-line w-3/4" />  (vary width per line)
+     No spinners — elegant pulsing bars only. */
+  .skeleton-line {
+    height: 0.75rem;
+    border-radius: 9999px;
+    background-color: rgb(var(--stone-200));
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+  .skeleton-line-sm {
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: rgb(var(--stone-200));
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+  .skeleton-line-lg {
+    height: 1rem;
+    border-radius: 9999px;
+    background-color: rgb(var(--stone-200));
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+
+  /* ── Card hover lift (CommunityNewsCard & others) ───────────────────────
+     Approved curve: cubic-bezier(0.25, 1, 0.5, 1) — 200ms */
+  .card-hover-lift {
+    transition:
+      transform 200ms cubic-bezier(0.25, 1, 0.5, 1),
+      box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform;
+  }
+  .card-hover-lift:hover {
+    transform: translateY(-4px);
+  }
+  .card-hover-lift:active {
+    transform: translateY(-1px);
+  }
 }

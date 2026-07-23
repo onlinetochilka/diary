@@ -727,3 +727,64 @@ export async function updateUserConfig(uid, data) {
     updatedAt: serverTimestamp(),
   }, { merge: true });
 }
+
+// ── Community News ────────────────────────────────────────────────────────
+
+/**
+ * getCommunityNews()
+ * ─────────────────────────────────────────────────────────────────────────
+ * Fetches the latest post from the @tochilka_online Telegram channel
+ * via our Vercel Serverless Function endpoint.
+ *
+ * Security contract:
+ *   - The Telegram Bot Token lives ONLY in Vercel Environment Variables.
+ *   - This adapter makes a plain HTTP GET to our own /api — no token,
+ *     no Telegram API details leak to the browser.
+ *
+ * Returns:
+ *   { id, text, date, channelName, postUrl } on success
+ *   null on any error (caller shows graceful fallback)
+ *
+ * @returns {Promise<CommunityPost|null>}
+ *
+ * @typedef {{ id: number, text: string, date: string, channelName: string, postUrl: string }} CommunityPost
+ */
+
+// Client-side in-memory cache so rapid re-renders don't trigger extra fetches
+const _newsCache = { data: null, fetchedAt: 0 };
+const _NEWS_CACHE_TTL = 5 * 60 * 1000; // 5 min (mirrors Function TTL)
+
+export async function getCommunityNews() {
+  // Cache hit?
+  const now = Date.now();
+  if (_newsCache.data !== undefined && now - _newsCache.fetchedAt < _NEWS_CACHE_TTL) {
+    return _newsCache.data;
+  }
+
+  // Under Vercel, the API is mounted on the same domain at /api/*
+  // For local dev, Vercel CLI (vercel dev) automatically routes /api
+  const endpoint = `/api/getCommunityNews`;
+
+  try {
+    const res = await fetch(endpoint, {
+      signal: AbortSignal.timeout(10_000), // 10 s hard timeout
+      headers: { Accept: "application/json" },
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+
+    // Update client cache regardless of ok/data (avoids hammering on partial errors)
+    _newsCache.data = (json.ok && json.data) ? json.data : null;
+    _newsCache.fetchedAt = now;
+
+    return _newsCache.data;
+  } catch {
+    // Network error, timeout, JSON parse error — all handled silently
+    // Do NOT update fetchedAt so we retry sooner on next mount
+    return null;
+  }
+}

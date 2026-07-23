@@ -1,24 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
 import { Card, Button } from "../components/ui/index.js";
-import { LayoutDashboard, Users, TrendingUp, Clock, BookOpen, Plus, Coffee, AlertCircle, CheckCircle2, PlayCircle, Send, Wallet, Bell, Check, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  LayoutDashboard, Users, TrendingUp, Clock, BookOpen,
+  Plus, Coffee, AlertCircle, CheckCircle2, PlayCircle,
+  Send, Wallet, Bell, Check, ChevronDown, ChevronUp
+} from "lucide-react";
 import { getLessons, getStudents, getPayments, updateLesson, addPayment } from "../services/database.js";
 import { getEntityStyle, getEntityColorClasses } from "../utils/colors.js";
 import ActionItemModal from "../components/dashboard/ActionItemModal.jsx";
 import ActionItemCard from "../components/dashboard/ActionItemCard.jsx";
+import CommunityNewsCard, { TelegramIcon } from "../components/dashboard/CommunityNewsCard.jsx";
 
 export default function DashboardPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [todayLessons, setTodayLessons] = useState([]);
   const [showConducted, setShowConducted] = useState(false);
-  
+
   const [nextLesson, setNextLesson] = useState(null);
-  const [nextLessonState, setNextLessonState] = useState("done"); // "upcoming", "active", "done"
-  
+  const [nextLessonState, setNextLessonState] = useState("done"); // "upcoming" | "active" | "done"
+
   const [hwDebts, setHwDebts] = useState([]);
   const [moneyDebts, setMoneyDebts] = useState([]);
   const [actionItems, setActionItems] = useState([]);
-  
+
   const [stats, setStats] = useState({
     todayCount: 0,
     activeStudentsCount: 0,
@@ -28,6 +33,13 @@ export default function DashboardPage({ onNavigate }) {
 
   const [actionModal, setActionModal] = useState({ isOpen: false, item: null, mode: "remind" });
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    // Add a 10px threshold to account for decimal scaling issues
+    setIsScrolledToBottom(scrollTop + clientHeight >= scrollHeight - 10);
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -41,14 +53,14 @@ export default function DashboardPage({ onNavigate }) {
       const todayStr = now.toISOString().split('T')[0];
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      
+
       const currentTimeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
 
       // 1. Today's Lessons & Next Lesson
       const todayL = allLessons
         .filter(l => l.date === todayStr && l.status !== "cancelled" && l.status !== "skipped_free")
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
-      
+
       const enrichedTodayL = todayL.map(l => {
         let name = "Неизвестно";
         let studentObj = null;
@@ -79,13 +91,13 @@ export default function DashboardPage({ onNavigate }) {
       setNextLesson(foundNext);
       setNextLessonState(foundState);
 
-      // 2. Homework Debts (Ждут ДЗ)
-      const hwMap = {}; // studentId -> { count, lessons: [] }
+      // 2. Homework Debts
+      const hwMap = {};
       const pastHwLessons = allLessons.filter(l => {
         const hwText = typeof l.homework === 'string' ? l.homework : (l.homework?.text || "");
         return l.status === "conducted" && hwText.trim().length > 0;
       });
-      
+
       pastHwLessons.forEach(l => {
         if (l.type === "individual" && l.studentId) {
           if (!l.hwDoneBy || !l.hwDoneBy.includes(l.studentId)) {
@@ -103,60 +115,60 @@ export default function DashboardPage({ onNavigate }) {
         })
         .filter(x => x.student)
         .sort((a, b) => b.count - a.count)
-        .slice(0, 5); // top 5
+        .slice(0, 5);
 
       setHwDebts(hwDebtsArr);
 
-      // 3. Money Debts (Ожидают оплаты)
+      // 3. Money Debts
       const mDebts = students
         .filter(s => s.balance < 0)
         .sort((a, b) => a.balance - b.balance)
-        .slice(0, 5); // top 5
-      
+        .slice(0, 5);
+
       setMoneyDebts(mDebts);
 
-      // 5. Action Items (Combined)
+      // 4. Action Items (Combined)
       const combined = [
         ...mDebts.map(s => {
-           const debt = Math.abs(s.balance);
-           const price = (s.subjects && s.subjects.length > 0 && s.subjects[0].price) ? s.subjects[0].price : 0;
-           const count = price > 0 ? Math.ceil(debt / price) : 1;
-           return {
-             id: `money-${s.id}`,
-             type: 'money',
-             student: s,
-             amount: debt,
-             count: count,
-             priority: debt
-           };
+          const debt = Math.abs(s.balance);
+          const price = (s.subjects && s.subjects.length > 0 && s.subjects[0].price) ? s.subjects[0].price : 0;
+          const count = price > 0 ? Math.ceil(debt / price) : 1;
+          return {
+            id: `money-${s.id}`,
+            type: 'money',
+            student: s,
+            amount: debt,
+            count: count,
+            priority: debt
+          };
         }),
         ...hwDebtsArr.map(item => ({
-           id: `hw-${item.student.id}`,
-           type: 'hw',
-           student: item.student,
-           count: item.count,
-           lessons: item.lessons,
-           priority: item.count * 1000 // Scale up to prioritize HW if there are many
+          id: `hw-${item.student.id}`,
+          type: 'hw',
+          student: item.student,
+          count: item.count,
+          lessons: item.lessons,
+          priority: item.count * 1000
         }))
       ];
       combined.sort((a, b) => b.priority - a.priority);
       setActionItems(combined);
 
-      // 6. Stats
+      // 5. Stats
       const incomeMonth = payments
         .filter(p => new Date(p.paidAt) >= monthStart && new Date(p.paidAt) < nextMonthStart)
         .reduce((sum, p) => sum + Number(p.amount), 0);
-        
+
       const monthLessonsStr = monthStart.toISOString().substring(0, 7);
-      
+
       const hoursWorkedThisMonth = allLessons
         .filter(l => l.status === "conducted" && l.date.startsWith(monthLessonsStr))
         .reduce((total, l) => {
-           if (!l.startTime || !l.endTime) return total;
-           const [h1, m1] = l.startTime.split(':').map(Number);
-           const [h2, m2] = l.endTime.split(':').map(Number);
-           const dur = (h2 + m2 / 60) - (h1 + m1 / 60);
-           return total + (dur > 0 ? dur : 0);
+          if (!l.startTime || !l.endTime) return total;
+          const [h1, m1] = l.startTime.split(':').map(Number);
+          const [h2, m2] = l.endTime.split(':').map(Number);
+          const dur = (h2 + m2 / 60) - (h1 + m1 / 60);
+          return total + (dur > 0 ? dur : 0);
         }, 0);
 
       setStats({
@@ -168,9 +180,9 @@ export default function DashboardPage({ onNavigate }) {
 
       setLoading(false);
     }
-    
+
     fetchData();
-    const interval = setInterval(fetchData, 60000); // refresh every minute
+    const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, [refreshKey]);
 
@@ -186,20 +198,22 @@ export default function DashboardPage({ onNavigate }) {
       subtitle="Сводка на сегодня"
       icon={LayoutDashboard}
       accentClass="text-stone-600"
+      maxWidth="max-w-7xl"
+      noGlobalScroll={true}
     >
-      {/* Stat cards (Навигационная панель) */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
+      {/* ── Stat cards (навигационная панель) ─────────────────────────── */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 shrink-0">
         {[
           { label: dayStr, value: dateStr, color: "bg-clip-text text-transparent bg-gradient-to-br from-blue-600 to-cyan-400", nav: "schedule", navState: { view: "month" }, textClass: "text-2xl sm:text-3xl" },
           { label: "Уроков сегодня", value: loading ? "..." : stats.todayCount, color: "bg-gradient-to-br from-orange-400 to-rose-500 bg-clip-text text-transparent", nav: "schedule", navState: { view: "agenda" }, textClass: "text-5xl" },
-          { label: `за ${loading ? '...' : Math.round(stats.hoursWorkedThisMonth)} ч`, value: loading ? "..." : `${(stats.incomeMonth / 1000).toFixed(1)}К`, color: "bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-teal-400", nav: "finance", textClass: "text-5xl" },
+          { label: `за ${loading ? "..." : Math.round(stats.hoursWorkedThisMonth)} ч`, value: loading ? "..." : `${(stats.incomeMonth / 1000).toFixed(1)}К`, color: "bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-teal-400", nav: "finance", textClass: "text-5xl" },
           { label: "Активных учеников", value: loading ? "..." : stats.activeStudentsCount, color: "bg-gradient-to-br from-indigo-400 to-purple-500 bg-clip-text text-transparent", nav: "students", textClass: "text-5xl" },
         ].map((s, i) => (
-          <button 
-             key={i} 
-             onClick={() => onNavigate(s.nav, s.navState)}
-             type="button" 
-             className="group animate-scale-in flex flex-col items-center justify-center py-6 bg-ivory rounded-2xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer select-none"
+          <button
+            key={i}
+            onClick={() => onNavigate(s.nav, s.navState)}
+            type="button"
+            className="group animate-scale-in flex flex-col items-center justify-center py-6 bg-ivory rounded-2xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer select-none"
           >
             <p className={`${s.textClass} font-black mb-1.5 transition-transform duration-200 group-active:scale-95 ${s.color}`}>{s.value}</p>
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{s.label}</p>
@@ -207,33 +221,31 @@ export default function DashboardPage({ onNavigate }) {
         ))}
       </div>
 
-      <div className="space-y-10">
-        
-        {/* Слой 2: Расписание */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Clock size={20} className="text-stone-400" />
-            <h2 className="text-lg font-bold text-stone-800">Расписание на сегодня</h2>
+      {/* ── Расписание на сегодня (full width) ───────────────────────────── */}
+      <section className="shrink-0">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock size={20} className="text-stone-400" />
+          <h2 className="text-lg font-bold text-stone-800">Расписание на сегодня</h2>
+        </div>
+
+        {loading ? (
+          <div className="h-20 bg-stone-100 rounded-2xl animate-pulse" />
+        ) : todayLessons.filter(l => l.status !== "conducted").length === 0 ? (
+          <div className="flex items-center gap-3 text-stone-500 py-2">
+            <Coffee fill="currentColor" size={20} />
+            <span className="text-base font-bold">На сегодня всё</span>
           </div>
-          
-          {loading ? (
-            <div className="h-20 bg-stone-100 rounded-2xl animate-pulse" />
-          ) : todayLessons.filter(l => l.status !== "conducted").length === 0 ? (
-            <div className="flex items-center gap-3 text-stone-500 py-2">
-              <Coffee fill="currentColor" size={20} />
-              <span className="text-base font-bold">На сегодня всё</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {todayLessons.filter(l => l.status !== "conducted").map((l) => {
-                const c = getEntityColorClasses();
-                return (
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {todayLessons.filter(l => l.status !== "conducted").map((l) => {
+              const c = getEntityColorClasses();
+              return (
                 <div
                   key={l.id}
                   className="bg-ivory shadow-neu-sm p-4 rounded-2xl flex items-center gap-4 transition-all hover:shadow-neu-md cursor-pointer group"
                   onClick={() => onNavigate("schedule")}
                 >
-                  <div 
+                  <div
                     className={`h-12 w-12 rounded-xl ${c.bg} flex items-center justify-center shrink-0 shadow-inner`}
                     style={getEntityStyle(l.displayName)}
                   >
@@ -251,33 +263,84 @@ export default function DashboardPage({ onNavigate }) {
                     </div>
                   </div>
                 </div>
-              )})}
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── Асимметричная сетка ───────────────────────────────────
+            Левая колонка: список «Требует внимания»
+            Правая колонка: «На острие пера» — sticky при скролле
+      ─────────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start lg:flex-1 lg:min-h-0">
+
+        {/* LEFT COLUMN — Action Items */}
+        <section className="lg:col-span-2 flex flex-col h-full min-h-0">
+          <div className="flex items-center gap-2 mb-5 shrink-0">
+            <AlertCircle size={20} className="text-stone-400" />
+            <h2 className="text-lg font-bold text-stone-800">Требует внимания</h2>
+            {!loading && actionItems.length > 0 && (
+              <span className="ml-auto text-xs font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full tabular-nums">
+                {actionItems.length}
+              </span>
+            )}
+          </div>
+
+          {loading ? (
+            /* Skeleton for action items list */
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-ivory shadow-neu-sm rounded-2xl p-4 space-y-3">
+                  <div className="skeleton-line w-2/5" style={{ animationDelay: `${i * 0.1}s` }} />
+                  <div className="skeleton-line-sm w-3/5" style={{ animationDelay: `${i * 0.15}s` }} />
+                </div>
+              ))}
+            </div>
+          ) : actionItems.length === 0 ? (
+            <div className="flex items-center gap-3 text-stone-500 py-3 shrink-0">
+              <CheckCircle2 size={20} className="text-emerald-500" />
+              <span className="text-base font-bold">Всё в порядке — задолженностей нет</span>
+            </div>
+          ) : (
+            /* Single-column list with custom elegant scroll indicator */
+            <div className="relative -mx-2 px-2 flex-1 min-h-0">
+              <div 
+                className="flex flex-col gap-4 h-full overflow-y-auto hide-scrollbar pb-8"
+                onScroll={handleScroll}
+              >
+                {actionItems.map(item => (
+                  <ActionItemCard
+                    key={item.id}
+                    item={item}
+                    onMarkDone={(item) => setActionModal({ isOpen: true, item, mode: "mark_done" })}
+                  />
+                ))}
+              </div>
+              
+              {/* Fade indicator at the bottom */}
+              {actionItems.length > 3 && !isScrolledToBottom && (
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[rgb(var(--ivory))] to-transparent pointer-events-none flex items-end justify-center pb-1">
+                  <span className="text-[10px] font-bold text-stone-400/80 uppercase tracking-widest animate-pulse">
+                    Прокрутите вниз ↓
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </section>
 
-        {/* Слой 3: Требует внимания (Action Items) */}
-        {!loading && actionItems.length > 0 && (
-          <section>
-            <div className="flex items-center gap-2 mb-6">
-              <AlertCircle size={20} className="text-stone-400" />
-              <h2 className="text-lg font-bold text-stone-800">Требует внимания</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {actionItems.map(item => (
-                <ActionItemCard 
-                  key={item.id} 
-                  item={item} 
-                  onMarkDone={(item) => setActionModal({ isOpen: true, item, mode: "mark_done" })}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
+        {/* RIGHT COLUMN — Community News (sticky) */}
+        <aside className="lg:col-span-1 lg:sticky lg:top-6">
+          <div className="flex items-center gap-2 mb-5">
+            <TelegramIcon size={20} className="text-[#1B4F72]" />
+            <h2 className="text-lg font-bold text-stone-800">На острие пера</h2>
+          </div>
+          <CommunityNewsCard />
+        </aside>
       </div>
 
+      {/* ── Action Item Modal ─────────────────────────────────────────────── */}
       <ActionItemModal
         isOpen={actionModal.isOpen}
         onClose={() => setActionModal({ isOpen: false, item: null, mode: "remind" })}

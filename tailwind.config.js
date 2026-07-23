@@ -39,6 +39,11 @@ export default {
           burgundy: "#B71234",
           blue: "#006584",
         },
+        // Academic blue for CommunityNewsCard headings & Telegram icon
+        academic: {
+          blue: "#1B4F72",
+          "blue-light": "#2874A6",
+        },
         // Section accent palette
         finance:  { DEFAULT: "#10b981", light: "#d1fae5", ring: "#6ee7b7" }, // emerald
         schedule: { DEFAULT: "#006584", light: "#e0e7ff", ring: "#a5b4fc" }, // brand teal
@@ -79,11 +84,21 @@ export default {
         spin: {
           to: { transform: "rotate(360deg)" },
         },
+        "skeleton-pulse": {
+          "0%, 100%": { opacity: "0.35" },
+          "50%":      { opacity: "0.8" },
+        },
+        "card-float-in": {
+          from: { opacity: "0", transform: "translateY(8px) scale(0.99)" },
+          to:   { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
       },
       animation: {
-        "fade-in":  "fade-in 0.2s cubic-bezier(0.165, 0.84, 0.44, 1) both",
-        "scale-in": "scale-in 0.15s cubic-bezier(0.165, 0.84, 0.44, 1) both",
-        spin: "spin 0.8s linear infinite",
+        "fade-in":       "fade-in 0.2s cubic-bezier(0.165, 0.84, 0.44, 1) both",
+        "scale-in":      "scale-in 0.15s cubic-bezier(0.165, 0.84, 0.44, 1) both",
+        spin:            "spin 0.8s linear infinite",
+        "skeleton-pulse": "skeleton-pulse 1.6s ease-in-out infinite",
+        "card-float-in": "card-float-in 0.3s cubic-bezier(0.25, 1, 0.5, 1) both",
       },
     },
   },
