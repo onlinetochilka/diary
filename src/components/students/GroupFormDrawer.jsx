@@ -1,8 +1,8 @@
 import { useState, useEffect, useId } from "react";
-import { Loader2, Users, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { 
   SideDrawer, Button, Input, SegmentedControl, 
-  Select, TagsInput 
+  Select, TagsInput, Checkbox
 } from "../ui/index.js";
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -166,30 +166,55 @@ export default function GroupFormDrawer({
     }
   };
 
+  /* ── Optimistic delete handler ──────────────────────────── */
+  const handleDelete = initialData && onDelete
+    ? () => onDelete(initialData.id)
+    : undefined;
+
+  /* ── Footer ─────────────────────────────────────────────── */
+  const drawerFooter = (requestClose) => (
+    <div className="flex justify-end gap-3">
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={requestClose}
+        disabled={isSubmitting}
+      >
+        Отмена
+      </Button>
+      <Button
+        type="submit"
+        form="group-form"
+        variant="filled"
+        disabled={isSubmitting}
+        className="min-w-[120px]"
+      >
+        {isSubmitting ? (
+          <><Loader2 className="animate-spin" size={16} strokeWidth={2} /> Сохранение...</>
+        ) : (
+          "Сохранить"
+        )}
+      </Button>
+    </div>
+  );
+
   return (
-    <SideDrawer 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title=""
+    <SideDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? "Редактировать группу" : "Новая группа"}
       width="max-w-md sm:max-w-xl"
       isDirty={isDirty}
+      onDelete={handleDelete}
+      deleteLabel="Группа удалена"
+      footer={drawerFooter}
     >
-      <form onSubmit={handleSubmit} className="flex flex-col h-full -mt-4">
-        
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6 px-1">
-          <div className="h-10 w-10 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
-            <Users size={20} className="text-teal-600" />
-          </div>
-          <h2 className="text-xl font-bold text-stone-900">
-            {initialData ? "Редактировать группу" : "Новая группа"}
-          </h2>
-        </div>
+      <form id="group-form" onSubmit={handleSubmit}>
 
-        <div className="flex-1 space-y-5 px-1 pb-6 overflow-y-auto scrollbar-thin">
+        <div className="space-y-5">
           
           {/* Card: Основное */}
-          <div className="bg-stone-50/50 backdrop-blur-sm border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОСНОВНОЕ</h3>
             
             <Input
@@ -268,7 +293,7 @@ export default function GroupFormDrawer({
           </div>
 
           {/* Card: Финансы и Программа */}
-          <div className="bg-stone-50/50 backdrop-blur-sm border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОПЛАТА И ТЕМЫ (ДЛЯ ВСЕХ УЧАСТНИКОВ)</h3>
             
             <SegmentedControl
@@ -327,7 +352,7 @@ export default function GroupFormDrawer({
           </div>
 
           {/* Card: Состав группы */}
-          <div className="bg-stone-50/50 backdrop-blur-sm border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase">
                 СОСТАВ ГРУППЫ ({formData.studentIds.length})
@@ -342,24 +367,22 @@ export default function GroupFormDrawer({
               </p>
             )}
             
-            <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin pr-1">
+            <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-thin pr-1">
               {availableStudents.length === 0 ? (
                 <p className="text-sm text-stone-500 italic">Нет доступных учеников. Сначала добавьте их в базу.</p>
               ) : (
                 availableStudents.map(student => {
                   const isSelected = formData.studentIds.includes(student.id);
                   return (
-                    <label 
+                    <label
                       key={student.id}
                       className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors border ${
-                        isSelected 
-                          ? "bg-teal-50 border-teal-200" 
+                        isSelected
+                          ? "bg-teal-50 border-teal-200"
                           : "bg-white border-transparent hover:bg-stone-100"
                       }`}
                     >
-                      <input 
-                        type="checkbox"
-                        className="w-4 h-4 text-teal-600 rounded border-stone-300 focus:ring-teal-500"
+                      <Checkbox
                         checked={isSelected}
                         onChange={() => toggleStudent(student.id)}
                         disabled={isSubmitting}
@@ -369,56 +392,12 @@ export default function GroupFormDrawer({
                       </div>
                       <span className="text-sm font-medium text-stone-800">{student.name}</span>
                     </label>
-                  )
+                  );
                 })
               )}
             </div>
           </div>
           
-        </div>
-
-        {/* Footer Actions */}
-        <div className="pt-5 border-t border-stone-100/50 flex justify-between gap-3 bg-white mt-auto">
-          {initialData && onDelete ? (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                if (window.confirm("Удалить группу? Это не удалит самих учеников, только объединение.")) {
-                  onDelete(initialData.id);
-                }
-              }}
-              disabled={isSubmitting}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-            >
-              Удалить
-            </Button>
-          ) : (
-            <div></div>
-          )}
-          
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Отмена
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSubmitting}
-              className="min-w-[120px]"
-            >
-              {isSubmitting ? (
-                <><Loader2 className="animate-spin" size={16} strokeWidth={2} /> Сохранение...</>
-              ) : (
-                "Сохранить"
-              )}
-            </Button>
-          </div>
         </div>
       </form>
     </SideDrawer>

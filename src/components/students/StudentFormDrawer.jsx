@@ -1,5 +1,6 @@
 import { useState, useEffect, useId } from "react";
-import { Loader2, Plus, X, User, Trash2 } from "lucide-react";
+import { Loader2, Plus, X, Trash2 } from "lucide-react";
+
 import { 
   SideDrawer, Button, Input, SegmentedControl, 
   Select, Checkbox
@@ -284,30 +285,56 @@ export default function StudentFormDrawer({
     }
   };
 
+  /* ── Optimistic delete handler ──────────────────────────── */
+  const handleDelete = initialData && onDelete
+    ? () => onDelete(initialData.id)
+    : undefined;
+
+  /* ── Footer ─────────────────────────────────────────────── */
+  const drawerFooter = (requestClose) => (
+    <div className="flex justify-end gap-3">
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={requestClose}
+        disabled={isSubmitting}
+      >
+        Отмена
+      </Button>
+      <Button
+        type="submit"
+        form="student-form"
+        variant="filled"
+        disabled={isSubmitting}
+        data-action="save_student"
+        className="min-w-[120px]"
+      >
+        {isSubmitting ? (
+          <><Loader2 className="animate-spin" size={16} strokeWidth={2} /> Сохранение...</>
+        ) : (
+          "Сохранить"
+        )}
+      </Button>
+    </div>
+  );
+
   return (
     <SideDrawer
       isOpen={isOpen}
       onClose={onClose}
-      title=""
+      title={initialData ? "Редактировать профиль" : "Новый ученик"}
       width="max-w-md sm:max-w-xl"
       isDirty={isDirty}
+      onDelete={handleDelete}
+      deleteLabel="Ученик удалён"
+      footer={drawerFooter}
     >
-      <form onSubmit={handleSubmit} className="flex flex-col h-full -mt-4">
-        
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6 px-1">
-          <div className="h-10 w-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-            <User size={20} className="text-violet-600" />
-          </div>
-          <h2 className="text-xl font-bold text-stone-900">
-            {initialData ? "Редактировать профиль" : "Новый ученик"}
-          </h2>
-        </div>
+      <form id="student-form" onSubmit={handleSubmit}>
 
-        <div className="flex-1 space-y-5 px-1 pb-6 overflow-y-auto scrollbar-thin">
+        <div className="space-y-5">
           
           {/* Card: Основное */}
-          <div className="bg-stone-50/50 backdrop-blur-sm border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОСНОВНОЕ</h3>
             
             <div className="grid grid-cols-[1fr_120px] gap-3">
@@ -374,7 +401,7 @@ export default function StudentFormDrawer({
           </div>
 
           {/* Card: Контакты плательщика */}
-          <div className="bg-stone-50/50 backdrop-blur-sm border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОПЛАТА И КОНТАКТЫ</h3>
             
             <SegmentedControl
@@ -603,51 +630,6 @@ export default function StudentFormDrawer({
             Добавить еще предмет
           </Button>
           
-        </div>
-
-        {/* Footer Actions */}
-        <div className="pt-5 border-t border-stone-100/50 flex justify-between gap-3 bg-white mt-auto">
-          {initialData && onDelete ? (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                if (window.confirm("Удалить ученика? Это действие нельзя отменить.")) {
-                  onDelete(initialData.id);
-                }
-              }}
-              disabled={isSubmitting}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-            >
-              Удалить
-            </Button>
-          ) : (
-            <div></div>
-          )}
-          
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Отмена
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSubmitting}
-              data-action="save_student"
-              className="min-w-[120px]"
-            >
-              {isSubmitting ? (
-                <><Loader2 className="animate-spin" size={16} strokeWidth={2} /> Сохранение...</>
-              ) : (
-                "Сохранить"
-              )}
-            </Button>
-          </div>
         </div>
       </form>
     </SideDrawer>

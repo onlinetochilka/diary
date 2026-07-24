@@ -691,15 +691,11 @@ export async function deletePayment(id) {
 
 // ── Configuration ─────────────────────────────────────────────────────────
 
-/**
- * Get user configuration
- * @param {string} uid
- * @returns {Promise<Object>}
- */
 export async function getUserConfig(uid) {
-  if (!uid) return null;
+  const currentUid = uid || auth.currentUser?.uid;
+  if (!currentUid) return null;
   if (cache.config) return cache.config;
-  const configDoc = await getDoc(doc(db, "users", uid, "config", "settings"));
+  const configDoc = await getDoc(doc(db, "users", currentUid, "config", "settings"));
   const res = docToObject(configDoc) || {
     theme: "light",
     timezone: "Europe/Moscow",
@@ -707,7 +703,11 @@ export async function getUserConfig(uid) {
     workingDays: [1, 2, 3, 4, 5],
     scheduleColorBy: "subject",
     requisites: "",
+    dashboardMetrics: ["todayCount", "activeStudentsCount", "hoursWorkedThisMonth", "incomeMonth"]
   };
+  if (!res.dashboardMetrics) {
+    res.dashboardMetrics = ["todayCount", "activeStudentsCount", "hoursWorkedThisMonth", "incomeMonth"];
+  }
   cache.config = res;
   return res;
 }
@@ -719,9 +719,10 @@ export async function getUserConfig(uid) {
  * @returns {Promise<void>}
  */
 export async function updateUserConfig(uid, data) {
-  if (!uid) return;
+  const currentUid = uid || auth.currentUser?.uid;
+  if (!currentUid) return;
   invalidateCache('config');
-  const ref = doc(db, "users", uid, "config", "settings");
+  const ref = doc(db, "users", currentUid, "config", "settings");
   await setDoc(ref, {
     ...data,
     updatedAt: serverTimestamp(),

@@ -20,7 +20,7 @@ export default function Checkbox({
 
   return (
     <div className={cn("flex items-start gap-3", className)}>
-      <div className="relative flex items-center justify-center mt-0.5 shrink-0">
+      <div className="relative flex items-center justify-center shrink-0 group">
         <input
           id={inputId}
           type="checkbox"
@@ -33,8 +33,9 @@ export default function Checkbox({
         <div
           className={cn(
             "w-5 h-5 rounded-md border-2 border-stone-300 bg-white transition-all duration-200",
-            "peer-focus-visible:ring-4 peer-focus-visible:ring-violet-500/20 peer-focus-visible:border-violet-400",
-            "peer-checked:bg-violet-600 peer-checked:border-violet-600",
+            "group-active:scale-95",
+            "peer-focus-visible:ring-4 peer-focus-visible:ring-brand-blue/20 peer-focus-visible:border-brand-blue",
+            "peer-checked:bg-brand-blue peer-checked:border-brand-blue",
             disabled && "opacity-50 cursor-not-allowed peer-checked:bg-stone-400 peer-checked:border-stone-400"
           )}
         />

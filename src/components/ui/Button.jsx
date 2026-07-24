@@ -17,6 +17,15 @@ const variants = {
     "focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 focus-visible:ring-offset-ivory border-transparent",
     "disabled:opacity-50 disabled:shadow-none disabled:active:shadow-none",
   ],
+  // Filled: solid background for use on white/non-ivory surfaces
+  filled: [
+    "bg-brand-blue text-white font-semibold border-transparent",
+    "hover:bg-[#005270] hover:-translate-y-0.5",
+    "active:translate-y-0 active:bg-[#004560]",
+    "shadow-[0_4px_14px_rgba(0,101,132,0.30)] hover:shadow-[0_6px_20px_rgba(0,101,132,0.40)]",
+    "focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2",
+    "disabled:opacity-50 disabled:shadow-none disabled:active:shadow-none",
+  ],
   secondary: [
     "bg-ivory text-stone-600 font-medium shadow-neu-sm",
     "hover:shadow-neu-md hover:text-stone-800",
@@ -74,7 +83,7 @@ function Spinner({ className }) {
 
 /**
  * @param {object}  props
- * @param {"primary"|"secondary"|"ghost"|"danger"} [props.variant]
+ * @param {"primary"|"filled"|"secondary"|"ghost"|"danger"} [props.variant]
  * @param {"sm"|"md"|"lg"} [props.size]
  * @param {boolean} [props.loading]
  * @param {boolean} [props.disabled]

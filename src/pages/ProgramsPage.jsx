@@ -62,8 +62,7 @@ function ProgramDrawer({ isOpen, onClose, onSubmit, onDelete, initialData }) {
     onSubmit({
       name: formData.name,
       subject: formData.subject,
-      topics: formData.topics.map((t, idx) => {
-        // preserve old ID if it exists, else generate new
+      topics: formData.topics.map((t) => {
         const existing = initialData?.topics?.find(old => old.title === t);
         return existing || { id: generateId(), title: t };
       })
@@ -71,61 +70,62 @@ function ProgramDrawer({ isOpen, onClose, onSubmit, onDelete, initialData }) {
     onClose();
   };
 
+  /* ── Optimistic delete handler passed to SideDrawer ──── */
+  const handleDelete = initialData && onDelete
+    ? () => onDelete(initialData.id)
+    : undefined;
+
+  /* ── Footer ─────────────────────────────────────────────── */
+  const drawerFooter = (requestClose) => (
+    <div className="flex justify-end gap-2">
+      <Button type="button" variant="ghost" onClick={requestClose}>Отмена</Button>
+      <Button type="submit" form="program-form" variant="filled">Сохранить</Button>
+    </div>
+  );
+
   return (
-    <SideDrawer isOpen={isOpen} onClose={onClose} width="max-w-md" isDirty={isDirty}>
-      <form onSubmit={handleSubmit} className="flex flex-col h-full">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-stone-900">
-            {initialData ? "Редактировать программу" : "Новая программа"}
-          </h2>
-          <p className="text-sm text-stone-500 mt-1">
-            Создайте учебный план, чтобы назначать его ученикам.
-          </p>
-        </div>
+    <SideDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? "Редактировать программу" : "Новая программа"}
+      width="max-w-md sm:max-w-xl"
+      isDirty={isDirty}
+      onDelete={handleDelete}
+      deleteLabel="Программа удалена"
+      footer={drawerFooter}
+    >
+      <form id="program-form" onSubmit={handleSubmit}>
+        <div className="space-y-4">
 
-        <div className="flex-1 space-y-4 px-1 overflow-y-auto">
-          <Input 
-            label="Название программы" 
-            placeholder="Например: ОГЭ Математика" 
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            required 
-          />
-          <Input 
-            label="Предмет" 
-            placeholder="Например: Математика" 
-            value={formData.subject}
-            onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-          />
-          <ListInput 
-            label="Темы занятий" 
-            helperText="Нажмите Enter для добавления (или вставьте готовый список из Word/Excel)."
-            value={formData.topics}
-            onChange={(topics) => setFormData(prev => ({ ...prev, topics }))}
-          />
-        </div>
-
-        <div className="pt-5 mt-auto flex justify-between border-t border-stone-100">
-          {initialData && onDelete ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-              onClick={() => {
-                if (window.confirm("Удалить программу?")) {
-                  onDelete(initialData.id);
-                  onClose();
-                }
-              }}
-            >
-              Удалить
-            </Button>
-          ) : <div></div>}
-          
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Отмена</Button>
-            <Button type="submit" variant="primary">Сохранить</Button>
+          {/* Card: Основное */}
+          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+            <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОСНОВНОЕ</h3>
+            <Input
+              label="Название программы"
+              placeholder="Например: ОГЭ Математика"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              required
+            />
+            <Input
+              label="Предмет"
+              placeholder="Например: Математика"
+              value={formData.subject}
+              onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+            />
           </div>
+
+          {/* Card: Темы */}
+          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+            <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ТЕМЫ ЗАНЯТИЙ</h3>
+            <ListInput
+              label="Темы занятий"
+              helperText="Нажмите Enter для добавления (или вставьте готовый список из Word/Excel)."
+              value={formData.topics}
+              onChange={(topics) => setFormData(prev => ({ ...prev, topics }))}
+            />
+          </div>
+
         </div>
       </form>
     </SideDrawer>
@@ -219,9 +219,8 @@ export default function ProgramsPage() {
                     className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm(`Удалить программу "${prog.name}"? Это действие нельзя отменить.`)) {
-                        handleDelete(prog.id);
-                      }
+                      setEditingProgram(prog);
+                      setIsDrawerOpen(true);
                     }}
                     title="Удалить программу"
                   >

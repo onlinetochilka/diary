@@ -186,18 +186,36 @@ export default function LessonDrawer({
     }
   };
 
+  /* ── Optimistic delete handler ──────────────────────────── */
+  const handleDelete = initialData?.id && onDelete
+    ? () => onDelete(initialData.id)
+    : undefined;
+
+  /* ── Footer ─────────────────────────────────────────────── */
+  const drawerFooter = (requestClose) => (
+    <div className="flex justify-end gap-3">
+      <Button type="button" variant="ghost" onClick={requestClose} disabled={isSubmitting}>
+        Отмена
+      </Button>
+      <Button type="submit" form="lesson-form" variant="filled" disabled={isSubmitting} className="min-w-[120px]">
+        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Сохранить"}
+      </Button>
+    </div>
+  );
+
   return (
-    <SideDrawer 
-      isOpen={isOpen} 
-      onClose={onClose} 
+    <SideDrawer
+      isOpen={isOpen}
+      onClose={onClose}
       title={initialData?.id ? "Правка урока" : "Новый урок"}
       width="max-w-md sm:max-w-xl"
       isDirty={isDirty}
+      onDelete={handleDelete}
+      deleteLabel="Урок удалён"
+      footer={drawerFooter}
     >
-      <form onSubmit={handleSubmit} className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto p-6 bg-stone-50/30">
-          
-          <div className="mb-6">
+      <form id="lesson-form" onSubmit={handleSubmit}>
+        <div className="mb-6">
             <SegmentedControl
               options={[
                 { label: <div className="flex items-center justify-center gap-2"><User size={14} /> Инфо</div>, value: "info" },
@@ -404,7 +422,7 @@ export default function LessonDrawer({
             <div className="space-y-4">
               <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+                  <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
                     Домашнее задание
                   </label>
                   <textarea
@@ -435,7 +453,7 @@ export default function LessonDrawer({
                   </label>
                 ) : (
                   <div className="space-y-2 mt-4">
-                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Отметки о выполнении</label>
+                    <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">Отметки о выполнении</label>
                     {(() => {
                       const group = groups.find(g => g.id === formData.groupId);
                       if (!group || !group.studentIds) return <div className="text-sm text-stone-500">Сначала выберите группу</div>;
@@ -472,7 +490,7 @@ export default function LessonDrawer({
 
           {activeTab === "notes" && (
             <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm">
-              <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+              <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
                 Приватные заметки
               </label>
               <textarea
@@ -485,35 +503,6 @@ export default function LessonDrawer({
             </div>
           )}
 
-        </div>
-
-        <div className="p-4 bg-white border-t border-stone-200/50 flex justify-between gap-3 shrink-0">
-          {initialData?.id ? (
-            <Button
-              type="button"
-              variant="secondary"
-              className="text-red-600 border-red-200 hover:bg-red-50"
-              onClick={() => {
-                if (window.confirm("Точно удалить этот урок?")) {
-                  onDelete(initialData.id);
-                }
-              }}
-              disabled={isSubmitting}
-            >
-              Удалить
-            </Button>
-          ) : (
-            <div></div> // spacer
-          )}
-          <div className="flex gap-3">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
-              Отмена
-            </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting} className="min-w-[120px]">
-              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Сохранить"}
-            </Button>
-          </div>
-        </div>
       </form>
     </SideDrawer>
   );

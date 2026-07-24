@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Check, Bell, Copy, Send, MessageCircle, Mail } from "lucide-react";
+import { Tooltip } from "../ui";
 
 function getHwText(n) {
   if (!n) return 'Нет долгов по ДЗ';
@@ -66,20 +67,22 @@ export default function ActionItemCard({ item, onMarkDone }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <button 
-            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-ivory shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584]" 
-            onClick={() => onMarkDone(item)}
-            title={isMoney ? "Отметить оплату" : "Отметить ДЗ"}
-          >
-            <Check size={18} strokeWidth={3} className="text-emerald-500 transition-colors" />
-          </button>
-          <button 
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-ivory group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isExpanded ? 'shadow-neu-sm-inset' : 'shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset'}`}
-            onClick={() => setIsExpanded(!isExpanded)}
-            title="Напомнить"
-          >
-            <Bell size={18} fill="currentColor" className="text-[#006584] transition-colors" />
-          </button>
+          <Tooltip text={isMoney ? "Отметить оплату" : "Отметить ДЗ"} position="bottom-right">
+            <button 
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-ivory shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584]" 
+              onClick={() => onMarkDone(item)}
+            >
+              <Check size={18} strokeWidth={3} className="text-emerald-500 transition-colors" />
+            </button>
+          </Tooltip>
+          <Tooltip text="Напомнить" position="bottom-right">
+            <button 
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-ivory group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isExpanded ? 'shadow-neu-sm-inset' : 'shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset'}`}
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              <Bell size={18} fill="currentColor" className="text-[#006584] transition-colors" />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -98,41 +101,45 @@ export default function ActionItemCard({ item, onMarkDone }) {
             </div>
             
             <div className="flex gap-4 items-center justify-end">
-              <a
-                href={`mailto:?subject=Напоминание об оплате&body=${encoded}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={btnClass}
-                title="Почта"
-              >
-                <Mail size={18} className="text-[#006584]" />
-              </a>
-              <a
-                href={`${MAX_MESSENGER_URL}?text=${encoded}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={btnClass}
-                title="Макс"
-              >
-                <MessageCircle size={18} className="text-[#006584]" />
-              </a>
-              <a
-                href={`https://t.me/share/url?url=&text=${encoded}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={btnClass}
-                title="Telegram"
-              >
-                <Send size={18} className="text-[#006584]" />
-              </a>
-              <button
-                onClick={handleCopy}
-                disabled={!text.trim()}
-                className={btnClass}
-                title="Скопировать"
-              >
-                {copied ? <Check size={18} strokeWidth={3} className="text-emerald-500" /> : <Copy size={18} className="text-[#006584]" />}
-              </button>
+              <Tooltip text="Почта" position="top-right">
+                <a
+                  href={`mailto:?subject=Напоминание об оплате&body=${encoded}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={btnClass}
+                >
+                  <Mail size={18} className="text-[#006584]" />
+                </a>
+              </Tooltip>
+              <Tooltip text="Макс" position="top-right">
+                <a
+                  href={`${MAX_MESSENGER_URL}?text=${encoded}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={btnClass}
+                >
+                  <MessageCircle size={18} className="text-[#006584]" />
+                </a>
+              </Tooltip>
+              <Tooltip text="Telegram" position="top-right">
+                <a
+                  href={`https://t.me/share/url?url=&text=${encoded}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={btnClass}
+                >
+                  <Send size={18} className="text-[#006584]" />
+                </a>
+              </Tooltip>
+              <Tooltip text="Скопировать" position="top-right">
+                <button
+                  onClick={handleCopy}
+                  disabled={!text.trim()}
+                  className={btnClass}
+                >
+                  {copied ? <Check size={18} strokeWidth={3} className="text-emerald-500" /> : <Copy size={18} className="text-[#006584]" />}
+                </button>
+              </Tooltip>
             </div>
           </div>
         </div>

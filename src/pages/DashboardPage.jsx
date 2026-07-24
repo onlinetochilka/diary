@@ -4,13 +4,23 @@ import { Card, Button } from "../components/ui/index.js";
 import {
   LayoutDashboard, Users, TrendingUp, Clock, BookOpen,
   Plus, Coffee, AlertCircle, CheckCircle2, PlayCircle,
-  Send, Wallet, Bell, Check, ChevronDown, ChevronUp
+  Send, Wallet, Bell, Check, ChevronDown, ChevronUp, Settings2
 } from "lucide-react";
-import { getLessons, getStudents, getPayments, updateLesson, addPayment } from "../services/database.js";
+import { getLessons, getStudents, getPayments, updateLesson, addPayment, getUserConfig, updateUserConfig } from "../services/database.js";
 import { getEntityStyle, getEntityColorClasses } from "../utils/colors.js";
 import ActionItemModal from "../components/dashboard/ActionItemModal.jsx";
 import ActionItemCard from "../components/dashboard/ActionItemCard.jsx";
 import CommunityNewsCard, { TelegramIcon } from "../components/dashboard/CommunityNewsCard.jsx";
+import MetricsSettingsModal from "../components/dashboard/MetricsSettingsModal.jsx";
+
+const getPlural = (number, forms) => {
+  const n = Math.abs(number) % 100;
+  const n1 = n % 10;
+  if (n > 10 && n < 20) return forms[2];
+  if (n1 > 1 && n1 < 5) return forms[1];
+  if (n1 === 1) return forms[0];
+  return forms[2];
+};
 
 export default function DashboardPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
@@ -26,10 +36,25 @@ export default function DashboardPage({ onNavigate }) {
 
   const [stats, setStats] = useState({
     todayCount: 0,
-    activeStudentsCount: 0,
+    lessonsWeek: 0,
+    lessonsLeftWeek: 0,
+    lessonsMonth: 0,
+    lessonsLeftMonth: 0,
     hoursWorkedThisMonth: 0,
-    incomeMonth: 0
+    hoursLeftWeek: 0,
+    hoursLeftMonth: 0,
+    cancelledMonth: 0,
+    incomeMonth: 0,
+    expectedIncomeMonth: 0,
+    totalDebt: 0,
+    totalAdvances: 0,
+    averageReceipt: 0,
+    activeStudentsCount: 0,
+    newStudentsMonth: 0,
   });
+
+  const [metricsConfig, setMetricsConfig] = useState(["todayCount", "activeStudentsCount", "hoursWorkedThisMonth", "incomeMonth"]);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [actionModal, setActionModal] = useState({ isOpen: false, item: null, mode: "remind" });
   const [refreshKey, setRefreshKey] = useState(0);
@@ -43,11 +68,16 @@ export default function DashboardPage({ onNavigate }) {
 
   useEffect(() => {
     async function fetchData() {
-      const [allLessons, students, payments] = await Promise.all([
+      const [allLessons, students, payments, userConfig] = await Promise.all([
         getLessons(),
         getStudents(),
-        getPayments()
+        getPayments(),
+        getUserConfig()
       ]);
+
+      if (userConfig?.dashboardMetrics) {
+        setMetricsConfig(userConfig.dashboardMetrics);
+      }
 
       const now = new Date();
       const todayStr = now.toISOString().split('T')[0];
@@ -155,27 +185,99 @@ export default function DashboardPage({ onNavigate }) {
       setActionItems(combined);
 
       // 5. Stats
+      const monthStartStr = monthStart.toISOString().split('T')[0];
+      const nextMonthStartStr = nextMonthStart.toISOString().split('T')[0];
+      const currentDayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - currentDayOfWeek + 1);
+      const weekStartStr = weekStart.toISOString().split('T')[0];
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+      const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+      let lessonsMonth = 0, lessonsWeek = 0, lessonsLeftWeek = 0, lessonsLeftMonth = 0;
+      let hoursWorkedThisMonth = 0, hoursLeftWeek = 0, hoursLeftMonth = 0;
+      let cancelledMonth = 0, expectedIncomeMonth = 0;
+      let totalConductedPrice = 0;
+
+      const getDur = (l) => {
+          if (!l.startTime || !l.endTime) return 0;
+          const [h1, m1] = l.startTime.split(':').map(Number);
+          const [h2, m2] = l.endTime.split(':').map(Number);
+          const dur = (h2 + m2 / 60) - (h1 + m1 / 60);
+          return dur > 0 ? dur : 0;
+      };
+
+      allLessons.forEach(l => {
+          if (l.date >= monthStartStr && l.date < nextMonthStartStr) {
+             const isConducted = l.status === "conducted" || l.status === "skipped_paid";
+             const isCancelled = l.status === "cancelled" || l.status === "skipped_free";
+             const isScheduled = l.status === "scheduled";
+             const dur = getDur(l);
+             
+             if (isCancelled) cancelledMonth++;
+             
+             if (isConducted) {
+                lessonsMonth++;
+                hoursWorkedThisMonth += dur;
+                totalConductedPrice += (Number(l.price) || 0);
+             }
+             if (isScheduled) {
+                lessonsLeftMonth++;
+                hoursLeftMonth += dur;
+                expectedIncomeMonth += (Number(l.price) || 0);
+             }
+          }
+          if (l.date >= weekStartStr && l.date < weekEndStr) {
+             const isConducted = l.status === "conducted" || l.status === "skipped_paid";
+             const isScheduled = l.status === "scheduled";
+             const dur = getDur(l);
+             if (isConducted || isScheduled) lessonsWeek++;
+             if (isScheduled) {
+                 lessonsLeftWeek++;
+                 hoursLeftWeek += dur;
+             }
+          }
+      });
+
+      let newStudentsMonth = 0;
+      students.forEach(s => {
+         if (s.createdAt) {
+           const ca = s.createdAt.toDate ? s.createdAt.toDate() : new Date(s.createdAt);
+           if (ca >= monthStart) newStudentsMonth++;
+         }
+      });
+
+      let totalDebt = 0;
+      let totalAdvances = 0;
+      students.forEach(s => {
+         if (s.balance < 0) totalDebt += Math.abs(s.balance);
+         if (s.balance > 0) totalAdvances += s.balance;
+      });
+
       const incomeMonth = payments
         .filter(p => new Date(p.paidAt) >= monthStart && new Date(p.paidAt) < nextMonthStart)
         .reduce((sum, p) => sum + Number(p.amount), 0);
 
-      const monthLessonsStr = monthStart.toISOString().substring(0, 7);
-
-      const hoursWorkedThisMonth = allLessons
-        .filter(l => l.status === "conducted" && l.date.startsWith(monthLessonsStr))
-        .reduce((total, l) => {
-          if (!l.startTime || !l.endTime) return total;
-          const [h1, m1] = l.startTime.split(':').map(Number);
-          const [h2, m2] = l.endTime.split(':').map(Number);
-          const dur = (h2 + m2 / 60) - (h1 + m1 / 60);
-          return total + (dur > 0 ? dur : 0);
-        }, 0);
+      const averageReceipt = lessonsMonth > 0 ? Math.round(totalConductedPrice / lessonsMonth) : 0;
 
       setStats({
         todayCount: todayL.length,
-        activeStudentsCount: students.length,
+        lessonsWeek,
+        lessonsLeftWeek,
+        lessonsMonth,
+        lessonsLeftMonth,
         hoursWorkedThisMonth,
-        incomeMonth
+        hoursLeftWeek,
+        hoursLeftMonth,
+        cancelledMonth,
+        incomeMonth,
+        expectedIncomeMonth,
+        totalDebt,
+        totalAdvances,
+        averageReceipt,
+        activeStudentsCount: students.length,
+        newStudentsMonth
       });
 
       setLoading(false);
@@ -188,37 +290,76 @@ export default function DashboardPage({ onNavigate }) {
 
   const now = new Date();
   const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+  const monthNamesPrep = ["январе", "феврале", "марте", "апреле", "мае", "июне", "июле", "августе", "сентябре", "октябре", "ноябре", "декабре"];
   const dayNames = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
-  const dateStr = `${now.getDate()} ${monthNames[now.getMonth()].toUpperCase()}`;
-  const dayStr = dayNames[now.getDay()];
+  const dateStr = `${now.getDate()} ${monthNames[now.getMonth()]}`;
+  const dayStr = dayNames[now.getDay()].charAt(0).toUpperCase() + dayNames[now.getDay()].slice(1);
+
+  const formatNum = (num) => typeof num === "number" ? Math.round(num) : num;
+  const formatMoney = (num) => typeof num === "number" ? `${Math.round(num).toLocaleString("ru-RU")} ₽` : num;
+
+  const METRICS_DISPLAY = {
+    todayCount: { label: getPlural(stats.todayCount, ["Урок сегодня", "Урока сегодня", "Уроков сегодня"]), value: stats.todayCount, color: "bg-gradient-to-br from-blue-500 to-indigo-500", nav: "schedule" },
+    lessonsWeek: { label: getPlural(stats.lessonsWeek, ["Урок", "Урока", "Уроков"]) + " на этой неделе", value: stats.lessonsWeek, color: "bg-gradient-to-br from-indigo-400 to-purple-500", nav: "schedule" },
+    lessonsLeftWeek: { label: "Осталось " + getPlural(stats.lessonsLeftWeek, ["урок", "урока", "уроков"]) + " на этой неделе", value: stats.lessonsLeftWeek, color: "bg-gradient-to-br from-cyan-500 to-blue-500", nav: "schedule" },
+    lessonsMonth: { label: getPlural(stats.lessonsMonth, ["Урок", "Урока", "Уроков"]) + " в этом месяце", value: stats.lessonsMonth, color: "bg-gradient-to-br from-indigo-400 to-purple-500", nav: "schedule" },
+    lessonsLeftMonth: { label: "Осталось " + getPlural(stats.lessonsLeftMonth, ["урок", "урока", "уроков"]) + " в этом месяце", value: stats.lessonsLeftMonth, color: "bg-gradient-to-br from-cyan-500 to-blue-500", nav: "schedule" },
+    hoursWorkedThisMonth: { label: getPlural(Math.round(stats.hoursWorkedThisMonth), ["Час", "Часа", "Часов"]) + " в этом месяце", value: formatNum(stats.hoursWorkedThisMonth), color: "bg-gradient-to-br from-sky-400 to-cyan-500", nav: "schedule" },
+    hoursLeftWeek: { label: "Осталось " + getPlural(Math.round(stats.hoursLeftWeek), ["час", "часа", "часов"]) + " на этой неделе", value: formatNum(stats.hoursLeftWeek), color: "bg-gradient-to-br from-teal-400 to-emerald-500", nav: "schedule" },
+    hoursLeftMonth: { label: "Осталось " + getPlural(Math.round(stats.hoursLeftMonth), ["час", "часа", "часов"]) + " в этом месяце", value: formatNum(stats.hoursLeftMonth), color: "bg-gradient-to-br from-teal-400 to-emerald-500", nav: "schedule" },
+    cancelledMonth: { label: getPlural(stats.cancelledMonth, ["Отмена", "Отмены", "Отмен"]) + " за месяц", value: stats.cancelledMonth, color: "bg-gradient-to-br from-rose-400 to-red-500", nav: "schedule" },
+    incomeMonth: { label: `Доход в ${monthNamesPrep[now.getMonth()]}`, value: formatMoney(stats.incomeMonth), color: "bg-gradient-to-br from-emerald-500 to-teal-400", nav: "finance" },
+    expectedIncomeMonth: { label: "Ожидаемый доход", value: formatMoney(stats.expectedIncomeMonth), color: "bg-gradient-to-br from-teal-400 to-emerald-500", nav: "schedule" },
+    totalDebt: { label: "Сумма долгов", value: formatMoney(stats.totalDebt), color: "bg-gradient-to-br from-red-500 to-rose-600", nav: "finance" },
+    totalAdvances: { label: "Сумма авансов", value: formatMoney(stats.totalAdvances), color: "bg-gradient-to-br from-emerald-400 to-cyan-500", nav: "finance" },
+    averageReceipt: { label: "Средний чек", value: formatMoney(stats.averageReceipt), color: "bg-gradient-to-br from-amber-400 to-orange-500", nav: "finance" },
+    activeStudentsCount: { label: getPlural(stats.activeStudentsCount, ["Активный ученик", "Активных ученика", "Активных учеников"]), value: stats.activeStudentsCount, color: "bg-gradient-to-br from-violet-400 to-purple-500", nav: "students" },
+    newStudentsMonth: { label: getPlural(stats.newStudentsMonth, ["Новый ученик", "Новых ученика", "Новых учеников"]), value: stats.newStudentsMonth, color: "bg-gradient-to-br from-fuchsia-400 to-pink-500", nav: "students" }
+  };
+
+  const handleSaveMetrics = async (newMetrics) => {
+    setMetricsConfig(newMetrics);
+    setIsSettingsOpen(false);
+    await updateUserConfig(null, { dashboardMetrics: newMetrics });
+  };
 
   return (
     <PageWrapper
-      title="Операционный центр"
-      subtitle="Сводка на сегодня"
+      title={dateStr}
+      subtitle={dayStr}
       icon={LayoutDashboard}
       accentClass="text-stone-600"
       maxWidth="max-w-7xl"
       noGlobalScroll={true}
+      actionRight={
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="w-10 h-10 flex items-center justify-center rounded-xl bg-ivory shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all text-stone-400 hover:text-stone-600 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          title="Настроить метрики"
+        >
+          <Settings2 size={20} />
+        </button>
+      }
     >
       {/* ── Stat cards (навигационная панель) ─────────────────────────── */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 shrink-0">
-        {[
-          { label: dayStr, value: dateStr, color: "bg-clip-text text-transparent bg-gradient-to-br from-blue-600 to-cyan-400", nav: "schedule", navState: { view: "month" }, textClass: "text-2xl sm:text-3xl" },
-          { label: "Уроков сегодня", value: loading ? "..." : stats.todayCount, color: "bg-gradient-to-br from-orange-400 to-rose-500 bg-clip-text text-transparent", nav: "schedule", navState: { view: "agenda" }, textClass: "text-5xl" },
-          { label: `за ${loading ? "..." : Math.round(stats.hoursWorkedThisMonth)} ч`, value: loading ? "..." : `${(stats.incomeMonth / 1000).toFixed(1)}К`, color: "bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-teal-400", nav: "finance", textClass: "text-5xl" },
-          { label: "Активных учеников", value: loading ? "..." : stats.activeStudentsCount, color: "bg-gradient-to-br from-indigo-400 to-purple-500 bg-clip-text text-transparent", nav: "students", textClass: "text-5xl" },
-        ].map((s, i) => (
-          <button
-            key={i}
-            onClick={() => onNavigate(s.nav, s.navState)}
-            type="button"
-            className="group animate-scale-in flex flex-col items-center justify-center py-6 bg-ivory rounded-2xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer select-none"
-          >
-            <p className={`${s.textClass} font-black mb-1.5 transition-transform duration-200 group-active:scale-95 ${s.color}`}>{s.value}</p>
-            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{s.label}</p>
-          </button>
-        ))}
+        {metricsConfig.map((metricId, i) => {
+          const config = METRICS_DISPLAY[metricId];
+          if (!config) return null;
+          return (
+            <button
+              key={i}
+              onClick={() => onNavigate(config.nav)}
+              type="button"
+              className="group animate-scale-in flex flex-col items-center justify-center py-6 bg-ivory rounded-2xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer select-none"
+            >
+              <p className={`text-2xl sm:text-3xl font-black mb-1.5 transition-transform duration-200 group-active:scale-95 bg-clip-text text-transparent ${config.color}`}>
+                {loading ? "..." : config.value}
+              </p>
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{loading ? "Загрузка..." : config.label}</p>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Расписание на сегодня (full width) ───────────────────────────── */}
@@ -289,7 +430,7 @@ export default function DashboardPage({ onNavigate }) {
 
           {loading ? (
             /* Skeleton for action items list */
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-6">
               {[1, 2, 3].map(i => (
                 <div key={i} className="bg-ivory shadow-neu-sm rounded-2xl p-4 space-y-3">
                   <div className="skeleton-line w-2/5" style={{ animationDelay: `${i * 0.1}s` }} />
@@ -306,7 +447,7 @@ export default function DashboardPage({ onNavigate }) {
             /* Single-column list with custom elegant scroll indicator */
             <div className="relative -mx-2 px-2 flex-1 min-h-0">
               <div 
-                className="flex flex-col gap-4 h-full overflow-y-auto hide-scrollbar pb-8"
+                className="flex flex-col gap-6 h-full overflow-y-auto hide-scrollbar pb-8"
                 onScroll={handleScroll}
               >
                 {actionItems.map(item => (
@@ -372,6 +513,13 @@ export default function DashboardPage({ onNavigate }) {
           }
           setRefreshKey(k => k + 1);
         }}
+      />
+
+      <MetricsSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        initialMetrics={metricsConfig}
+        onSave={handleSaveMetrics}
       />
     </PageWrapper>
   );

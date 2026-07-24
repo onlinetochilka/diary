@@ -2,25 +2,45 @@
  * SideDrawer.jsx — Точилка UI Kit
  * ─────────────────────────────────────────────────────────────────────────────
  * Slide-over panel from the right.
+ *
+ * Props:
+ *   isOpen       — boolean
+ *   onClose      — () => void
+ *   title        — string
+ *   children     — ReactNode  (body content)
+ *   footer       — ReactNode  (sticky footer; if omitted, no footer renders)
+ *   onDelete     — () => Promise<void> | void  (if provided, shows 🗑 in header)
+ *   deleteLabel  — string  (label for toast, e.g. "Ученик удалён")
+ *   width        — Tailwind max-w class, default "max-w-md"
+ *   isDirty      — boolean  (shows "unsaved changes" confirm on close)
+ *   className    — string
  */
 import { useEffect, useRef, useState } from "react";
-import { X, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle, Trash2 } from "lucide-react";
 import { cn } from "../../utils/cn.js";
 import Button from "./Button.jsx";
 import Modal from "./Modal.jsx";
+import { useToast } from "./Toast.jsx";
+
+const UNDO_DELAY_MS = 5000;
 
 export default function SideDrawer({
   isOpen,
   onClose,
   title,
   children,
+  footer,
+  onDelete,
+  deleteLabel = "Запись удалена",
   className,
   width = "max-w-md",
   isDirty = false,
 }) {
   const dialogRef = useRef(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const { showToast } = useToast();
 
+  /* ── Open / close dialog ──────────────────────────────── */
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -28,15 +48,20 @@ export default function SideDrawer({
     if (isOpen) {
       if (!dialog.open) {
         dialog.showModal();
-        setShowConfirm(false); // Reset confirm state on open
+        setShowConfirm(false);
       }
+      document.body.style.overflow = "hidden";
     } else {
-      if (dialog.open) {
-        dialog.close();
-      }
+      if (dialog.open) dialog.close();
+      document.body.style.overflow = "";
     }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
-  
+
+  /* ── Close attempt (respects isDirty) ────────────────── */
   const handleCloseAttempt = () => {
     if (isDirty) {
       setShowConfirm(true);
@@ -50,68 +75,137 @@ export default function SideDrawer({
     onClose();
   };
 
-  // Close on backdrop click
+  /* ── Backdrop click ───────────────────────────────────── */
+  const handleCloseAttemptRef = useRef(handleCloseAttempt);
+  useEffect(() => {
+    handleCloseAttemptRef.current = handleCloseAttempt;
+  });
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
     const handleBackdropClick = (e) => {
-      // If the confirm modal is open, we don't process backdrop clicks on the drawer
       if (showConfirm) return;
-
       const rect = dialog.getBoundingClientRect();
       const isInDialog =
-        rect.top <= e.clientY &&
-        e.clientY <= rect.top + rect.height &&
-        rect.left <= e.clientX &&
-        e.clientX <= rect.left + rect.width;
-      
-      if (!isInDialog) {
-        handleCloseAttemptRef.current();
-      }
+        rect.top    <= e.clientY && e.clientY <= rect.top  + rect.height &&
+        rect.left   <= e.clientX && e.clientX <= rect.left + rect.width;
+      if (!isInDialog) handleCloseAttemptRef.current();
     };
 
-    dialog.addEventListener('click', handleBackdropClick);
-    return () => dialog.removeEventListener('click', handleBackdropClick);
-  }, [showConfirm]); // depend on showConfirm to update the closure if needed
+    dialog.addEventListener("click", handleBackdropClick);
+    return () => dialog.removeEventListener("click", handleBackdropClick);
+  }, [showConfirm]);
 
-  const handleCloseAttemptRef = useRef(handleCloseAttempt);
-  useEffect(() => {
-    handleCloseAttemptRef.current = handleCloseAttempt;
-  }, [handleCloseAttempt]);
+  /* ── Optimistic delete with Undo ──────────────────────── */
+  const handleDeleteClick = () => {
+    if (!onDelete) return;
 
+    // Optimistically close the drawer
+    onClose();
+
+    let undone = false;
+
+    // Show toast with Undo
+    showToast({
+      message: deleteLabel,
+      type: "info",
+      duration: UNDO_DELAY_MS,
+      undoLabel: "Отменить",
+      onUndo: () => {
+        undone = true;
+        // Caller is responsible for restoring state via the onDelete rejection
+        // We just signal "undo was pressed" by NOT calling the real delete
+      },
+      onExpire: async () => {
+        if (undone) return;
+        try {
+          await onDelete();
+        } catch (err) {
+          console.error("[SideDrawer] Delete failed:", err);
+          showToast({ message: "Не удалось удалить. Попробуйте ещё раз.", type: "error", duration: 4000 });
+        }
+      },
+    });
+  };
+
+  /* ── Render ───────────────────────────────────────────── */
   return (
     <>
       <dialog
         ref={dialogRef}
         onClose={onClose}
+        onCancel={(e) => {
+          e.preventDefault();
+          handleCloseAttempt();
+        }}
+        style={{
+          /* Override browser UA stylesheet: <dialog> defaults to `margin: auto` */
+          margin: 0,
+          marginLeft: "auto",
+          height: "100dvh",
+          maxHeight: "100dvh",
+        }}
         className={cn(
-          "backdrop:bg-stone-900/40 backdrop:backdrop-blur-sm",
-          "fixed inset-y-0 left-auto right-0 ml-auto m-0 h-full max-h-none overflow-y-auto",
-          "bg-ivory shadow-neu-xl p-0 w-full sm:rounded-l-2xl",
+          /* Overlay */
+          "backdrop:bg-stone-900/40 backdrop:backdrop-blur-[3px]",
+          /* Positioning — full-height right panel */
+          "fixed inset-y-0 right-0 p-0 w-full",
+          /* Panel chrome */
+          "bg-ivory sm:rounded-l-2xl overflow-hidden",
+          "shadow-[0_32px_80px_rgba(0,0,0,0.22)]",
+          /* Entrance animation */
           "open:animate-in open:slide-in-from-right open:duration-300",
           width,
           className
         )}
       >
         <div className="flex flex-col h-full">
-          <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-stone-100">
-            <h2 className="text-lg font-semibold text-stone-900">{title}</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCloseAttempt}
-              aria-label="Закрыть панель"
-            >
-              <X size={20} strokeWidth={2} className="text-stone-500" />
-            </Button>
+
+          {/* ── Header ────────────────────────────────────── */}
+          <header className="shrink-0 flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-stone-100">
+            <h2 className="text-lg font-semibold text-stone-900 leading-snug">
+              {title}
+            </h2>
+            <div className="flex items-center gap-1">
+              {/* Delete button — only when onDelete is provided */}
+              {onDelete && (
+                <button
+                  onClick={handleDeleteClick}
+                  aria-label="Удалить запись"
+                  className="flex items-center justify-center w-8 h-8 rounded-xl text-stone-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 size={16} strokeWidth={1.75} />
+                </button>
+              )}
+              {/* Close button */}
+              <button
+                onClick={handleCloseAttempt}
+                aria-label="Закрыть панель"
+                className="flex items-center justify-center w-8 h-8 rounded-xl text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors"
+              >
+                <X size={18} strokeWidth={2} />
+              </button>
+            </div>
           </header>
-          <div className="flex-1 overflow-y-auto p-6">
+
+          {/* ── Body ──────────────────────────────────────── */}
+          <div className="flex-1 overflow-y-auto scrollbar-thin p-6">
             {children}
           </div>
+
+          {/* ── Footer (sticky) ───────────────────────────── */}
+          {footer && (
+            <footer className="shrink-0 border-t border-stone-200/60 px-6 py-4 bg-ivory">
+              {typeof footer === 'function' ? footer(handleCloseAttempt) : footer}
+            </footer>
+          )}
+
         </div>
       </dialog>
 
+      {/* ── Unsaved changes confirm ────────────────────────── */}
       <Modal isOpen={showConfirm} onClose={() => setShowConfirm(false)} title="Несохраненные изменения">
         <div className="text-center mb-6">
           <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 mb-4">
@@ -125,7 +219,11 @@ export default function SideDrawer({
           <Button variant="secondary" onClick={() => setShowConfirm(false)}>
             Вернуться к редактированию
           </Button>
-          <Button variant="primary" className="bg-red-600 hover:bg-red-700 focus:ring-red-500/20 border-transparent text-white" onClick={handleConfirmClose}>
+          <Button
+            variant="primary"
+            className="bg-red-600 hover:bg-red-700 focus:ring-red-500/20 border-transparent text-white"
+            onClick={handleConfirmClose}
+          >
             Не сохранять
           </Button>
         </div>

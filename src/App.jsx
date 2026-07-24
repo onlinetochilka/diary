@@ -13,6 +13,7 @@ import {
 } from "./pages/Pages.jsx";
 import { initAnalytics } from "./utils/analytics.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
+import { ToastProvider } from "./components/ui/index.js";
 
 const PAGE_MAP = {
   dashboard: DashboardPage,
@@ -53,7 +54,9 @@ function RootApp() {
 export default function App() {
   return (
     <AuthProvider>
-      <RootApp />
+      <ToastProvider>
+        <RootApp />
+      </ToastProvider>
     </AuthProvider>
   );
 }
