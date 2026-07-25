@@ -2,7 +2,7 @@ import { useState, useEffect, useId } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { 
   SideDrawer, Button, Input, SegmentedControl, 
-  Select, TagsInput, Checkbox
+  Select, TagsInput, Checkbox, Tooltip
 } from "../ui/index.js";
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -275,14 +275,15 @@ export default function GroupFormDrawer({
                               Пройдено: {completedCount} из {totalCount} тем
                             </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveProgram(pIdx)}
-                            className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                            title="Удалить программу"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <Tooltip text="Удалить программу">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveProgram(pIdx)}
+                              className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </Tooltip>
                         </div>
                       );
                     })}

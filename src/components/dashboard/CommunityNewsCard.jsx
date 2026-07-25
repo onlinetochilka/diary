@@ -74,8 +74,7 @@ function NewsCardFallback() {
     <div className="bg-ivory shadow-neu-sm rounded-2xl p-6 space-y-4 animate-card-float-in">
       {/* Body */}
       <p className="text-sm text-stone-500 leading-relaxed">
-        Свежие материалы и обсуждения — в канале сообщества.
-        Присоединяйтесь, чтобы быть в числе первых.
+        Полезные инструменты для преподавателей в одном месте. Делимся инсайтами, переводим новости на человеческий язык и обсуждаем наболевшее.
       </p>
 
       {/* CTA — direct channel link */}
@@ -89,11 +88,13 @@ function NewsCardFallback() {
           group inline-flex w-full items-center justify-center gap-2
           px-4 py-3 rounded-xl
           text-sm font-semibold text-white
-          bg-[#1B4F72]
-          shadow-neu-sm hover:shadow-neu-md
-          transition-all duration-200
+          bg-gradient-to-b from-[#256a96] to-[#1B4F72]
+          shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_8px_20px_rgba(27,79,114,0.3)]
+          hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(27,79,114,0.45)]
+          hover:-translate-y-1
+          transition-all duration-300 ease-out
           outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72] focus-visible:ring-offset-2 focus-visible:ring-offset-ivory
-          active:scale-[0.98] active:shadow-neu-sm-inset
+          active:scale-[0.97] active:shadow-inner
         "
       >
         <TelegramIcon size={16} className="transition-transform duration-200 group-hover:scale-110" />
@@ -220,11 +221,13 @@ export default function CommunityNewsCard() {
           group inline-flex w-full items-center justify-center gap-2
           px-4 py-3 rounded-xl
           text-sm font-semibold text-white
-          bg-[#1B4F72]
-          shadow-neu-sm hover:shadow-neu-md
-          transition-all duration-200
+          bg-gradient-to-b from-[#256a96] to-[#1B4F72]
+          shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_8px_20px_rgba(27,79,114,0.3)]
+          hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(27,79,114,0.45)]
+          hover:-translate-y-1
+          transition-all duration-300 ease-out
           outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72] focus-visible:ring-offset-2 focus-visible:ring-offset-ivory
-          active:scale-[0.98] active:shadow-neu-sm-inset
+          active:scale-[0.97] active:shadow-inner
         "
         aria-label="Обсудить публикацию с коллегами в Telegram"
       >

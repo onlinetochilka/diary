@@ -3,7 +3,7 @@ import { Loader2, Plus, X, Trash2 } from "lucide-react";
 
 import { 
   SideDrawer, Button, Input, SegmentedControl, 
-  Select, Checkbox
+  Select, Checkbox, Tooltip
 } from "../ui/index.js";
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -480,14 +480,15 @@ export default function StudentFormDrawer({
                   ПРЕДМЕТ {index + 1} {subj.name && `(${subj.name})`}
                 </h3>
                 {formData.subjects.length > 1 && (
-                  <button 
-                    type="button" 
-                    onClick={() => removeSubject(index)}
-                    className="text-stone-400 hover:text-red-500 transition-colors p-1"
-                    title="Удалить предмет"
-                  >
-                    <X size={16} strokeWidth={2} />
-                  </button>
+                  <Tooltip text="Удалить предмет">
+                    <button 
+                      type="button" 
+                      onClick={() => removeSubject(index)}
+                      className="text-stone-400 hover:text-red-500 transition-colors p-1"
+                    >
+                      <X size={16} strokeWidth={2} />
+                    </button>
+                  </Tooltip>
                 )}
               </div>
 
@@ -598,14 +599,15 @@ export default function StudentFormDrawer({
                                 Пройдено: {completedCount} из {totalCount} тем
                               </p>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveProgram(index, pIdx)}
-                              className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                              title="Удалить программу"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            <Tooltip text="Удалить программу">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveProgram(index, pIdx)}
+                                className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </Tooltip>
                           </div>
                         );
                       })}

@@ -3,25 +3,13 @@ import { Check, Bell, Copy, Send, MessageCircle, Mail } from "lucide-react";
 import { Tooltip } from "../ui";
 
 function getHwText(n) {
-  if (!n) return 'Нет долгов по ДЗ';
-  const lastDigit = n % 10;
-  const lastTwo = n % 100;
-  if (lastTwo >= 11 && lastTwo <= 19) return `${n} долгов по ДЗ`;
-  if (lastDigit === 1) return `${n} долг по ДЗ`;
-  if (lastDigit >= 2 && lastDigit <= 4) return `${n} долга по ДЗ`;
-  return `${n} долгов по ДЗ`;
+  if (!n) return 'Все ДЗ сданы';
+  return `не сдано ${n} ДЗ`;
 }
 
 function getMoneyText(n, amount) {
   if (!n || n < 1) return `${amount} ₽`;
-  const lastDigit = n % 10;
-  const lastTwo = n % 100;
-  let text = '';
-  if (lastTwo >= 11 && lastTwo <= 19) text = `${n} неоплаченных занятий`;
-  else if (lastDigit === 1) text = `${n} неоплаченное занятие`;
-  else if (lastDigit >= 2 && lastDigit <= 4) text = `${n} неоплаченных занятия`;
-  else text = `${n} неоплаченных занятий`;
-  return `${text} (${amount} ₽)`;
+  return `не оплачено ${amount} ₽`;
 }
 
 export default function ActionItemCard({ item, onMarkDone }) {
@@ -96,7 +84,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                className="w-full bg-transparent border-none text-sm text-stone-700 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006584] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-sm resize-none min-h-[80px]"
+                className="w-full bg-transparent border-none text-sm text-stone-700 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006584] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent rounded-sm resize-y min-h-[80px]"
               />
             </div>
             
@@ -109,6 +97,16 @@ export default function ActionItemCard({ item, onMarkDone }) {
                   className={btnClass}
                 >
                   <Mail size={18} className="text-[#006584]" />
+                </a>
+              </Tooltip>
+              <Tooltip text="WhatsApp" position="top-right">
+                <a
+                  href={`https://wa.me/?text=${encoded}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={btnClass}
+                >
+                  <MessageCircle size={18} className="text-[#006584]" />
                 </a>
               </Tooltip>
               <Tooltip text="Макс" position="top-right">

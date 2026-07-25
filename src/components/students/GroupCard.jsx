@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { Clock, Pencil, Mail } from "lucide-react";
-import { Card, Button } from "../ui/index.js";
+import { Card, Badge, Button, Tooltip } from "../ui/index.js";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
 const GroupCard = memo(({
@@ -38,7 +38,9 @@ const GroupCard = memo(({
                       className={`inline-block h-10 w-10 rounded-full ring-2 ring-[#FBFBFA] ${c.bg} flex items-center justify-center relative z-10`}
                       style={{ ...getEntityStyle(s), zIndex: 10 - i }}
                     >
-                      <span className={`text-sm font-bold ${c.text}`} title={s.name}>{s.name.charAt(0)}</span>
+                      <Tooltip text={s.name} position="top">
+                        <span className={`text-sm font-bold ${c.text}`}>{s.name.charAt(0)}</span>
+                      </Tooltip>
                     </div>
                     );
                   })}
@@ -119,24 +121,26 @@ const GroupCard = memo(({
       </div>
 
       <div className="p-4 mt-auto flex justify-between gap-2">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => onOpenDrawer(group)}
-          aria-label="Изменить"
-          title="Редактировать группу"
-        >
-          <Pencil size={18} strokeWidth={1.5} className="text-stone-500 hover:text-teal-600" />
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          disabled
-          aria-label="Письмо"
-          title="Отправить сообщение группе (в разработке)"
-        >
-          <Mail size={18} strokeWidth={1.5} className="text-stone-300" />
-        </Button>
+        <Tooltip text="Редактировать группу">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => onOpenDrawer(group)}
+            aria-label="Изменить"
+          >
+            <Pencil size={18} strokeWidth={1.5} className="text-stone-500 hover:text-teal-600" />
+          </Button>
+        </Tooltip>
+        <Tooltip text="Отправить сообщение группе (в разработке)">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            disabled
+            aria-label="Письмо"
+          >
+            <Mail size={18} strokeWidth={1.5} className="text-stone-300" />
+          </Button>
+        </Tooltip>
       </div>
     </Card>
   );

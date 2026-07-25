@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { Phone, BookOpen, Pencil, Mail } from "lucide-react";
-import { Card, Button } from "../ui/index.js";
+import { Card, Button, Tooltip } from "../ui/index.js";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
 const StudentCard = memo(({
@@ -148,24 +148,26 @@ const StudentCard = memo(({
       )}
 
       <div className="p-4 mt-auto flex justify-between gap-2">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => onOpenDrawer(student)}
-          aria-label="Изменить"
-          title="Редактировать профиль"
-        >
-          <Pencil size={18} strokeWidth={1.5} className="text-stone-500 hover:text-indigo-600" />
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => onOpenEmail(student)}
-          aria-label="Письмо"
-          title="Отправить письмо"
-        >
-          <Mail size={18} strokeWidth={1.5} className="text-stone-500 hover:text-emerald-600" />
-        </Button>
+        <Tooltip text="Редактировать профиль">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => onOpenDrawer(student)}
+            aria-label="Изменить"
+          >
+            <Pencil size={18} strokeWidth={1.5} className="text-stone-500 hover:text-indigo-600" />
+          </Button>
+        </Tooltip>
+        <Tooltip text="Отправить письмо">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => onOpenEmail(student)}
+            aria-label="Письмо"
+          >
+            <Mail size={18} strokeWidth={1.5} className="text-stone-500 hover:text-emerald-600" />
+          </Button>
+        </Tooltip>
       </div>
     </Card>
   );

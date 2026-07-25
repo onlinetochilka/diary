@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
-import { Card, Button } from "../components/ui/index.js";
+import { Card, Button, Tooltip } from "../components/ui/index.js";
 import {
   LayoutDashboard, Users, TrendingUp, Clock, BookOpen,
   Plus, Coffee, AlertCircle, CheckCircle2, PlayCircle,
@@ -25,10 +25,6 @@ const getPlural = (number, forms) => {
 export default function DashboardPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [todayLessons, setTodayLessons] = useState([]);
-  const [showConducted, setShowConducted] = useState(false);
-
-  const [nextLesson, setNextLesson] = useState(null);
-  const [nextLessonState, setNextLessonState] = useState("done"); // "upcoming" | "active" | "done"
 
   const [hwDebts, setHwDebts] = useState([]);
   const [moneyDebts, setMoneyDebts] = useState([]);
@@ -58,13 +54,7 @@ export default function DashboardPage({ onNavigate }) {
 
   const [actionModal, setActionModal] = useState({ isOpen: false, item: null, mode: "remind" });
   const [refreshKey, setRefreshKey] = useState(0);
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
-
-  const handleScroll = (e) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.target;
-    // Add a 10px threshold to account for decimal scaling issues
-    setIsScrolledToBottom(scrollTop + clientHeight >= scrollHeight - 10);
-  };
+  const [showAllActionItems, setShowAllActionItems] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -104,22 +94,6 @@ export default function DashboardPage({ onNavigate }) {
       });
 
       setTodayLessons(enrichedTodayL);
-
-      let foundNext = null;
-      let foundState = "done";
-      for (const l of enrichedTodayL) {
-        if (l.endTime > currentTimeStr && l.status !== "conducted") {
-          foundNext = l;
-          if (l.startTime <= currentTimeStr && l.endTime >= currentTimeStr) {
-            foundState = "active";
-          } else {
-            foundState = "upcoming";
-          }
-          break;
-        }
-      }
-      setNextLesson(foundNext);
-      setNextLessonState(foundState);
 
       // 2. Homework Debts
       const hwMap = {};
@@ -330,15 +304,16 @@ export default function DashboardPage({ onNavigate }) {
       icon={LayoutDashboard}
       accentClass="text-stone-600"
       maxWidth="max-w-7xl"
-      noGlobalScroll={true}
+      noGlobalScroll={!showAllActionItems}
       actionRight={
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-ivory shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all text-stone-400 hover:text-stone-600 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-          title="Настроить метрики"
-        >
-          <Settings2 size={20} />
-        </button>
+        <Tooltip text="Настроить метрики" position="bottom-right">
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-ivory shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all text-stone-400 hover:text-stone-600 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <Settings2 size={20} />
+          </button>
+        </Tooltip>
       }
     >
       {/* ── Stat cards (навигационная панель) ─────────────────────────── */}
@@ -399,7 +374,7 @@ export default function DashboardPage({ onNavigate }) {
                       {l.displayName}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-sm font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md tabular-nums">{l.startTime}</span>
+                      <span className="text-sm font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md tabular-nums">{l.startTime} — {l.endTime}</span>
                       <span className="text-xs text-stone-500 truncate">{l.subjectName}</span>
                     </div>
                   </div>
@@ -414,10 +389,10 @@ export default function DashboardPage({ onNavigate }) {
             Левая колонка: список «Требует внимания»
             Правая колонка: «На острие пера» — sticky при скролле
       ─────────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start lg:flex-1 lg:min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
         {/* LEFT COLUMN — Action Items */}
-        <section className="lg:col-span-2 flex flex-col h-full min-h-0">
+        <section className="lg:col-span-2 flex flex-col">
           <div className="flex items-center gap-2 mb-5 shrink-0">
             <AlertCircle size={20} className="text-stone-400" />
             <h2 className="text-lg font-bold text-stone-800">Требует внимания</h2>
@@ -444,28 +419,23 @@ export default function DashboardPage({ onNavigate }) {
               <span className="text-base font-bold">Всё в порядке — задолженностей нет</span>
             </div>
           ) : (
-            /* Single-column list with custom elegant scroll indicator */
-            <div className="relative -mx-2 px-2 flex-1 min-h-0">
-              <div 
-                className="flex flex-col gap-6 h-full overflow-y-auto hide-scrollbar pb-8"
-                onScroll={handleScroll}
-              >
-                {actionItems.map(item => (
-                  <ActionItemCard
-                    key={item.id}
-                    item={item}
-                    onMarkDone={(item) => setActionModal({ isOpen: true, item, mode: "mark_done" })}
-                  />
-                ))}
-              </div>
+            /* Single-column list with 'show all' logic */
+            <div className="flex flex-col gap-6 pb-8">
+              {(showAllActionItems ? actionItems : actionItems.slice(0, 3)).map(item => (
+                <ActionItemCard
+                  key={item.id}
+                  item={item}
+                  onMarkDone={(item) => setActionModal({ isOpen: true, item, mode: "mark_done" })}
+                />
+              ))}
               
-              {/* Fade indicator at the bottom */}
-              {actionItems.length > 3 && !isScrolledToBottom && (
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[rgb(var(--ivory))] to-transparent pointer-events-none flex items-end justify-center pb-1">
-                  <span className="text-[10px] font-bold text-stone-400/80 uppercase tracking-widest animate-pulse">
-                    Прокрутите вниз ↓
-                  </span>
-                </div>
+              {actionItems.length > 3 && (
+                <button 
+                  onClick={() => setShowAllActionItems(!showAllActionItems)}
+                  className="w-full py-4 mt-2 flex items-center justify-center text-[10px] font-bold text-stone-500 uppercase tracking-widest hover:text-stone-700 hover:bg-stone-200/50 transition-colors bg-stone-100/50 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500 shadow-sm"
+                >
+                  {showAllActionItems ? "Свернуть ↑" : "Показать все ↓"}
+                </button>
               )}
             </div>
           )}
@@ -475,7 +445,7 @@ export default function DashboardPage({ onNavigate }) {
         <aside className="lg:col-span-1 lg:sticky lg:top-6">
           <div className="flex items-center gap-2 mb-5">
             <TelegramIcon size={20} className="text-[#1B4F72]" />
-            <h2 className="text-lg font-bold text-stone-800">На острие пера</h2>
+            <h2 className="text-lg font-bold text-stone-800">Лайфхаки от «Точилки»</h2>
           </div>
           <CommunityNewsCard />
         </aside>

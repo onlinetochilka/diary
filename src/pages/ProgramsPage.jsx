@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Plus, Pencil, Trash2, ListChecks } from "lucide-react";
-import { Card, Button, Input, SideDrawer, ListInput } from "../components/ui/index.js";
+import { Card, Button, Input, SideDrawer, ListInput, Tooltip } from "../components/ui/index.js";
 import { getPrograms, addProgram, updateProgram, deleteProgram } from "../services/database.js";
 import { getEntityStyle, getEntityColorClasses } from "../utils/colors.js";
 
@@ -215,20 +215,23 @@ export default function ProgramsPage() {
                   {prog.subject && <p className={`text-xs font-medium ${c.text} mt-1`}>{prog.subject}</p>}
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                  <button
-                    className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingProgram(prog);
-                      setIsDrawerOpen(true);
-                    }}
-                    title="Удалить программу"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  <div className="p-1.5 text-stone-400" title="Редактировать">
-                    <Pencil size={16} />
-                  </div>
+                  <Tooltip text="Удалить программу">
+                    <button
+                      className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingProgram(prog);
+                        setIsDrawerOpen(true);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </Tooltip>
+                  <Tooltip text="Редактировать">
+                    <div className="p-1.5 text-stone-400">
+                      <Pencil size={16} />
+                    </div>
+                  </Tooltip>
                 </div>
               </div>
               

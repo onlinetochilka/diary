@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, forwardRef } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, Plus, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileText, PartyPopper, Copy } from "lucide-react";
-import { Card, Button, Switch, SegmentedControl } from "../components/ui/index.js";
+import { Card, Button, Switch, SegmentedControl, Tooltip } from "../components/ui/index.js";
 import { useSchedule } from "../hooks/useSchedule.js";
 import { getEntityStyle, getEntityColorClasses } from "../utils/colors.js";
 import { DndContext, useDraggable, useDroppable, DragOverlay, pointerWithin, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
@@ -114,7 +115,7 @@ export default function SchedulePage({ pageState }) {
   const [drawerInitialTab, setDrawerInitialTab] = useState("info");
 
   // Fast Tracking Popover State
-  const [popover, setPopover] = useState(null); // { lesson, x, y }
+  const [popover, setPopover] = useState(null); // { lesson, triggerRect }
   
   // Drag-and-Drop Quick Edit State
   const [timeEditPopover, setTimeEditPopover] = useState(null); // { lesson, newDate, isCopy, x, y }
@@ -346,12 +347,11 @@ export default function SchedulePage({ pageState }) {
         <div className={`font-medium flex items-center justify-between gap-1 min-w-0 ${lesson.status === 'cancelled' ? 'line-through' : ''}`}>
           <span className={`truncate min-w-0 flex-1 font-bold text-stone-800 ${compact ? 'text-[9.5px] leading-tight' : 'text-xs'}`}>{title}</span>
           {lesson.homework && (
-            <div 
-              className="shrink-0 flex items-center justify-center" 
-              title={isLessonHwFullyDone(lesson) ? "ДЗ сдано" : "Долг по ДЗ"}
-            >
-              <FileText size={10} className={isLessonHwFullyDone(lesson) ? "text-[#006584]" : "text-[#B71234]"} strokeWidth={2.5} />
-            </div>
+            <Tooltip text={isLessonHwFullyDone(lesson) ? "ДЗ сдано" : "ДЗ не сдано"}>
+              <div className="shrink-0 flex items-center justify-center">
+                <FileText size={10} className={isLessonHwFullyDone(lesson) ? "text-[#006584]" : "text-[#B71234]"} strokeWidth={2.5} />
+              </div>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -514,13 +514,14 @@ export default function SchedulePage({ pageState }) {
                       {day}
                     </span>
                     <div className="flex items-center gap-1 pointer-events-auto">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleOpenDrawer({ date: dateStr }); }}
-                        className="opacity-0 group-hover/day:opacity-100 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 p-0.5 rounded transition-all"
-                        title="Добавить урок"
-                      >
-                        <Plus size={14} strokeWidth={2.5} />
-                      </button>
+                      <Tooltip text="Добавить урок">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleOpenDrawer({ date: dateStr }); }}
+                          className="opacity-0 group-hover/day:opacity-100 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 p-0.5 rounded transition-all"
+                        >
+                          <Plus size={14} strokeWidth={2.5} />
+                        </button>
+                      </Tooltip>
                       {dayLessons.length > 0 && (
                         <span className="text-[10px] text-stone-400">{dayLessons.length} ур.</span>
                       )}
@@ -535,7 +536,7 @@ export default function SchedulePage({ pageState }) {
                       onClick={(e) => {
                         e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setPopover({ lesson: l, x: rect.left, y: rect.bottom });
+                        setPopover({ lesson: l, triggerRect: rect });
                       }} 
                     />
                   ))}
@@ -622,7 +623,7 @@ export default function SchedulePage({ pageState }) {
                       lesson={l} 
                       onClick={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setPopover({ lesson: l, x: rect.left, y: rect.bottom });
+                        setPopover({ lesson: l, triggerRect: rect });
                       }} 
                     />
                   ))}
@@ -631,7 +632,7 @@ export default function SchedulePage({ pageState }) {
                       {hwDebtOnly ? (
                         <>
                           <PartyPopper size={16} className="text-emerald-400 mb-1 opacity-80" strokeWidth={1.5} />
-                          <span>Все долги сданы</span>
+                          <span>Все ДЗ сданы</span>
                         </>
                       ) : (
                         <span className="italic">Нет уроков</span>
@@ -660,7 +661,7 @@ export default function SchedulePage({ pageState }) {
                   <div className="bg-emerald-50 p-3 rounded-full mb-3">
                     <PartyPopper size={28} className="text-emerald-500" strokeWidth={1.5} />
                   </div>
-                  <span className="font-medium text-stone-800 mb-1 text-base">Ура! Все долги сданы</span>
+                  <span className="font-medium text-stone-800 mb-1 text-base">Ура! Все ДЗ сданы</span>
                   <span className="text-sm text-stone-400">Ученики молодцы</span>
                 </>
               ) : (
@@ -698,7 +699,7 @@ export default function SchedulePage({ pageState }) {
                       style={entityStyle}
                       onClick={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setPopover({ lesson: l, x: rect.left, y: rect.bottom });
+                        setPopover({ lesson: l, triggerRect: rect });
                       }}
                     >
                       <div className="flex gap-4 items-center">
@@ -713,7 +714,9 @@ export default function SchedulePage({ pageState }) {
                             {topicTitle && (
                               <>
                                 <span className="text-stone-300">•</span>
-                                <span className="truncate max-w-[150px] sm:max-w-[300px]" title={topicTitle}>{topicTitle}</span>
+                                <Tooltip text={topicTitle}>
+                                  <span className="truncate max-w-[150px] sm:max-w-[300px]">{topicTitle}</span>
+                                </Tooltip>
                               </>
                             )}
                           </div>
@@ -749,7 +752,7 @@ export default function SchedulePage({ pageState }) {
   return (
     <PageWrapper 
       title="Управление уроками" 
-      subtitle="Запланированные занятия и долги"
+      subtitle="Запланированные занятия и несданные ДЗ"
       icon={CalendarDays}
       accentClass="text-[#006584]"
     >
@@ -776,7 +779,7 @@ export default function SchedulePage({ pageState }) {
           <div className="flex items-center justify-between md:justify-end gap-4 flex-wrap">
             <div className="flex items-center gap-2 shrink-0">
               <Switch checked={hwDebtOnly} onChange={setHwDebtOnly} />
-              <span className="text-sm font-bold text-stone-700 cursor-pointer select-none" onClick={() => setHwDebtOnly(!hwDebtOnly)}>Долги по ДЗ</span>
+              <span className="text-sm font-bold text-stone-700 cursor-pointer select-none" onClick={() => setHwDebtOnly(!hwDebtOnly)}>Несданные ДЗ</span>
             </div>
 
             <div className="flex bg-ivory shadow-neu-sm-inset rounded-xl p-1 shrink-0">
@@ -836,17 +839,38 @@ export default function SchedulePage({ pageState }) {
         lessons={lessons}
       />
 
-      {popover && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setPopover(null)} />
-          <div 
-            className="fixed z-50 bg-ivory rounded-xl shadow-neu-xl p-2 w-56 animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[85vh]"
-            style={{ 
-              top: Math.max(20, Math.min(popover.y + 4, window.innerHeight - 380)), 
-              left: Math.max(16, Math.min(popover.x, window.innerWidth - 240)) 
-            }}
-          >
-            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 px-2 pt-1">Действия</div>
+      {popover && createPortal(
+        (() => {
+          const rect = popover.triggerRect;
+          let showAbove = false;
+          const popoverEstimatedHeight = 350;
+          const spaceBelow = window.innerHeight - rect.bottom;
+          const spaceAbove = rect.top;
+
+          if (spaceBelow < popoverEstimatedHeight && spaceAbove > spaceBelow) {
+             showAbove = true;
+          }
+
+          const style = {
+            left: Math.max(16, Math.min(rect.left, window.innerWidth - 240))
+          };
+
+          if (showAbove) {
+            style.bottom = window.innerHeight - rect.top + 4;
+            style.maxHeight = `calc(100vh - ${window.innerHeight - rect.top + 20}px)`;
+          } else {
+            style.top = rect.bottom + 4;
+            style.maxHeight = `calc(100vh - ${rect.bottom + 20}px)`;
+          }
+
+          return (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setPopover(null)} />
+              <div 
+                className="fixed z-50 bg-ivory rounded-xl shadow-neu-xl p-2 w-56 animate-in fade-in zoom-in duration-200 overflow-y-auto"
+                style={style}
+              >
+                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 px-2 pt-1">Действия</div>
             <button 
               className="w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 rounded-lg flex items-center gap-2"
               onClick={() => handleOpenDrawer(popover.lesson)}
@@ -959,10 +983,13 @@ export default function SchedulePage({ pageState }) {
               <XCircle size={14} /> Отменен
             </button>
           </div>
-        </>
+            </>
+          );
+        })(),
+        document.body
       )}
 
-      {timeEditPopover && (
+      {timeEditPopover && createPortal(
         <>
           <div className="fixed inset-0 z-40 bg-stone-900/10" onClick={() => setTimeEditPopover(null)} />
           <div 
@@ -1023,7 +1050,8 @@ export default function SchedulePage({ pageState }) {
               Нажмите <strong className="font-semibold text-stone-600 bg-white border border-stone-200 px-1 rounded shadow-sm">Enter</strong> для сохранения
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {view === "week" && (
