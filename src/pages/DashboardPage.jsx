@@ -386,7 +386,7 @@ export default function DashboardPage({ onNavigate }) {
       </section>
 
       {/* ── Асимметричная сетка ───────────────────────────────────
-            Левая колонка: список «Требует внимания»
+            Левая колонка: список «Рабочие моменты»
             Правая колонка: «На острие пера» — sticky при скролле
       ─────────────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -395,7 +395,7 @@ export default function DashboardPage({ onNavigate }) {
         <section className="lg:col-span-2 flex flex-col">
           <div className="flex items-center gap-2 mb-5 shrink-0">
             <AlertCircle size={20} className="text-stone-400" />
-            <h2 className="text-lg font-bold text-stone-800">Требует внимания</h2>
+            <h2 className="text-lg font-bold text-stone-800">Рабочие моменты</h2>
             {!loading && actionItems.length > 0 && (
               <span className="ml-auto text-xs font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full tabular-nums">
                 {actionItems.length}
