@@ -95,7 +95,7 @@ export async function generateDemoData(tutorId) {
     // i=1: Only HW debt
     // i=2: Only Fin debt
     // i=3+: No debts
-    const balance = (i === 0 || i === 2) ? -2500 : 5000;
+    const balance = (i === 1 || i === 2) ? -2500 : 5000;
     
     let assignedPrograms = [];
     if (subjects[i] === "Физика" || subjects[i] === "Математика") {
@@ -144,10 +144,11 @@ export async function generateDemoData(tutorId) {
     allUsedColors.push(hue);
     const r = doc(refs.groups);
     // Assign 3-4 random students to each group
+    // Ensure students 0, 1, 2 (our debtors) are not in groups to keep debts sparse
     const grStudents = [
-      students[i].id,
-      students[i + 3].id,
-      students[i + 6].id
+      students[i + 5].id,
+      students[i + 8].id,
+      students[i + 11].id
     ];
     let assignedPrograms = [];
     if (groupSubjects[i] === "Физика" || groupSubjects[i] === "Математика") {
@@ -224,15 +225,15 @@ export async function generateDemoData(tutorId) {
         if (status === "conducted" && rng() > 0.3) {
            homework = "Выполнить тест";
            // 80% chance they did the homework
-                      // Students 0 and 1 never do homework, others always do.
+                      // Students 0 and 2 never do homework, others always do.
            const st0 = students[0].id;
-           const st1 = students[1].id;
+           const st2 = students[2].id;
            if (isGroup) {
              hwDoneBy = [...gr.studentIds];
              if (hwDoneBy.includes(st0)) hwDoneBy = hwDoneBy.filter(id => id !== st0);
-             if (hwDoneBy.includes(st1)) hwDoneBy = hwDoneBy.filter(id => id !== st1);
+             if (hwDoneBy.includes(st2)) hwDoneBy = hwDoneBy.filter(id => id !== st2);
            } else {
-             hwDoneBy = (st.id === st0 || st.id === st1) ? [] : [st.id];
+             hwDoneBy = (st.id === st0 || st.id === st2) ? [] : [st.id];
            }
         }
       }
