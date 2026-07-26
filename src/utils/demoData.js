@@ -216,12 +216,16 @@ export async function generateDemoData(tutorId) {
       let st = null;
       
       let forceStIndex = -1;
-      if (offset === -1 && i === 0) forceStIndex = 0;
-      else if (offset === -2 && i === 0) forceStIndex = 2;
+      
+      // Inject past debts (to ensure they appear in the debt lists)
+      if (offset === -1 && i === 0) forceStIndex = 0; // Missed HW
+      else if (offset === -2 && i === 0) forceStIndex = 2; // Missed HW
+      
+      // Inject perfect future distribution (offsets 1, 2, 4, 5, 8, 9 - skipping 3, 10 which are dropped by modulo)
       else if (offset >= 0 && i === 0) {
-        if (offset === 1) forceStIndex = 2;
-        else if (offset === 3 || offset === 7 || offset === 11) forceStIndex = 0;
-        else if (offset === 5 || offset === 9) forceStIndex = 1;
+        if (offset === 1) forceStIndex = 2; // BOTH
+        else if (offset === 2 || offset === 5 || offset === 9) forceStIndex = 0; // BLUE
+        else if (offset === 4 || offset === 8) forceStIndex = 1; // RED
       }
       
       if (forceStIndex !== -1) isGroup = false;
@@ -229,13 +233,13 @@ export async function generateDemoData(tutorId) {
       if (isGroup) {
         gr = groups[i % groups.length];
       } else {
-        let stIndex = Math.floor(rng() * students.length);
         if (forceStIndex !== -1) {
-          stIndex = forceStIndex;
-        } else if (offset >= -2) {
-          stIndex = 3 + Math.floor(rng() * 12);
+          st = students[forceStIndex];
+        } else {
+          // SAFE students for ALL other lessons (past and future)
+          // This guarantees absolutely no stray dots anywhere.
+          st = students[3 + Math.floor(rng() * 12)];
         }
-        st = students[stIndex];
       }
 
       if (isPast) {
