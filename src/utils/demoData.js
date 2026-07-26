@@ -227,13 +227,13 @@ export async function generateDemoData(tutorId) {
                       // Students 0 and 1 never do homework, others always do.
            const st0 = students[0].id;
            const st1 = students[1].id;
-           let didHw = true;
            if (isGroup) {
-             if (gr.studentIds.includes(st0) || gr.studentIds.includes(st1)) didHw = false;
+             hwDoneBy = [...gr.studentIds];
+             if (hwDoneBy.includes(st0)) hwDoneBy = hwDoneBy.filter(id => id !== st0);
+             if (hwDoneBy.includes(st1)) hwDoneBy = hwDoneBy.filter(id => id !== st1);
            } else {
-             if (st.id === st0 || st.id === st1) didHw = false;
+             hwDoneBy = (st.id === st0 || st.id === st1) ? [] : [st.id];
            }
-           if (didHw) hwDoneBy = isGroup ? gr.studentIds : [st.id];
         }
       }
 
