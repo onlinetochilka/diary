@@ -243,20 +243,26 @@ export async function generateDemoData(tutorId) {
       }
 
       if (isPast) {
-        status = rng() > 0.1 ? "conducted" : "cancelled";
-        if (status === "conducted" && rng() > 0.3) {
-           homework = "Выполнить тест";
-           // 80% chance they did the homework
-                      // Students 0 and 2 never do homework, others always do.
-           const st0 = students[0].id;
-           const st2 = students[2].id;
-           if (isGroup) {
-             hwDoneBy = [...gr.studentIds];
-             if (hwDoneBy.includes(st0)) hwDoneBy = hwDoneBy.filter(id => id !== st0);
-             if (hwDoneBy.includes(st2)) hwDoneBy = hwDoneBy.filter(id => id !== st2);
-           } else {
-             hwDoneBy = (st.id === st0 || st.id === st2) ? [] : [st.id];
-           }
+        if (forceStIndex !== -1) {
+          status = "conducted";
+          homework = "Выполнить тест";
+          hwDoneBy = []; // forced debtor doesn't do it
+        } else {
+          status = rng() > 0.1 ? "conducted" : "cancelled";
+          if (status === "conducted" && rng() > 0.3) {
+             homework = "Выполнить тест";
+             // 80% chance they did the homework
+             // Students 0 and 2 never do homework, others always do.
+             const st0 = students[0].id;
+             const st2 = students[2].id;
+             if (isGroup) {
+               hwDoneBy = [...gr.studentIds];
+               if (hwDoneBy.includes(st0)) hwDoneBy = hwDoneBy.filter(id => id !== st0);
+               if (hwDoneBy.includes(st2)) hwDoneBy = hwDoneBy.filter(id => id !== st2);
+             } else {
+               hwDoneBy = (st.id === st0 || st.id === st2) ? [] : [st.id];
+             }
+          }
         }
       }
 

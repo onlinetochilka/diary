@@ -164,8 +164,10 @@ export default function LessonDrawer({
     });
 
     if (isOverlapping) {
-      setErrors({ time: "На это время уже запланирован другой урок" });
-      return;
+      const proceed = window.confirm("Внимание: На это время уже запланирован другой урок. Вы уверены, что хотите создать пересекающийся урок?");
+      if (!proceed) {
+        return;
+      }
     }
 
     setIsSubmitting(true);

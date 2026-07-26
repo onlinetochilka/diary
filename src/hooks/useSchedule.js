@@ -34,6 +34,7 @@ export function useSchedule() {
 
   const handleSaveLesson = async (id, data) => {
     if (id) {
+      setLessons(prev => prev.map(l => l.id === id ? { ...l, ...data } : l));
       await updateLesson(id, data);
     } else {
       await addLesson(data);

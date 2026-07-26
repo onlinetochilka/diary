@@ -256,13 +256,31 @@
   .ring-brand-blue { --tw-ring-color: #006584 !important; }
   .ring-brand-burgundy { --tw-ring-color: #B71234 !important; }
   
-  /* Dynamic Entity Colors (OKLCH) */
-  .entity-bg { background-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
-  .entity-text { color: oklch(0.30 0.08 var(--card-h)) !important; }
-  .entity-border { border-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
-  .entity-border-top { border-top-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
-  .entity-light-bg { background-color: oklch(0.98 0.02 var(--card-h)) !important; }
-  .entity-ring { --tw-ring-color: oklch(var(--card-l) 0.08 var(--card-h)) !important; }
+  /* Dynamic Entity Colors (OKLCH with HSL fallback for older browsers) */
+  .entity-bg { 
+    background-color: hsl(var(--card-h), 75%, 90%) !important;
+    background-color: oklch(var(--card-l) 0.09 var(--card-h)) !important; 
+  }
+  .entity-text { 
+    color: hsl(var(--card-h), 70%, 30%) !important;
+    color: oklch(0.35 0.12 var(--card-h)) !important; 
+  }
+  .entity-border { 
+    border-color: hsl(var(--card-h), 75%, 85%) !important;
+    border-color: oklch(var(--card-l) 0.12 var(--card-h)) !important; 
+  }
+  .entity-border-top { 
+    border-top-color: hsl(var(--card-h), 75%, 85%) !important;
+    border-top-color: oklch(var(--card-l) 0.12 var(--card-h)) !important; 
+  }
+  .entity-light-bg { 
+    background-color: hsl(var(--card-h), 60%, 96%) !important;
+    background-color: oklch(0.97 0.04 var(--card-h)) !important; 
+  }
+  .entity-ring { 
+    --tw-ring-color: hsl(var(--card-h), 75%, 85%) !important;
+    --tw-ring-color: oklch(var(--card-l) 0.12 var(--card-h)) !important; 
+  }
 
   /* ── Skeleton loading lines ─────────────────────────────────────────────
      Usage: <div class="skeleton-line w-3/4" />  (vary width per line)

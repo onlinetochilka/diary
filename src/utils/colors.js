@@ -3,12 +3,12 @@
  * Generates dynamic OKLCH values mapped to CSS variables for infinite, strictly non-colliding colors.
  */
 
-// 3 layers of lightness: 0.88 (bright), 0.84 (mid), 0.80 (deep)
+// 3 layers of lightness: 0.95 (bright), 0.92 (mid), 0.89 (deep)
 // 12 hues per layer, shifted to avoid vertical stacking
 const OKLCH_LAYERS = [
-  { l: 0.88, shift: 0 },
-  { l: 0.84, shift: 15 },
-  { l: 0.80, shift: 7.5 }
+  { l: 0.95, shift: 0 },
+  { l: 0.92, shift: 15 },
+  { l: 0.89, shift: 7.5 }
 ];
 
 export const OKLCH_PALETTE = [];
@@ -95,14 +95,14 @@ export function getEntityStyle(entityOrString) {
 
   // Fallback string hashing for preview/temp states
   const str = typeof entityOrString === 'string' ? entityOrString : entityOrString.name || "";
-  if (!str) return { '--card-h': '0', '--card-l': '0.88' };
+  if (!str) return { '--card-h': '0', '--card-l': '0.95' };
   
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
   const h = Math.abs(hash) % 360;
-  const l = 0.88 - (Math.abs(hash) % 3) * 0.04;
+  const l = 0.95 - (Math.abs(hash) % 3) * 0.03;
   return {
     '--card-h': h,
     '--card-l': l

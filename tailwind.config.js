@@ -75,11 +75,11 @@ export default {
       keyframes: {
         "fade-in": {
           from: { opacity: "0", transform: "translateY(4px)" },
-          to:   { opacity: "1", transform: "translateY(0)" },
+          to:   { opacity: "1", transform: "none" },
         },
         "scale-in": {
           from: { opacity: "0", transform: "scale(0.97)" },
-          to:   { opacity: "1", transform: "scale(1)" },
+          to:   { opacity: "1", transform: "none" },
         },
         spin: {
           to: { transform: "rotate(360deg)" },
@@ -90,7 +90,7 @@ export default {
         },
         "card-float-in": {
           from: { opacity: "0", transform: "translateY(8px) scale(0.99)" },
-          to:   { opacity: "1", transform: "translateY(0) scale(1)" },
+          to:   { opacity: "1", transform: "none" },
         },
       },
       animation: {
