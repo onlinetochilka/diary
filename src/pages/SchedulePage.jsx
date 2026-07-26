@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, forwardRef } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, Plus, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileText, PartyPopper, Copy } from "lucide-react";
+import { CalendarDays, Plus, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileText, PartyPopper, Copy, MoreVertical, ArrowLeft } from "lucide-react";
 import { Card, Button, Switch, SegmentedControl, Tooltip } from "../components/ui/index.js";
 import { useSchedule } from "../hooks/useSchedule.js";
 import { getEntityStyle, getEntityColorClasses } from "../utils/colors.js";
@@ -93,8 +93,9 @@ export default function SchedulePage({ pageState }) {
     handleQuickHomework: hookQuickHomework
   } = useSchedule();
 
-  const [view, setView] = useState(pageState?.view || "week"); // 'month', 'week', 'agenda'
+  const [view, setView] = useState(pageState?.view || "week"); // 'month', 'week', 'day'
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [navigatedFromMonth, setNavigatedFromMonth] = useState(false);
 
   useEffect(() => {
     if (pageState?.view) setView(pageState.view);
@@ -150,12 +151,12 @@ export default function SchedulePage({ pageState }) {
   useEffect(() => {
     // Auto switch to agenda on mobile
     if (window.innerWidth < 1024) {
-      setView(prev => prev !== "agenda" ? "agenda" : prev);
+      setView(prev => prev !== "day" ? "day" : prev);
     }
     const handleResize = () => {
       setView(prev => {
-        if (window.innerWidth < 1024 && prev !== "agenda") {
-          return "agenda";
+        if (window.innerWidth < 1024 && prev !== "day") {
+          return "day";
         }
         return prev;
       });
@@ -261,17 +262,47 @@ export default function SchedulePage({ pageState }) {
     }
   };
 
-  const filteredLessons = useMemo(() => {
-    return lessons.filter(l => {
-      if (hwDebtOnly) {
-        // Only past lessons with homework assigned but not fully done
-        const lessonDate = new Date(`${l.date}T${l.endTime}`);
-        const isPast = lessonDate < new Date();
-        return isPast && !isLessonHwFullyDone(l);
+  const studentsWithDebt = useMemo(() => {
+    const debts = new Set();
+    const pastLessons = lessons.filter(l => new Date(`${l.date}T${l.endTime}`) < new Date());
+    pastLessons.forEach(l => {
+      if (!isLessonHwFullyDone(l)) {
+        if (l.type === "individual") {
+          if (!l.hwDoneBy?.includes(l.studentId)) debts.add(l.studentId);
+        } else {
+          const group = groups.find(g => g.id === l.groupId);
+          if (group && group.studentIds) {
+            group.studentIds.forEach(id => {
+              if (!l.hwDoneBy?.includes(id)) debts.add(id);
+            });
+          }
+        }
       }
-      return true;
     });
-  }, [lessons, hwDebtOnly, groups]);
+    return debts;
+  }, [lessons, groups]);
+
+  const filteredLessons = useMemo(() => {
+    if (!hwDebtOnly) return lessons;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    return lessons.filter(l => {
+      const lessonDate = new Date(`${l.date}T00:00:00`);
+      if (lessonDate < todayStart) return false;
+
+      if (l.type === "individual") {
+        return studentsWithDebt.has(l.studentId);
+      } else {
+        const group = groups.find(g => g.id === l.groupId);
+        if (group && group.studentIds) {
+          return group.studentIds.some(id => studentsWithDebt.has(id));
+        }
+        return false;
+      }
+    });
+  }, [lessons, hwDebtOnly, groups, studentsWithDebt]);
 
   const lessonsByDate = useMemo(() => {
     const map = {};
@@ -324,7 +355,7 @@ export default function SchedulePage({ pageState }) {
   const LessonCardView = forwardRef(({ 
     lesson, onClick, compact = false, isOverlay = false, 
     isDragging = false, isFaded = false, title, borderColorClass, textColorClass, 
-    listeners = {}, attributes = {}, style = {}
+    listeners = {}, attributes = {}, style = {}, onMoreClick
   }, ref) => {
     return (
       <div 
@@ -342,6 +373,14 @@ export default function SchedulePage({ pageState }) {
           <span className={`font-bold tabular-nums ${textColorClass} ${compact ? 'text-[9px]' : 'text-xs'}`}>{lesson.startTime}</span>
           <div className="flex gap-1 items-center shrink-0">
             {renderStatusIcon(lesson.status)}
+            {!isOverlay && onMoreClick && (
+              <button 
+                onClick={onMoreClick}
+                className="ml-1 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto"
+              >
+                <MoreVertical size={14} />
+              </button>
+            )}
           </div>
         </div>
         <div className={`font-medium flex items-center justify-between gap-1 min-w-0 ${lesson.status === 'cancelled' ? 'line-through' : ''}`}>
@@ -420,7 +459,7 @@ export default function SchedulePage({ pageState }) {
     );
   };
 
-  const LessonCard = ({ lesson, onClick, compact = false }) => {
+  const LessonCard = ({ lesson, onClick, compact = false, onMoreClick }) => {
     const { title, isFaded, borderColorClass, textColorClass, entityStyle } = getLessonDisplayData(lesson);
     
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -433,6 +472,7 @@ export default function SchedulePage({ pageState }) {
         ref={setNodeRef}
         lesson={lesson}
         onClick={onClick}
+        onMoreClick={onMoreClick}
         compact={compact}
         isOverlay={false}
         isDragging={isDragging}
@@ -447,7 +487,7 @@ export default function SchedulePage({ pageState }) {
     );
   };
 
-  const DroppableSlot = ({ id, date, isToday, children, className }) => {
+  const DroppableSlot = ({ id, date, isToday, children, className, onClick }) => {
     const { isOver, setNodeRef } = useDroppable({
       id: id,
       data: { date }
@@ -456,6 +496,7 @@ export default function SchedulePage({ pageState }) {
     return (
       <div 
         ref={setNodeRef} 
+        onClick={onClick}
         className={`${className} transition-all duration-300 ${isOver ? 'shadow-neu-sm-inset bg-stone-200/20' : ''}`}
       >
         {children}
@@ -475,9 +516,9 @@ export default function SchedulePage({ pageState }) {
 
     return (
       <div className="max-w-6xl mx-auto w-full flex-1 min-h-0 rounded-2xl overflow-hidden flex flex-col">
-        <div className="grid grid-cols-7 shrink-0 border-b border-white/70">
+        <div className="grid grid-cols-7 shrink-0 border-b border-stone-200/60">
           {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-            <div key={d} className="py-2 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest border-r border-white/70 last:border-0">
+            <div key={d} className="py-2 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest border-r border-stone-200/60 last:border-0">
               {d}
             </div>
           ))}
@@ -487,77 +528,125 @@ export default function SchedulePage({ pageState }) {
           style={{ gridTemplateRows: `repeat(${days.length / 7}, minmax(0, 1fr))` }}
         >
           {days.map((day, idx) => {
-            if (!day) return <div key={idx} className="min-w-0 border-r border-b border-white/70 bg-transparent opacity-50 p-1" />;
+            if (!day) return <div key={idx} className="min-w-0 border-r border-b border-stone-200/60 bg-transparent opacity-50 p-1" />;
             
             const dateStr = ymd(new Date(year, currentDate.getMonth(), day));
             const dayLessons = lessonsByDate[dateStr] || [];
             const isToday = dateStr === todayStr;
             const isPast = dateStr < todayStr;
 
+            const lessonCount = dayLessons.length;
+            
+            // Timeline bounds (default 08:00 - 22:00)
+            const tlStartMins = 8 * 60;
+            const tlEndMins = 22 * 60;
+            const tlTotalMins = tlEndMins - tlStartMins;
+            
+            const hasHwDebtors = dayLessons.some(l => {
+              if (l.type === "individual") return studentsWithDebt.has(l.studentId);
+              if (l.type === "group" && l.groupId) {
+                const g = groups.find(gr => gr.id === l.groupId);
+                return g?.studentIds?.some(id => studentsWithDebt.has(id));
+              }
+              return false;
+            });
+            // Placeholder for financial logic
+            const hasFinDebtors = false; 
+            
+            const paidCount = isPast ? dayLessons.filter(l => l.status === "conducted" || l.status === "skipped_paid").length : 0;
+
             return (
               <DroppableSlot 
                 key={idx} 
                 id={`month-slot-${dateStr}`} 
                 date={dateStr}
-                className={`group/day min-w-0 border-r border-b border-white/70 p-1 flex flex-col min-h-0 ${isToday ? "bg-white/30 shadow-neu-sm-inset" : "bg-transparent hover:bg-white/30 transition-colors"}`}
+                className={`group/day min-w-0 border-r border-b border-stone-200/60 p-2 sm:p-3 flex flex-col min-h-[100px] md:min-h-[120px] cursor-pointer ${isToday ? "bg-white ring-2 ring-inset ring-emerald-500/40 shadow-sm z-10" : isPast ? "bg-stone-100/60 hover:bg-stone-200/50 transition-colors" : "bg-white hover:bg-stone-50 transition-colors"} relative`}
                 onClick={() => {
-                  setView("agenda");
-                  setTimeout(() => {
-                    const el = document.getElementById(`agenda-date-${dateStr}`);
-                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 100);
+                  setCurrentDate(new Date(year, currentDate.getMonth(), day));
+                  setView("day");
+                  setNavigatedFromMonth(true);
                 }}
               >
-                <div className={`flex-1 flex flex-col min-h-0 ${isPast ? "opacity-40 grayscale pointer-events-none" : ""}`}>
-                  <div className="flex items-center justify-between mb-1.5 px-1 shrink-0">
-                    <span className={`text-xs font-semibold ${isToday ? "bg-[#006584] shadow-neu-sm text-white w-6 h-6 rounded-full flex items-center justify-center" : "text-stone-500"}`}>
-                      {day}
-                    </span>
-                    <div className="flex items-center gap-1 pointer-events-auto">
-                      <Tooltip text="Добавить урок">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleOpenDrawer({ date: dateStr }); }}
-                          className="opacity-0 group-hover/day:opacity-100 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 p-0.5 rounded transition-all"
-                        >
-                          <Plus size={14} strokeWidth={2.5} />
-                        </button>
-                      </Tooltip>
-                      {dayLessons.length > 0 && (
-                        <span className="text-[10px] text-stone-400">{dayLessons.length} ур.</span>
+                <div className="flex-1 flex flex-col h-full">
+                  {/* Top Header */}
+                  <div className="flex items-start justify-between w-full h-7">
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      {!isPast && hasHwDebtors && <div className="w-2 h-2 rounded-full bg-[#006584] shadow-sm" title="Есть долг по ДЗ" />}
+                      {!isPast && hasFinDebtors && <div className="w-2 h-2 rounded-full bg-[#B71234] shadow-sm" title="Есть финансовый долг" />}
+                      {isPast && (lessonCount - paidCount) > 0 && (
+                        <span className="text-[9px] sm:text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100/50 whitespace-nowrap shadow-sm">
+                          {lessonCount - paidCount} {
+                            [11,12,13,14].includes((lessonCount - paidCount)%100) ? 'отмен' : 
+                            (lessonCount - paidCount)%10 === 1 ? 'отмена' : 
+                            [2,3,4].includes((lessonCount - paidCount)%10) ? 'отмены' : 'отмен'
+                          }
+                        </span>
                       )}
                     </div>
+                    {isToday ? (
+                      <span className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-500 text-white text-sm font-bold shadow-sm shrink-0">
+                        {day}
+                      </span>
+                    ) : (
+                      <span className={`text-sm sm:text-base font-medium leading-none shrink-0 ${isPast ? "text-stone-500" : "text-stone-600 group-hover/day:text-stone-800 transition-colors"}`}>
+                        {day}
+                      </span>
+                    )}
                   </div>
-                <div className="flex-1 space-y-0.5 overflow-hidden px-0.5 mt-0.5">
-                  {dayLessons.slice(0, 2).map(l => (
-                    <LessonCard 
-                      key={l.id} 
-                      lesson={l}
-                      compact={true}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setPopover({ lesson: l, triggerRect: rect });
-                      }} 
-                    />
-                  ))}
-                </div>
-                {dayLessons.length > 2 && (
-                  <div className="text-center pb-0.5">
-                    <button 
-                      className="inline-block bg-black/5 hover:bg-black/10 text-stone-500 text-[10px] font-medium rounded-full px-1.5 py-0.5 cursor-pointer transition-colors mt-0.5 pointer-events-auto"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setView("agenda");
-                        setTimeout(() => {
-                          const el = document.getElementById(`agenda-date-${dateStr}`);
-                          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }, 100);
-                      }}
-                    >
-                      + {dayLessons.length - 2} {getLessonWord(dayLessons.length - 2)}
-                    </button>
+                  
+                  {/* Centered Content */}
+                  <div className="flex-1 flex flex-col justify-center items-center mt-1">
+                    {lessonCount > 0 ? (
+                      isPast ? (
+                        // Report Mode for Past Days (Grid-stable)
+                        <div className="flex flex-col items-center justify-center gap-2.5 w-full">
+                          <div className="flex items-baseline gap-1 relative">
+                            <span className="text-2xl md:text-3xl font-black text-stone-700 leading-none">{paidCount}</span>
+                            <span className="text-[10px] md:text-xs text-stone-400 font-medium">
+                              {getLessonWord(paidCount)}
+                            </span>
+                          </div>
+                          {/* Invisible placeholder for timeline to keep exact vertical height as future days */}
+                          <div className="h-[3px] w-full max-w-[85%] opacity-0" />
+                        </div>
+                      ) : (
+                        // Schedule Mode for Future Days
+                        <div className="flex flex-col items-center justify-center gap-2.5 w-full">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-2xl md:text-3xl font-black text-stone-800 leading-none">{lessonCount}</span>
+                            <span className="text-[10px] md:text-xs text-stone-500 font-medium">
+                              {getLessonWord(lessonCount)}
+                            </span>
+                          </div>
+                          
+                          <div className="h-[3px] w-full max-w-[85%] bg-stone-200/80 rounded-full relative overflow-hidden shadow-inner">
+                            {dayLessons.map(l => {
+                              const [sH, sM] = l.startTime.split(':').map(Number);
+                              const [eH, eM] = l.endTime.split(':').map(Number);
+                              const startMins = sH * 60 + sM;
+                              const endMins = eH * 60 + eM;
+                              const left = Math.max(0, ((startMins - tlStartMins) / tlTotalMins) * 100);
+                              const width = Math.min(100 - left, ((endMins - startMins) / tlTotalMins) * 100);
+                              
+                              return (
+                                <div 
+                                  key={l.id}
+                                  className="absolute top-0 bottom-0 bg-stone-400 rounded-full shadow-sm"
+                                  style={{ left: `${left}%`, width: `${width}%` }}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <span className="text-[10px] text-stone-400 font-medium opacity-0 group-hover/day:opacity-100 transition-opacity">
+                          Нет уроков
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
                 </div>
               </DroppableSlot>
             );
@@ -622,9 +711,14 @@ export default function SchedulePage({ pageState }) {
                       key={l.id} 
                       lesson={l} 
                       onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenDrawer(l);
+                      }} 
+                      onMoreClick={(e) => {
+                        e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
                         setPopover({ lesson: l, triggerRect: rect });
-                      }} 
+                      }}
                     />
                   ))}
                   {dayLessons.length === 0 && !isNarrow && (
@@ -648,102 +742,108 @@ export default function SchedulePage({ pageState }) {
     );
   };
 
-  const renderAgenda = () => {
-    const sortedDates = Object.keys(lessonsByDate).sort();
+  const renderDay = () => {
+    const dateStr = ymd(currentDate);
+    const dayLessons = lessonsByDate[dateStr] || [];
+    const formattedDate = currentDate.toLocaleString("ru", { weekday: 'long', day: 'numeric', month: 'long' });
     
     return (
       <div className="flex-1 overflow-y-auto scrollbar-thin pb-8 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          {sortedDates.length === 0 && (
-            <div className="text-center py-12 text-stone-500 bg-ivory shadow-neu-sm-inset rounded-2xl flex flex-col items-center justify-center">
-              {hwDebtOnly ? (
-                <>
-                  <div className="bg-emerald-50 p-3 rounded-full mb-3">
-                    <PartyPopper size={28} className="text-emerald-500" strokeWidth={1.5} />
-                  </div>
-                  <span className="font-medium text-stone-800 mb-1 text-base">Ура! Все ДЗ сданы</span>
-                  <span className="text-sm text-stone-400">Ученики молодцы</span>
-                </>
-              ) : (
-                "Нет запланированных уроков."
+          <div className="sticky top-0 backdrop-blur-md bg-[rgb(var(--ivory))]/80 z-10 border-b border-stone-200/50 py-3 mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {navigatedFromMonth && (
+                <button 
+                  onClick={() => {
+                    setView("month");
+                    setNavigatedFromMonth(false);
+                  }}
+                  className="p-1.5 hover:bg-stone-200/50 text-stone-500 rounded-lg transition-colors"
+                  title="Назад к месяцу"
+                >
+                  <ArrowLeft size={18} />
+                </button>
               )}
+              <h3 className="text-base font-bold text-stone-800 capitalize">
+                {formattedDate}
+              </h3>
             </div>
-          )}
-          {sortedDates.map(dateStr => {
-            const dayLessons = lessonsByDate[dateStr];
-            const d = new Date(dateStr);
-            const formattedDate = d.toLocaleString("ru", { weekday: 'long', day: 'numeric', month: 'long' });
-            
-            return (
-              <div key={dateStr} id={`agenda-date-${dateStr}`}>
-                <div className="sticky top-0 backdrop-blur-md bg-[rgb(var(--ivory))]/80 z-10 border-b border-stone-200/50 py-2 mb-3 flex items-center justify-between group/agenda">
-                  <h3 className="text-sm font-bold text-stone-800 capitalize">
-                    {formattedDate}
-                  </h3>
-                  <button 
-                    onClick={() => handleOpenDrawer({ date: dateStr })}
-                    className="opacity-0 group-hover/agenda:opacity-100 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded-lg transition-all flex items-center gap-1 text-xs font-medium"
+            <button 
+              onClick={() => handleOpenDrawer({ date: dateStr })}
+              className="text-stone-500 hover:text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 text-sm font-medium"
+            >
+              <Plus size={16} /> Добавить урок
+            </button>
+          </div>
+          
+          {dayLessons.length === 0 ? (
+            <div className="text-center py-12 text-stone-500 bg-ivory shadow-neu-sm-inset rounded-2xl flex flex-col items-center justify-center">
+              "На этот день уроков не запланировано."
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {dayLessons.map(l => {
+                const topicTitle = getLessonTopic(l);
+                const { title, borderColorClass, textColorClass, entityStyle } = getLessonDisplayData(l);
+                
+                return (
+                  <div 
+                    key={l.id} 
+                    className={`border-l-4 ${borderColorClass} flex flex-col sm:flex-row gap-3 bg-ivory shadow-neu-sm p-4 rounded-2xl items-start sm:items-center justify-between cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[#006584] group @media (hover: hover) { hover:shadow-neu-md hover:-translate-y-px }`}
+                    style={entityStyle}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenDrawer(l);
+                    }}
                   >
-                    <Plus size={14} /> Добавить
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {dayLessons.map(l => {
-                    const topicTitle = getLessonTopic(l);
-                    const { title, borderColorClass, textColorClass, entityStyle } = getLessonDisplayData(l);
-                    
-                    return (
-                    <div 
-                      key={l.id} 
-                      className={`border-l-4 ${borderColorClass} flex flex-col sm:flex-row gap-3 bg-ivory shadow-neu-sm p-4 rounded-2xl items-start sm:items-center justify-between cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[#006584] group @media (hover: hover) { hover:shadow-neu-md hover:-translate-y-px }`}
-                      style={entityStyle}
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setPopover({ lesson: l, triggerRect: rect });
-                      }}
-                    >
-                      <div className="flex gap-4 items-center">
-                        <div className={`font-bold tabular-nums text-lg flex items-center justify-center shrink-0 pr-4 border-r-2 border-[#006584]/20 ${textColorClass}`}>
-                          <span>{l.startTime} — {l.endTime}</span>
-                        </div>
-                        <div>
-                          <div className="font-bold text-stone-800 text-base">{title}</div>
-                          <div className="text-xs text-stone-500 font-medium flex items-center gap-1.5 mt-0.5">
-                            <span>{l.subjectName}</span>
-                            {renderStatusIcon(l.status)}
-                            {topicTitle && (
-                              <>
-                                <span className="text-stone-300">•</span>
-                                <Tooltip text={topicTitle}>
-                                  <span className="truncate max-w-[150px] sm:max-w-[300px]">{topicTitle}</span>
-                                </Tooltip>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                    <div className="flex gap-4 items-center flex-1 min-w-0">
+                      <div className={`font-bold tabular-nums text-lg flex items-center justify-center shrink-0 pr-4 border-r-2 border-[#006584]/20 ${textColorClass}`}>
+                        <span>{l.startTime} — {l.endTime}</span>
                       </div>
-                      
-                      <div className="flex items-center gap-2 mt-3 sm:mt-0 self-end sm:self-auto w-full sm:w-auto justify-end">
-                        {l.homework && (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDrawer(l, "hw");
-                            }}
-                            className={`flex flex-col items-center justify-center w-11 h-11 shrink-0 rounded-xl font-bold text-[10px] uppercase transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isLessonHwFullyDone(l) ? 'text-[#006584] shadow-neu-sm-inset' : 'bg-ivory shadow-neu-sm active:shadow-neu-sm-inset text-[#B71234]'}`}
-                          >
-                            <span className="leading-none mb-0.5">ДЗ</span>
-                            {isLessonHwFullyDone(l) ? <CheckCircle2 size={12} strokeWidth={2.5}/> : <XCircle size={12} strokeWidth={2.5}/>}
-                          </button>
-                        )}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-stone-800 text-base truncate">{title}</div>
+                        <div className="text-xs text-stone-500 font-medium flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span>{l.subjectName}</span>
+                          {renderStatusIcon(l.status)}
+                          {topicTitle && (
+                            <>
+                              <span className="text-stone-300">•</span>
+                              <span className="truncate max-w-[150px] sm:max-w-[300px]" title={topicTitle}>{topicTitle}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                    
+                    <div className="flex items-center gap-2 mt-3 sm:mt-0 self-end sm:self-auto shrink-0">
+                      {l.homework && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDrawer(l, "hw");
+                          }}
+                          className={`flex flex-col items-center justify-center w-11 h-11 shrink-0 rounded-xl font-bold text-[10px] uppercase transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isLessonHwFullyDone(l) ? 'text-[#006584] shadow-neu-sm-inset' : 'bg-ivory shadow-neu-sm active:shadow-neu-sm-inset text-[#B71234]'}`}
+                        >
+                          <span className="leading-none mb-0.5">ДЗ</span>
+                          {isLessonHwFullyDone(l) ? <CheckCircle2 size={12} strokeWidth={2.5}/> : <XCircle size={12} strokeWidth={2.5}/>}
+                        </button>
+                      )}
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setPopover({ lesson: l, triggerRect: rect });
+                        }}
+                        className="w-11 h-11 flex items-center justify-center text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all ml-1"
+                      >
+                        <MoreVertical size={20} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -751,8 +851,8 @@ export default function SchedulePage({ pageState }) {
 
   return (
     <PageWrapper 
-      title="Управление уроками" 
-      subtitle="Запланированные занятия и несданные ДЗ"
+      title="Календарь занятий" 
+      subtitle="Ваше время, уроки и финансы"
       icon={CalendarDays}
       accentClass="text-[#006584]"
     >
@@ -765,7 +865,7 @@ export default function SchedulePage({ pageState }) {
                 <ChevronLeft size={20} />
               </button>
               <button onClick={goToday} className="px-4 h-10 flex items-center justify-center rounded-lg text-stone-700 font-bold text-sm hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
-                {view === 'month' ? 'Текущий месяц' : view === 'week' ? 'Текущая неделя' : 'Сегодня'}
+                'Сегодня'
               </button>
               <button onClick={nextPeriod} className="w-10 h-10 flex items-center justify-center rounded-lg text-stone-600 hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
                 <ChevronRight size={20} />
@@ -777,16 +877,21 @@ export default function SchedulePage({ pageState }) {
           </div>
           
           <div className="flex items-center justify-between md:justify-end gap-4 flex-wrap">
-            <div className="flex items-center gap-2 shrink-0">
-              <Switch checked={hwDebtOnly} onChange={setHwDebtOnly} />
-              <span className="text-sm font-bold text-stone-700 cursor-pointer select-none" onClick={() => setHwDebtOnly(!hwDebtOnly)}>Несданные ДЗ</span>
-            </div>
+            {view !== 'month' && (
+              <div className="flex items-center gap-2 shrink-0" title="Показать предстоящие уроки с должниками">
+                <Switch checked={hwDebtOnly} onChange={setHwDebtOnly} />
+                <span className="text-sm font-bold text-stone-700 cursor-pointer select-none" onClick={() => setHwDebtOnly(!hwDebtOnly)}>Несданные ДЗ</span>
+              </div>
+            )}
 
             <div className="flex bg-ivory shadow-neu-sm-inset rounded-xl p-1 shrink-0">
-              {['month', 'week', 'agenda'].map((v) => (
+              {['month', 'week', 'day'].map((v) => (
                 <button
                   key={v}
-                  onClick={() => setView(v)}
+                  onClick={() => {
+                    setView(v);
+                    if (v !== 'day') setNavigatedFromMonth(false);
+                  }}
                   className={`px-4 h-9 rounded-lg text-sm font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${view === v ? 'bg-ivory shadow-neu-sm text-[#006584]' : 'text-stone-500 hover:text-stone-700'}`}
                 >
                   {v === 'month' ? 'Месяц' : v === 'week' ? 'Неделя' : 'День'}
@@ -815,7 +920,7 @@ export default function SchedulePage({ pageState }) {
           >
             {view === "month" && renderMonth()}
             {view === "week" && renderWeek()}
-            {view === "agenda" && renderAgenda()}
+            {view === "day" && renderDay()}
             <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
               {activeDragLesson ? (
                 <LessonCardOverlay 
@@ -871,12 +976,6 @@ export default function SchedulePage({ pageState }) {
                 style={style}
               >
                 <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 px-2 pt-1">Действия</div>
-            <button 
-              className="w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 rounded-lg flex items-center gap-2"
-              onClick={() => handleOpenDrawer(popover.lesson)}
-            >
-              Подробнее...
-            </button>
             <button 
               className="w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 rounded-lg flex items-center gap-2"
               onClick={() => {
