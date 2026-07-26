@@ -267,7 +267,7 @@ export async function generateDemoData(tutorId) {
           price: 2500, status, homework, hwDoneBy
         });
       } else {
-        const st = students[Math.floor(rng() * students.length)];
+
         batch.set(lRef, {
           tutorId, date: dateStr, startTime: timePair[0], endTime: timePair[1],
           type: "individual", studentId: st.id, displayName: st.name, subjectName: st.subject,
