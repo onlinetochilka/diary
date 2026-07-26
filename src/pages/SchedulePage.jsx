@@ -291,7 +291,7 @@ export default function SchedulePage({ pageState }) {
   }, [students]);
 
   const filteredLessons = useMemo(() => {
-    if (!hwDebtOnly) return lessons;
+    if (!hwDebtOnly || view === "month") return lessons;
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);

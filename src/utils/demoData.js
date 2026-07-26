@@ -90,7 +90,12 @@ export async function generateDemoData(tutorId) {
     const hue = getNextDistinctColor(allUsedColors);
     allUsedColors.push(hue);
     const r = doc(refs.students);
-    const balance = Math.floor(rng() * 20000) - 10000; // -10000 to +10000
+        // Hardcode debts for demo clarity:
+    // i=0: Both Fin and HW debt
+    // i=1: Only HW debt
+    // i=2: Only Fin debt
+    // i=3+: No debts
+    const balance = (i === 0 || i === 2) ? -2500 : 5000;
     
     let assignedPrograms = [];
     if (subjects[i] === "Физика" || subjects[i] === "Математика") {
@@ -206,16 +211,33 @@ export async function generateDemoData(tutorId) {
       let homework = "";
       let hwDoneBy = [];
 
+      let gr = null;
+      let st = null;
+      if (isGroup) {
+        gr = groups[i % groups.length];
+      } else {
+        st = students[Math.floor(rng() * students.length)];
+      }
+
       if (isPast) {
         status = rng() > 0.1 ? "conducted" : "cancelled";
         if (status === "conducted" && rng() > 0.3) {
            homework = "Выполнить тест";
-           if (rng() > 0.5) hwDoneBy = isGroup ? groups[0].studentIds : [students[0].id];
+           // 80% chance they did the homework
+                      // Students 0 and 1 never do homework, others always do.
+           const st0 = students[0].id;
+           const st1 = students[1].id;
+           let didHw = true;
+           if (isGroup) {
+             if (gr.studentIds.includes(st0) || gr.studentIds.includes(st1)) didHw = false;
+           } else {
+             if (st.id === st0 || st.id === st1) didHw = false;
+           }
+           if (didHw) hwDoneBy = isGroup ? gr.studentIds : [st.id];
         }
       }
 
       if (isGroup) {
-        const gr = groups[i % groups.length];
         batch.set(lRef, {
           tutorId, date: dateStr, startTime: timePair[0], endTime: timePair[1],
           type: "group", groupId: gr.id, displayName: gr.name, subjectName: gr.subject,
