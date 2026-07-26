@@ -282,6 +282,14 @@ export default function SchedulePage({ pageState }) {
     return debts;
   }, [lessons, groups]);
 
+  const studentsWithFinDebt = useMemo(() => {
+    const debts = new Set();
+    students.forEach(s => {
+      if ((s.balance || 0) < 0) debts.add(s.id);
+    });
+    return debts;
+  }, [students]);
+
   const filteredLessons = useMemo(() => {
     if (!hwDebtOnly) return lessons;
 
@@ -355,6 +363,7 @@ export default function SchedulePage({ pageState }) {
   const LessonCardView = forwardRef(({ 
     lesson, onClick, compact = false, isOverlay = false, 
     isDragging = false, isFaded = false, title, borderColorClass, textColorClass, 
+    hasFinDebt = false, hasHwDebt = false, 
     listeners = {}, attributes = {}, style = {}, onMoreClick
   }, ref) => {
     return (
@@ -370,7 +379,13 @@ export default function SchedulePage({ pageState }) {
         className={`pl-2 pr-1.5 ${compact ? 'py-0.5 border-l-[3px]' : 'py-1.5 border-l-4'} rounded-lg cursor-pointer transition-all relative outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${borderColorClass} ${isOverlay ? 'cursor-grabbing bg-white shadow-neu-xl scale-105 rotate-1' : 'bg-white/50 hover:bg-white hover:shadow-neu-sm hover:-translate-y-px active:shadow-neu-sm-inset'} ${isFaded ? "opacity-50 grayscale" : ""}`}
       >
         <div className={`flex items-center justify-between ${compact ? '' : 'mb-0.5'}`}>
-          <span className={`font-bold tabular-nums ${textColorClass} ${compact ? 'text-[9px]' : 'text-xs'}`}>{lesson.startTime}</span>
+          <div className="flex items-center gap-1.5">
+            <span className={`font-bold tabular-nums ${textColorClass} ${compact ? 'text-[9px]' : 'text-xs'}`}>{lesson.startTime}</span>
+            <div className="flex gap-0.5 shrink-0">
+              {hasHwDebt && <div className="w-1.5 h-1.5 rounded-full bg-[#006584]" title="Есть долг по ДЗ" />}
+              {hasFinDebt && <div className="w-1.5 h-1.5 rounded-full bg-[#B71234]" title="Есть финансовый долг" />}
+            </div>
+          </div>
           <div className="flex gap-1 items-center shrink-0">
             {renderStatusIcon(lesson.status)}
             {!isOverlay && onMoreClick && (
@@ -432,11 +447,23 @@ export default function SchedulePage({ pageState }) {
     if (!borderColorClass.includes('border-') && !borderColorClass.includes('entity-border')) borderColorClass = 'border-indigo-400';
     if (!textColorClass.includes('text-') && !textColorClass.includes('entity-text')) textColorClass = 'text-indigo-700';
 
-    return { title, isFaded, borderColorClass, textColorClass, entityStyle };
+    let hasFinDebt = false;
+    let hasHwDebt = false;
+    if (lesson.type === "individual") {
+      hasFinDebt = (entity?.balance || 0) < 0;
+      hasHwDebt = studentsWithDebt.has(lesson.studentId);
+    } else {
+      hasFinDebt = entity?.studentIds?.some(id => {
+         const st = students.find(s => s.id === id);
+         return (st?.balance || 0) < 0;
+      }) || false;
+      hasHwDebt = entity?.studentIds?.some(id => studentsWithDebt.has(id));
+    }
+    return { title, isFaded, borderColorClass, textColorClass, entityStyle, hasFinDebt, hasHwDebt };
   };
 
   const LessonCardOverlay = ({ lesson, compact = false }) => {
-    const { title, isFaded, borderColorClass, textColorClass, entityStyle } = getLessonDisplayData(lesson);
+    const { title, isFaded, borderColorClass, textColorClass, entityStyle, hasFinDebt, hasHwDebt } = getLessonDisplayData(lesson);
     return (
       <LessonCardView 
         lesson={lesson}
@@ -460,7 +487,7 @@ export default function SchedulePage({ pageState }) {
   };
 
   const LessonCard = ({ lesson, onClick, compact = false, onMoreClick }) => {
-    const { title, isFaded, borderColorClass, textColorClass, entityStyle } = getLessonDisplayData(lesson);
+    const { title, isFaded, borderColorClass, textColorClass, entityStyle, hasFinDebt, hasHwDebt } = getLessonDisplayData(lesson);
     
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
       id: `lesson-${lesson.id}`,
@@ -480,6 +507,8 @@ export default function SchedulePage({ pageState }) {
         title={title}
         borderColorClass={borderColorClass}
         textColorClass={textColorClass}
+        hasFinDebt={hasFinDebt}
+        hasHwDebt={hasHwDebt}
         listeners={listeners}
         attributes={attributes}
         style={{ ...entityStyle, opacity: isDragging ? 0.3 : 1 }}
@@ -550,8 +579,14 @@ export default function SchedulePage({ pageState }) {
               }
               return false;
             });
-            // Placeholder for financial logic
-            const hasFinDebtors = false; 
+            const hasFinDebtors = dayLessons.some(l => {
+              if (l.type === "individual") return studentsWithFinDebt.has(l.studentId);
+              if (l.type === "group" && l.groupId) {
+                const g = groups.find(gr => gr.id === l.groupId);
+                return g?.studentIds?.some(id => studentsWithFinDebt.has(id));
+              }
+              return false;
+            }); 
             
             const paidCount = isPast ? dayLessons.filter(l => l.status === "conducted" || l.status === "skipped_paid").length : 0;
 
@@ -865,7 +900,7 @@ export default function SchedulePage({ pageState }) {
                 <ChevronLeft size={20} />
               </button>
               <button onClick={goToday} className="px-4 h-10 flex items-center justify-center rounded-lg text-stone-700 font-bold text-sm hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
-                'Сегодня'
+                Сегодня
               </button>
               <button onClick={nextPeriod} className="w-10 h-10 flex items-center justify-center rounded-lg text-stone-600 hover:text-[#006584] hover:shadow-neu-sm-inset active:shadow-neu-sm-inset transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584]">
                 <ChevronRight size={20} />
