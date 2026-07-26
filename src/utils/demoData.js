@@ -201,7 +201,7 @@ export async function generateDemoData(tutorId) {
     // Generate 3-5 lessons per day
     const lessonsCount = Math.floor(rng() * 3) + 3; 
     for (let i = 0; i < lessonsCount; i++) {
-      const isGroup = rng() > 0.8;
+      let isGroup = rng() > 0.8;
       const timePair = lessonTimes[i];
       const isPast = offset < 0;
       const isToday = offset === 0;
@@ -214,10 +214,28 @@ export async function generateDemoData(tutorId) {
 
       let gr = null;
       let st = null;
+      
+      let forceStIndex = -1;
+      if (offset === -1 && i === 0) forceStIndex = 0;
+      else if (offset === -2 && i === 0) forceStIndex = 2;
+      else if (offset >= 0 && i === 0) {
+        if (offset === 1) forceStIndex = 2;
+        else if (offset === 3 || offset === 7 || offset === 11) forceStIndex = 0;
+        else if (offset === 5 || offset === 9) forceStIndex = 1;
+      }
+      
+      if (forceStIndex !== -1) isGroup = false;
+
       if (isGroup) {
         gr = groups[i % groups.length];
       } else {
-        st = students[Math.floor(rng() * students.length)];
+        let stIndex = Math.floor(rng() * students.length);
+        if (forceStIndex !== -1) {
+          stIndex = forceStIndex;
+        } else if (offset >= -2) {
+          stIndex = 3 + Math.floor(rng() * 12);
+        }
+        st = students[stIndex];
       }
 
       if (isPast) {
