@@ -610,7 +610,7 @@ export default function SchedulePage({ pageState }) {
                         <div className="relative group/tooltip flex items-center">
                           <div className="w-2 h-2 rounded-full bg-[#006584] shadow-sm cursor-help" />
                           <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/tooltip:opacity-100 transition-all scale-95 group-hover/tooltip:scale-100 pointer-events-none z-50 whitespace-nowrap px-2.5 py-1.5 bg-stone-800 text-stone-100 text-[11px] font-medium rounded-lg shadow-xl ring-1 ring-white/10">
-                            Есть долг по ДЗ
+                            Не сдано ДЗ
                             <div className="absolute left-1/2 -translate-x-1/2 top-full border-[4px] border-transparent border-t-stone-800" />
                           </div>
                         </div>
@@ -619,7 +619,7 @@ export default function SchedulePage({ pageState }) {
                         <div className="relative group/tooltip flex items-center">
                           <div className="w-2 h-2 rounded-full bg-[#B71234] shadow-sm cursor-help" />
                           <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/tooltip:opacity-100 transition-all scale-95 group-hover/tooltip:scale-100 pointer-events-none z-50 whitespace-nowrap px-2.5 py-1.5 bg-stone-800 text-stone-100 text-[11px] font-medium rounded-lg shadow-xl ring-1 ring-white/10">
-                            Есть финансовый долг
+                            Задолженность
                             <div className="absolute left-1/2 -translate-x-1/2 top-full border-[4px] border-transparent border-t-stone-800" />
                           </div>
                         </div>
