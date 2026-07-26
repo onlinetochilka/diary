@@ -607,22 +607,14 @@ export default function SchedulePage({ pageState }) {
                   <div className="flex items-start justify-between w-full h-7">
                     <div className="flex flex-col gap-1.5 mt-1">
                       {!isPast && hasHwDebtors && (
-                        <div className="relative group/tooltip flex items-center">
+                        <Tooltip text="Не сдано ДЗ" position="top-left">
                           <div className="w-2 h-2 rounded-full bg-[#006584] shadow-sm cursor-help" />
-                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/tooltip:opacity-100 transition-all scale-95 group-hover/tooltip:scale-100 pointer-events-none z-50 whitespace-nowrap px-2.5 py-1.5 bg-stone-800 text-stone-100 text-[11px] font-medium rounded-lg shadow-xl ring-1 ring-white/10">
-                            Не сдано ДЗ
-                            <div className="absolute left-1/2 -translate-x-1/2 top-full border-[4px] border-transparent border-t-stone-800" />
-                          </div>
-                        </div>
+                        </Tooltip>
                       )}
                       {!isPast && hasFinDebtors && (
-                        <div className="relative group/tooltip flex items-center">
+                        <Tooltip text="Задолженность" position="top-left">
                           <div className="w-2 h-2 rounded-full bg-[#B71234] shadow-sm cursor-help" />
-                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/tooltip:opacity-100 transition-all scale-95 group-hover/tooltip:scale-100 pointer-events-none z-50 whitespace-nowrap px-2.5 py-1.5 bg-stone-800 text-stone-100 text-[11px] font-medium rounded-lg shadow-xl ring-1 ring-white/10">
-                            Задолженность
-                            <div className="absolute left-1/2 -translate-x-1/2 top-full border-[4px] border-transparent border-t-stone-800" />
-                          </div>
-                        </div>
+                        </Tooltip>
                       )}
                       {isPast && (lessonCount - paidCount) > 0 && (
                         <span className="text-[9px] sm:text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100/50 whitespace-nowrap shadow-sm">
