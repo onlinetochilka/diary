@@ -30,8 +30,19 @@
   --sidebar-width:   240px;
 
   /* Easing tokens */
-  --ease-out-quart:  cubic-bezier(0.165, 0.84, 0.44, 1);
+  /* NOTE: --ease-out-quart обновлён до spec-значения (0.25, 1, 0.5, 1) */
+  --ease-out-quart:  cubic-bezier(0.25, 1, 0.5, 1);
   --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Program Editor tokens ───────────────────────────── */
+  /* Тёплый кремовый фон редактора (не меняет глобальный --ivory) */
+  --editor-bg:              #FDFBF7;
+  /* Ширина Инспектора — строго фиксирована, не сжимается */
+  --inspector-width:        320px;
+  /* Высота шапки редактора — используется для calc(100dvh - var(--editor-header)) */
+  --editor-header-h:        56px;
+  /* Граница между колонками */
+  --editor-divider:         rgb(var(--stone-200) / 1);
 }
 
 [data-theme="dark"] {
@@ -318,4 +329,203 @@
   .card-hover-lift:active {
     transform: translateY(-1px);
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+   * PROGRAM EDITOR — layout utilities
+   * Все классы изолированы префиксом .pe- чтобы не конфликтовать
+   * с остальными страницами приложения.
+   * ═══════════════════════════════════════════════════════════════════════ */
+
+  /* ── Корневая оболочка редактора ─────────────────────────────────────── */
+  .pe-shell {
+    /* Тёплый кремовый, не трогает глобальный --ivory */
+    background-color: var(--editor-bg);
+    /* Занимает всё пространство внутри <main> без глобального скролла */
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 0px);          /* вся высота; при необходимости заменить на calc(100dvh - BottomTabs) */
+    overflow: hidden;
+  }
+
+  /* ── Шапка редактора ─────────────────────────────────────────────────── */
+  .pe-header {
+    height: var(--editor-header-h);
+    min-height: var(--editor-header-h);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1.25rem;
+    background-color: var(--editor-bg);
+    border-bottom: 1px solid var(--editor-divider);
+    /* Препятствует перекрытию при скролле левой колонки */
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  /* ── Двухколоночное тело ─────────────────────────────────────────────── */
+  .pe-body {
+    display: flex;
+    flex: 1 1 0%;
+    min-height: 0;                        /* КРИТИЧНО: позволяет дочерним overflow работать */
+    overflow: hidden;
+  }
+
+  /* ── Левая колонка: структура программы (65%) ────────────────────────── */
+  .pe-structure {
+    flex: 1 1 0%;
+    min-width: 0;                         /* КРИТИЧНО: не даёт длинным текстам раздвинуть колонку */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1.25rem;
+    /* Плавный скролл без bouncy на iOS */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* ── Правая колонка: инспектор (фиксированная ширина) ───────────────── */
+  .pe-inspector {
+    width: var(--inspector-width);
+    max-width: 340px;
+    flex-shrink: 0;                       /* НИКОГДА не сжимается */
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-left: 1px solid var(--editor-divider);
+    background-color: #fff;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Строка темы: 8 состояний интерактива ────────────────────────────── */
+  /* Default */
+  .pe-theme-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 0.625rem;
+    cursor: pointer;
+    /* Плавный переход для hover/active без bouncy */
+    transition:
+      background-color 150ms var(--ease-out-quart),
+      box-shadow      150ms var(--ease-out-quart),
+      transform       150ms var(--ease-out-quart);
+    /* Длинные названия не выходят за пределы */
+    min-width: 0;
+  }
+
+  /* Hover */
+  .pe-theme-row:hover {
+    background-color: rgb(var(--stone-100) / 0.7);
+  }
+
+  /* Focus (только клавиатура) */
+  .pe-theme-row:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1B4F72;
+  }
+
+  /* Active — лёгкое вдавливание */
+  .pe-theme-row:active {
+    transform: scale(0.98);
+  }
+
+  /* Selected */
+  .pe-theme-row[aria-selected="true"],
+  .pe-theme-row.is-selected {
+    background-color: rgb(27 79 114 / 0.08);
+    box-shadow: inset 2px 0 0 0 #1B4F72;
+  }
+
+  /* Disabled */
+  .pe-theme-row[aria-disabled="true"],
+  .pe-theme-row.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  /* Loading (скелетон через animate-pulse из Tailwind) */
+  .pe-theme-row.is-loading {
+    pointer-events: none;
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+
+  /* Error */
+  .pe-theme-row.is-error {
+    background-color: rgb(239 68 68 / 0.06);
+    box-shadow: inset 2px 0 0 0 #ef4444;
+  }
+
+  /* Success */
+  .pe-theme-row.is-success {
+    background-color: rgb(16 185 129 / 0.06);
+    box-shadow: inset 2px 0 0 0 #10b981;
+  }
+
+  /* ── DnD Drag Overlay: тема в полёте ─────────────────────────────────── */
+  .pe-drag-overlay {
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px -4px rgb(0 0 0 / 0.15), 0 4px 8px -2px rgb(0 0 0 / 0.08);
+    /* GPU-слой чтобы не перерисовывать соседей при анимации */
+    will-change: transform;
+    border-radius: 0.625rem;
+    background-color: #fff;
+    cursor: grabbing;
+  }
+
+  /* ── DnD Placeholder: «дыра» на месте захваченного элемента ─────────── */
+  .pe-drag-placeholder {
+    background-color: rgb(27 79 114 / 0.06);
+    border: 1.5px dashed rgb(27 79 114 / 0.25);
+    border-radius: 0.625rem;
+  }
+
+  /* ── Иконка захвата DnD ─────────────────────────────────────────────── */
+  .pe-grip {
+    color: rgb(var(--stone-300));
+    flex-shrink: 0;
+    transition: color 120ms var(--ease-out-quart), opacity 120ms var(--ease-out-quart);
+    opacity: 0;
+    cursor: grab;
+  }
+  .pe-theme-row:hover .pe-grip,
+  .pe-theme-row:focus-within .pe-grip {
+    opacity: 1;
+    color: rgb(var(--stone-400));
+  }
+  .pe-grip:active {
+    cursor: grabbing;
+  }
+
+  /* ── Заголовок раздела ───────────────────────────────────────────────── */
+  .pe-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 120ms var(--ease-out-quart);
+  }
+  .pe-section-header:hover {
+    background-color: rgb(var(--stone-100) / 0.6);
+  }
+  .pe-section-header:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1B4F72;
+  }
+
+  /* ── Аккордеон: анимация раскрытия ─────────────────────────────────── */
+  .pe-accordion-content {
+    overflow: hidden;
+    /* max-height управляется inline через style или JS-классами */
+    transition: max-height 280ms var(--ease-out-quart), opacity 200ms var(--ease-out-quart);
+  }
+  .pe-accordion-content.is-closed {
+    max-height: 0 !important;
+    opacity: 0;
+  }
 }
+

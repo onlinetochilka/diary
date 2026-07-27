@@ -453,6 +453,325 @@ export async function deleteProgram(id) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PROGRAMS v2 — двухуровневая структура (Разделы ➔ Темы)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * migrateToSections — ЧИСТАЯ клиентская функция (без Firestore).
+ *
+ * Принимает программу любого формата (старый плоский topics[] или новый с
+ * sections[]) и всегда возвращает нормализованный объект с полями:
+ *   sections: Section[]
+ *   topics:   Topic[]           ← плоский индекс по-прежнему живёт здесь
+ *   _migrated: boolean          ← true, если была произведена конвертация
+ *
+ * Структуры:
+ *   Section  { id, title, order, topicIds: string[] }
+ *   Topic    { id, title, order, sectionId, isCompleted, homeworkBank: HWItem[] }
+ *   HWItem   { id, text, type }   type ∈ 'task' | 'question' | 'exercise'
+ *
+ * Тихая миграция: если sections отсутствует или пустой, все темы из topics[]
+ * переезжают в один раздел «Основные темы». Существующие поля topics сохраняются,
+ * добавляются sectionId и homeworkBank (если отсутствуют).
+ */
+export function migrateToSections(program) {
+  // Уже мигрирован — нормализуем топики и возвращаем
+  if (program.sections && program.sections.length > 0) {
+    const topics = (program.topics || []).map((t, i) => ({
+      homeworkBank: [],
+      order: i,
+      sectionId: program.sections[0]?.id ?? null,
+      isCompleted: false,
+      ...t,
+    }));
+    return { ...program, topics, _migrated: false };
+  }
+
+  // Нет разделов — конвертируем плоский массив
+  const defaultSectionId = `sec_${Date.now()}`;
+  const topics = (program.topics || []).map((t, i) => ({
+    homeworkBank: [],
+    isCompleted: false,
+    order: i,
+    ...t,
+    sectionId: defaultSectionId,
+  }));
+
+  const sections = [
+    {
+      id: defaultSectionId,
+      title: 'Основные темы',
+      order: 0,
+      topicIds: topics.map((t) => t.id),
+    },
+  ];
+
+  return { ...program, sections, topics, _migrated: true };
+}
+
+/**
+ * Генератор уникальных ID (без внешних зависимостей).
+ * Используется во всех v2-методах для создания разделов и тем.
+ */
+function generateId() {
+  return Math.random().toString(36).slice(2, 9);
+}
+
+// ─── Запись структуры ────────────────────────────────────────────────────────
+
+/**
+ * Атомарно сохраняет всю структуру программы (разделы + темы).
+ * Вызывается после DnD-перетаскивания или переименования.
+ *
+ * @param {string} id    — Firestore doc ID программы
+ * @param {object} data  — { sections: Section[], topics: Topic[] }
+ */
+export async function updateProgramStructure(id, { sections, topics }) {
+  invalidateCache('programs');
+  await updateDoc(doc(col.programs(), id), {
+    sections,
+    topics,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Сохраняет только порядок разделов (например, после DnD на уровне секций).
+ * Не трогает topics.
+ */
+export async function updateProgramSections(id, sections) {
+  invalidateCache('programs');
+  await updateDoc(doc(col.programs(), id), {
+    sections,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// ─── CRUD тем ───────────────────────────────────────────────────────────────
+
+/**
+ * Добавляет новую тему в конец указанного раздела.
+ *
+ * @param {string} programId
+ * @param {string} sectionId
+ * @param {string} title
+ * @returns {object} — полная программа с обновлёнными topics и sections
+ */
+export async function addThemeToSection(programId, sectionId, title) {
+  const program = await getProgram(programId);
+  const migrated = migrateToSections(program);
+
+  const newTheme = {
+    id: generateId(),
+    title,
+    sectionId,
+    order: migrated.topics.length,
+    isCompleted: false,
+    homeworkBank: [],
+  };
+
+  const updatedTopics = [...migrated.topics, newTheme];
+  const updatedSections = migrated.sections.map((s) =>
+    s.id === sectionId
+      ? { ...s, topicIds: [...s.topicIds, newTheme.id] }
+      : s
+  );
+
+  await updateProgramStructure(programId, {
+    sections: updatedSections,
+    topics: updatedTopics,
+  });
+
+  return { ...migrated, sections: updatedSections, topics: updatedTopics };
+}
+
+/**
+ * Обновляет поля темы. Поддерживает частичное обновление (patch).
+ * Для обновления homeworkBank используй: { homeworkBank: newArray }.
+ *
+ * Добавление задания в банк ДЗ:
+ *   item = { id: generateId(), text: '...', type: 'task' }
+ *   updateTheme(progId, themeId, { homeworkBank: [...old, item] })
+ *
+ * @param {string} programId
+ * @param {string} themeId
+ * @param {object} patch     — частичные изменения темы
+ */
+export async function updateTheme(programId, themeId, patch) {
+  const program = await getProgram(programId);
+  const migrated = migrateToSections(program);
+
+  const updatedTopics = migrated.topics.map((t) =>
+    t.id === themeId ? { ...t, ...patch } : t
+  );
+
+  invalidateCache('programs');
+  await updateDoc(doc(col.programs(), programId), {
+    topics: updatedTopics,
+    updatedAt: serverTimestamp(),
+  });
+
+  return { ...migrated, topics: updatedTopics };
+}
+
+/**
+ * Удаляет тему из программы и из её раздела.
+ *
+ * @param {string} programId
+ * @param {string} themeId
+ */
+export async function deleteTheme(programId, themeId) {
+  const program = await getProgram(programId);
+  const migrated = migrateToSections(program);
+
+  const updatedTopics = migrated.topics.filter((t) => t.id !== themeId);
+  const updatedSections = migrated.sections.map((s) => ({
+    ...s,
+    topicIds: s.topicIds.filter((id) => id !== themeId),
+  }));
+
+  await updateProgramStructure(programId, {
+    sections: updatedSections,
+    topics: updatedTopics,
+  });
+}
+
+// ─── Разделы ────────────────────────────────────────────────────────────────
+
+/**
+ * Добавляет новый пустой раздел.
+ *
+ * @param {string} programId
+ * @param {string} title
+ */
+export async function addSection(programId, title) {
+  const program = await getProgram(programId);
+  const migrated = migrateToSections(program);
+
+  const newSection = {
+    id: generateId(),
+    title,
+    order: migrated.sections.length,
+    topicIds: [],
+  };
+
+  const updatedSections = [...migrated.sections, newSection];
+  await updateProgramSections(programId, updatedSections);
+  return { ...migrated, sections: updatedSections };
+}
+
+/**
+ * Переименовывает раздел.
+ */
+export async function renameSection(programId, sectionId, newTitle) {
+  const program = await getProgram(programId);
+  const migrated = migrateToSections(program);
+
+  const updatedSections = migrated.sections.map((s) =>
+    s.id === sectionId ? { ...s, title: newTitle } : s
+  );
+  await updateProgramSections(programId, updatedSections);
+  return { ...migrated, sections: updatedSections };
+}
+
+/**
+ * Удаляет раздел и все его темы.
+ */
+export async function deleteSection(programId, sectionId) {
+  const program = await getProgram(programId);
+  const migrated = migrateToSections(program);
+
+  const section = migrated.sections.find((s) => s.id === sectionId);
+  if (!section) return migrated;
+
+  const updatedTopics = migrated.topics.filter((t) => t.sectionId !== sectionId);
+  const updatedSections = migrated.sections.filter((s) => s.id !== sectionId);
+
+  await updateProgramStructure(programId, {
+    sections: updatedSections,
+    topics: updatedTopics,
+  });
+  return { ...migrated, sections: updatedSections, topics: updatedTopics };
+}
+
+// ─── Excel Round-Trip ────────────────────────────────────────────────────────
+
+/**
+ * batchImportProgram — атомарное обновление программы после Excel-импорта.
+ *
+ * Логика Round-Trip:
+ *   - Если у темы есть ID (колонка была в экспорте) → updateTheme()
+ *   - Если ID пустой (новая строка в Excel) → создаём тему через generateId()
+ *
+ * @param {string} programId
+ * @param {{ sections: Section[], topics: Topic[] }} parsed — результат парсинга Excel
+ * @returns {{ added: number, updated: number, unchanged: number }}
+ */
+export async function batchImportProgram(programId, { sections, topics }) {
+  const program = await getProgram(programId);
+  const migrated = migrateToSections(program);
+
+  // Индекс существующих тем для быстрого поиска
+  const existingById = Object.fromEntries(migrated.topics.map((t) => [t.id, t]));
+
+  let added = 0;
+  let updated = 0;
+  let unchanged = 0;
+
+  const mergedTopics = topics.map((incoming) => {
+    if (incoming.id && existingById[incoming.id]) {
+      // Тема существует — мерджим, сохраняя homeworkBank
+      const existing = existingById[incoming.id];
+      const isDifferent =
+        existing.title !== incoming.title ||
+        existing.sectionId !== incoming.sectionId;
+      if (isDifferent) {
+        updated++;
+        return { ...existing, ...incoming };
+      }
+      unchanged++;
+      return existing;
+    }
+    // Новая тема
+    added++;
+    return {
+      id: generateId(),
+      isCompleted: false,
+      homeworkBank: [],
+      order: 0,
+      ...incoming,
+    };
+  });
+
+  // Пересчитываем order внутри каждого раздела
+  const orderMap = {};
+  mergedTopics.forEach((t) => {
+    orderMap[t.sectionId] = (orderMap[t.sectionId] ?? 0);
+    t.order = orderMap[t.sectionId]++;
+  });
+
+  // Нормализуем topicIds в разделах по итоговому массиву тем
+  const topicsBySection = {};
+  mergedTopics.forEach((t) => {
+    if (!topicsBySection[t.sectionId]) topicsBySection[t.sectionId] = [];
+    topicsBySection[t.sectionId].push(t.id);
+  });
+
+  const mergedSections = sections.map((s, i) => ({
+    ...s,
+    order: i,
+    topicIds: topicsBySection[s.id] ?? [],
+  }));
+
+  await updateProgramStructure(programId, {
+    sections: mergedSections,
+    topics: mergedTopics,
+  });
+
+  return { added, updated, unchanged };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // LESSONS
 // ═══════════════════════════════════════════════════════════════════════════
 
