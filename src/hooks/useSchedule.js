@@ -47,6 +47,24 @@ export function useSchedule() {
     await fetchData();
   };
 
+  // Optimistic copy: shows the copy immediately, then replaces temp id with real one
+  const handleCopyLesson = async (lessonData) => {
+    const tempId = `temp_copy_${Date.now()}`;
+    const optimisticCopy = { ...lessonData, id: tempId, status: 'planned' };
+    // Add to local state immediately — card appears without delay
+    setLessons(prev => [...prev, optimisticCopy]);
+    try {
+      const { id: _srcId, _tempId, ...dataToSave } = lessonData;
+      const realId = await addLesson({ ...dataToSave, status: 'planned' });
+      // Replace temp entry with real id
+      setLessons(prev => prev.map(l => l.id === tempId ? { ...l, id: realId } : l));
+    } catch (err) {
+      console.error('Copy lesson failed:', err);
+      // Roll back optimistic update on error
+      setLessons(prev => prev.filter(l => l.id !== tempId));
+    }
+  };
+
   const handleDeleteLesson = async (id) => {
     await deleteLesson(id);
     await fetchData();
@@ -77,6 +95,7 @@ export function useSchedule() {
     isLoading,
     fetchData,
     handleSaveLesson,
+    handleCopyLesson,
     handleDeleteLesson,
     handleQuickStatus,
     handleQuickHomework

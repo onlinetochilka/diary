@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, forwardRef } from "react";
+import { useState, useEffect, useMemo, forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, Plus, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileText, PartyPopper, Copy, MoreVertical, ArrowLeft } from "lucide-react";
+import { CalendarDays, Plus, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileText, PartyPopper, Copy, MoreVertical, ArrowLeft, RotateCcw } from "lucide-react";
 import { Card, Button, Switch, SegmentedControl, Tooltip } from "../components/ui/index.js";
 import { useSchedule } from "../hooks/useSchedule.js";
 import { getEntityStyle, getEntityColorClasses } from "../utils/colors.js";
@@ -8,6 +8,8 @@ import { DndContext, useDraggable, useDroppable, DragOverlay, pointerWithin, clo
 import { CSS } from "@dnd-kit/utilities";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import LessonDrawer from "../components/schedule/LessonDrawer.jsx";
+import ActionItemModal from "../components/dashboard/ActionItemModal.jsx";
+import { addPayment, updateLesson } from "../services/database.js";
 
 const maintainOffsetModifier = ({ transform, activeNodeRect, activatorEvent }) => {
   if (!activeNodeRect || !activatorEvent) return transform;
@@ -93,6 +95,7 @@ export default function SchedulePage({ pageState }) {
     groups,
     isLoading,
     handleSaveLesson: hookSaveLesson,
+    handleCopyLesson: hookCopyLesson,
     handleDeleteLesson: hookDeleteLesson,
     handleQuickStatus: hookQuickStatus,
     handleQuickHomework: hookQuickHomework
@@ -112,6 +115,9 @@ export default function SchedulePage({ pageState }) {
   // Drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState(null);
+  
+  // Action Modals State
+  const [actionModal, setActionModal] = useState({ isOpen: false, item: null, mode: "confirm" });
 
   useEffect(() => {
     return () => {
@@ -137,6 +143,32 @@ export default function SchedulePage({ pageState }) {
   const [dragTimeDelta, setDragTimeDelta] = useState(0);
   const [dragWidth, setDragWidth] = useState(null);
   const [dragHeight, setDragHeight] = useState(null);
+
+  // Copy-mode (Ctrl / Alt held during drag)
+  const [isCopyMode, setIsCopyMode] = useState(false);
+  const isCopyModeRef = useRef(false); // ref so handleDragEnd always sees current value
+
+  // Track Ctrl / Alt key for copy-mode during drag
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Control' || e.key === 'Alt') {
+        isCopyModeRef.current = true;
+        setIsCopyMode(true);
+      }
+    };
+    const onKeyUp = (e) => {
+      if (e.key === 'Control' || e.key === 'Alt') {
+        isCopyModeRef.current = false;
+        setIsCopyMode(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
 
   useEffect(() => {
     const intent = localStorage.getItem('intent_schedule_entity');
@@ -266,7 +298,7 @@ export default function SchedulePage({ pageState }) {
       timeDeltaMins = Math.round(timeDeltaMins / 5) * 5;
     }
     
-    if (lesson && (oldDateStr !== newDateStr || timeDeltaMins !== 0)) {
+    if (lesson && (isCopyModeRef.current || oldDateStr !== newDateStr || timeDeltaMins !== 0)) {
       let newStartTime = lesson.startTime;
       let newEndTime = lesson.endTime;
       if (timeDeltaMins !== 0) {
@@ -291,8 +323,14 @@ export default function SchedulePage({ pageState }) {
         startTime: newStartTime, 
         endTime: newEndTime 
       };
-      
-      handleSaveLesson(lesson.id, updatedData);
+
+      if (isCopyModeRef.current) {
+        // Optimistic copy: card appears immediately on the new slot
+        const { id: _srcId, ...lessonWithoutId } = updatedData;
+        hookCopyLesson({ ...lessonWithoutId });
+      } else {
+        handleSaveLesson(lesson.id, updatedData);
+      }
     }
   };
 
@@ -418,14 +456,54 @@ export default function SchedulePage({ pageState }) {
 
   const monthName = currentDate.toLocaleString("ru", { month: "long" });
   const year = currentDate.getFullYear();
-  const headerTitle = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
+  
+  const getWeekNumber = (date) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  };
+
+  const headerTitle = view === "week"
+    ? `${getWeekNumber(currentDate)} неделя ${year}`
+    : view === "day"
+      ? currentDate.toLocaleString("ru", { day: "numeric", month: "long", year: "numeric" }).replace(' г.', '')
+      : `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
 
   const renderStatusIcon = (status) => {
     switch(status) {
-      case "conducted": return null;
-      case "cancelled": return <XCircle size={12} className="text-red-500" />;
-      case "skipped_paid": return <AlertCircle size={12} className="text-amber-500" />;
-      case "skipped_free": return <AlertCircle size={12} className="text-stone-400" />;
+      case "conducted": 
+        return (
+          <Tooltip text="Проведен" position="bottom">
+            <div className="p-1 -m-1 cursor-help flex items-center justify-center">
+              <CheckCircle2 size={12} className="text-emerald-500" />
+            </div>
+          </Tooltip>
+        );
+      case "cancelled": 
+        return (
+          <Tooltip text="Отменен" position="bottom">
+            <div className="p-1 -m-1 cursor-help flex items-center justify-center">
+              <XCircle size={12} className="text-red-500" />
+            </div>
+          </Tooltip>
+        );
+      case "skipped_paid": 
+        return (
+          <Tooltip text="Пропущен (оплачен)" position="bottom">
+            <div className="p-1 -m-1 cursor-help flex items-center justify-center">
+              <AlertCircle size={12} className="text-amber-500" />
+            </div>
+          </Tooltip>
+        );
+      case "skipped_free": 
+        return (
+          <Tooltip text="Пропуск (б/о)" position="bottom">
+            <div className="p-1 -m-1 cursor-help flex items-center justify-center">
+              <AlertCircle size={12} className="text-stone-400" />
+            </div>
+          </Tooltip>
+        );
       default: return null;
     }
   };
@@ -455,10 +533,11 @@ export default function SchedulePage({ pageState }) {
     lesson, onClick, compact = false, isOverlay = false, 
     isDragging = false, isFaded = false, title, borderColorClass, textColorClass, bgColorClass, entityStyle, 
     hasFinDebt = false, hasHwDebt = false, layout = "horizontal",
-    listeners = {}, attributes = {}, style = {}, onMoreClick
+    listeners = {}, attributes = {}, style = {}, onMoreClick, onHwClick, onFinClick
   }, ref) => {
     const topic = getLessonTopic(lesson);
-    const isCanceled = lesson.status === 'cancelled' || lesson.status === 'skipped_free';
+    const isCanceled = lesson.status === 'cancelled';
+    const isSkippedFree = lesson.status === 'skipped_free';
     const isNeedsAttention = ymd(new Date(lesson.date)) < ymd(new Date()) && lesson.status === 'planned';
 
     const combinedStyle = { ...style, ...entityStyle };
@@ -475,29 +554,45 @@ export default function SchedulePage({ pageState }) {
             onClick(e, lesson);
           }}
           style={combinedStyle}
-          className={`h-full flex flex-col p-1.5 rounded-lg cursor-pointer transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isCanceled ? 'bg-red-50/80 border border-red-200' : `${bgColorClass} border border-stone-200/50 hover:brightness-95`} ${isOverlay ? 'cursor-grabbing shadow-neu-xl scale-105 rotate-1 z-50' : 'hover:shadow-neu-sm shadow-sm'} ${isFaded ? "opacity-60" : ""} ${isNeedsAttention && !isFaded ? "ring-2 ring-amber-400" : ""} overflow-hidden`}
+          className={`group/card h-full flex flex-col p-1.5 rounded-lg cursor-pointer transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isCanceled ? 'bg-red-50/80 border border-red-200' : isSkippedFree ? 'bg-stone-100 border border-stone-300' : `${bgColorClass} border border-stone-200/50 hover:brightness-95`} ${isOverlay ? 'cursor-grabbing shadow-neu-xl scale-105 rotate-1 z-50' : 'hover:shadow-neu-sm shadow-sm'} ${isFaded ? "opacity-60" : ""} ${isNeedsAttention && !isFaded ? "ring-2 ring-amber-400" : ""}`}
         >
           <div className="flex items-start justify-between gap-1 w-full shrink-0">
             <span className={`font-bold tabular-nums ${textColorClass} text-[10px] sm:text-[11px] leading-none`}>{lesson.startTime} - {lesson.endTime}</span>
             <div className="flex gap-0.5 items-center shrink-0">
-              {hasHwDebt && <div className="w-2 h-2 rounded-full bg-[#006584]" title="Есть долг по ДЗ" />}
-              {hasFinDebt && <div className="w-2 h-2 rounded-full bg-[#B71234]" title="Есть финансовый долг" />}
+              {hasHwDebt && (
+                <Tooltip text="Отметить ДЗ" position="top">
+                  <div 
+                    className="w-3 h-3 rounded-full bg-gradient-to-b from-[#0082a8] to-[#004e66] shadow-[0_1px_3px_rgba(0,101,132,0.6)] border border-[#00394b] ring-1 ring-inset ring-white/30 cursor-pointer hover:scale-125 hover:shadow-md active:scale-95 active:shadow-inner transition-all" 
+                    onClick={(e) => { e.stopPropagation(); onHwClick && onHwClick(lesson); }}
+                  />
+                </Tooltip>
+              )}
+              {hasFinDebt && (
+                <Tooltip text="Отметить оплату" position="top">
+                  <div 
+                    className="w-3 h-3 rounded-full bg-gradient-to-b from-[#da2146] to-[#8f0e27] shadow-[0_1px_3px_rgba(183,18,52,0.6)] border border-[#6b081b] ring-1 ring-inset ring-white/30 cursor-pointer hover:scale-125 hover:shadow-md active:scale-95 active:shadow-inner transition-all" 
+                    onClick={(e) => { e.stopPropagation(); onFinClick && onFinClick(lesson); }}
+                  />
+                </Tooltip>
+              )}
               {isCanceled ? (
-                <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1 rounded-sm leading-tight ml-0.5">Отменен</span>
+                <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1 rounded-sm leading-tight ml-0.5">Отменён</span>
+              ) : isSkippedFree ? (
+                <span className="text-[9px] font-bold text-stone-600 bg-stone-200 px-1 rounded-sm leading-tight ml-0.5">б/о</span>
               ) : (
                 renderStatusIcon(lesson.status)
               )}
               {!isOverlay && onMoreClick && (
                 <button 
                   onClick={onMoreClick}
-                  className="ml-0.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto"
+                  className="ml-0.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
                 >
                   <MoreVertical size={14} />
                 </button>
               )}
             </div>
           </div>
-          <div className={`mt-0.5 font-medium flex-1 min-h-0 flex flex-col min-w-0 ${isCanceled ? 'opacity-60 line-through' : ''}`}>
+          <div className={`mt-0.5 font-medium flex-1 min-h-0 flex flex-col min-w-0 ${(isCanceled || isSkippedFree) ? 'opacity-60 line-through' : ''}`}>
             <span className={`line-clamp-2 min-w-0 font-bold text-stone-800 text-[11px] sm:text-xs leading-tight`}>{title}</span>
             {topic && <span className="line-clamp-1 text-[9px] sm:text-[10px] text-stone-500 leading-tight mt-0.5">{topic}</span>}
           </div>
@@ -516,33 +611,49 @@ export default function SchedulePage({ pageState }) {
           onClick(e, lesson);
         }}
         style={combinedStyle}
-        className={`px-2 ${compact ? 'py-0.5' : 'py-1.5'} rounded-lg cursor-pointer transition-all relative outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isCanceled ? 'bg-red-50/80 border border-red-100' : `${bgColorClass} border border-stone-200/50 hover:brightness-95`} ${isOverlay ? 'cursor-grabbing shadow-neu-xl scale-105 rotate-1 z-50' : 'hover:shadow-neu-sm hover:-translate-y-px active:shadow-neu-sm-inset'} ${isFaded ? "opacity-60" : ""}`}
+        className={`group/card px-2 ${compact ? 'py-0.5' : 'py-1.5'} rounded-lg cursor-pointer transition-all relative outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isCanceled ? 'bg-red-50/80 border border-red-100' : isSkippedFree ? 'bg-stone-100/80 border border-stone-300' : `${bgColorClass} border border-stone-200/50 hover:brightness-95`} ${isOverlay ? 'cursor-grabbing shadow-neu-xl scale-105 rotate-1 z-50' : 'hover:shadow-neu-sm hover:-translate-y-px active:shadow-neu-sm-inset'} ${isFaded ? "opacity-60" : ""}`}
       >
         <div className={`flex items-center justify-between ${compact ? '' : 'mb-0.5'}`}>
           <div className="flex items-center gap-1.5">
             <span className={`font-bold tabular-nums ${textColorClass} ${compact ? 'text-[9px]' : 'text-[10px] sm:text-xs'}`}>{lesson.startTime} - {lesson.endTime}</span>
-            <div className="flex gap-0.5 shrink-0">
-              {hasHwDebt && <div className="w-2 h-2 rounded-full bg-[#006584]" title="Есть долг по ДЗ" />}
-              {hasFinDebt && <div className="w-2 h-2 rounded-full bg-[#B71234]" title="Есть финансовый долг" />}
+            <div className="flex gap-1.5 shrink-0 ml-1">
+              {hasHwDebt && (
+                <Tooltip text="Отметить ДЗ" position="top">
+                  <div 
+                    className="w-3 h-3 rounded-full bg-gradient-to-b from-[#0082a8] to-[#004e66] shadow-[0_1px_3px_rgba(0,101,132,0.6)] border border-[#00394b] ring-1 ring-inset ring-white/30 cursor-pointer hover:scale-125 hover:shadow-md active:scale-95 active:shadow-inner transition-all" 
+                    onClick={(e) => { e.stopPropagation(); onHwClick && onHwClick(lesson); }}
+                  />
+                </Tooltip>
+              )}
+              {hasFinDebt && (
+                <Tooltip text="Отметить оплату" position="top">
+                  <div 
+                    className="w-3 h-3 rounded-full bg-gradient-to-b from-[#da2146] to-[#8f0e27] shadow-[0_1px_3px_rgba(183,18,52,0.6)] border border-[#6b081b] ring-1 ring-inset ring-white/30 cursor-pointer hover:scale-125 hover:shadow-md active:scale-95 active:shadow-inner transition-all" 
+                    onClick={(e) => { e.stopPropagation(); onFinClick && onFinClick(lesson); }}
+                  />
+                </Tooltip>
+              )}
             </div>
           </div>
           <div className="flex gap-1 items-center shrink-0">
             {isCanceled ? (
-              <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1 rounded-sm leading-tight ml-0.5">Отменен</span>
+              <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1 rounded-sm leading-tight ml-0.5">Отменён</span>
+            ) : isSkippedFree ? (
+              <span className="text-[9px] font-bold text-stone-600 bg-stone-200 px-1 rounded-sm leading-tight ml-0.5">б/о</span>
             ) : (
               renderStatusIcon(lesson.status)
             )}
             {!isOverlay && onMoreClick && (
               <button 
                 onClick={onMoreClick}
-                className="ml-1 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto"
+                className="ml-1 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
               >
                 <MoreVertical size={14} />
               </button>
             )}
           </div>
         </div>
-        <div className={`font-medium flex items-center justify-between gap-1 min-w-0 ${isCanceled ? 'line-through opacity-70' : ''}`}>
+        <div className={`font-medium flex items-center justify-between gap-1 min-w-0 ${(isCanceled || isSkippedFree) ? 'line-through opacity-70' : ''}`}>
           <span className={`truncate min-w-0 flex-1 font-bold text-stone-800 ${compact ? 'text-[9.5px] leading-tight' : 'text-xs'}`}>{title}</span>
         </div>
       </div>
@@ -607,7 +718,7 @@ export default function SchedulePage({ pageState }) {
     return { title, isFaded, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt };
   };
 
-  const LessonCardOverlay = ({ lesson, compact = false, dragTimeDelta = 0, width = null, height = null }) => {
+  const LessonCardOverlay = ({ lesson, compact = false, dragTimeDelta = 0, width = null, height = null, isCopyMode = false }) => {
     const displayLesson = { ...lesson };
     if (dragTimeDelta !== 0) {
       const [oldSH, oldSM] = lesson.startTime.split(':').map(Number);
@@ -622,15 +733,13 @@ export default function SchedulePage({ pageState }) {
     }
     const { title, isFaded, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt } = getLessonDisplayData(displayLesson);
     return (
-      <div style={{ width: width ? `${width}px` : 'auto', height: height ? `${height}px` : 'auto' }} className="h-full">
+      <div style={{ width: width ? `${width}px` : 'auto', height: height ? `${height}px` : 'auto' }} className="h-full relative">
         <LessonCardView 
           lesson={displayLesson}
           onClick={() => {}}
           compact={compact}
           layout={compact ? "horizontal" : "vertical"}
           isOverlay={true}
-        isDragging={false}
-        isFaded={isFaded}
           isDragging={false}
           isFaded={isFaded}
           title={title}
@@ -646,11 +755,16 @@ export default function SchedulePage({ pageState }) {
             transformOrigin: "0 0"
           }}
         />
+        {isCopyMode && (
+          <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-bold shadow-lg z-50 pointer-events-none select-none">
+            +
+          </div>
+        )}
       </div>
     );
   };
 
-  const LessonCard = ({ lesson, onClick, compact = false, layout = "horizontal", onMoreClick }) => {
+  const LessonCard = ({ lesson, onClick, compact = false, layout = "horizontal", onMoreClick, isCopyMode = false }) => {
     const { title, isFaded, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt } = getLessonDisplayData(lesson);
     
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -658,12 +772,67 @@ export default function SchedulePage({ pageState }) {
       data: lesson
     });
 
+    const handleHwClick = (l) => {
+      let stId = null;
+      if (l.type === "individual") {
+        stId = l.studentId;
+      } else if (l.type === "group") {
+        const group = groups.find(g => g.id === l.groupId);
+        if (group && group.studentIds && group.studentIds.length > 0) {
+          // If group, for now just pick the first debtor to mark, or show modal for all if ActionItemModal could handle it
+          // Wait, ActionItemModal handles one student. We can map over debtors and show modal for the group?
+          // Since ActionItemModal takes ONE item.student, let's just find the first student with debt.
+          stId = group.studentIds.find(id => studentsWithDebt.has(id));
+        }
+      }
+      
+      const st = students.find(s => s.id === stId);
+      if (st) {
+        setActionModal({
+          isOpen: true,
+          mode: "confirm",
+          item: {
+            type: "hw",
+            student: st,
+            count: 1,
+            lessons: [l]
+          }
+        });
+      }
+    };
+
+    const handleFinClick = (l) => {
+      let stId = null;
+      if (l.type === "individual") {
+        stId = l.studentId;
+      } else if (l.type === "group") {
+        const group = groups.find(g => g.id === l.groupId);
+        if (group && group.studentIds) {
+          stId = group.studentIds.find(id => studentsWithFinDebt.has(id));
+        }
+      }
+      const st = students.find(s => s.id === stId);
+      if (st) {
+        setActionModal({
+          isOpen: true,
+          mode: "confirm",
+          item: {
+            type: "money",
+            student: st,
+            amount: Math.abs(st.balance || 0)
+          }
+        });
+      }
+    };
+
     return (
       <LessonCardView 
         ref={setNodeRef}
         lesson={lesson}
         onClick={onClick}
         onMoreClick={onMoreClick}
+        onHwClick={handleHwClick}
+        onFinClick={handleFinClick}
         compact={compact}
         layout={layout}
         isOverlay={false}
@@ -678,12 +847,12 @@ export default function SchedulePage({ pageState }) {
         hasHwDebt={hasHwDebt}
         listeners={listeners}
         attributes={attributes}
-        style={{ opacity: isDragging ? 0 : 1, height: layout === "vertical" ? "100%" : "auto" }}
+        style={{ opacity: (isDragging && !isCopyMode) ? 0 : 1, height: layout === "vertical" ? "100%" : "auto" }}
       />
     );
   };
 
-  const DroppableSlot = ({ id, date, isToday, children, className, onClick }) => {
+  const DroppableSlot = ({ id, date, isToday, children, className, onClick, style }) => {
     const { isOver, setNodeRef } = useDroppable({
       id: id,
       data: { date }
@@ -694,6 +863,7 @@ export default function SchedulePage({ pageState }) {
         ref={setNodeRef} 
         onClick={onClick}
         className={`${className} transition-all duration-300 ${isOver ? 'shadow-neu-sm-inset bg-stone-200/20' : ''}`}
+        style={style}
       >
         {children}
       </div>
@@ -759,6 +929,9 @@ export default function SchedulePage({ pageState }) {
               return false;
             });
             
+            const cancelledCount = dayLessons.filter(l => l.status === "cancelled").length;
+            const skippedFreeCount = dayLessons.filter(l => l.status === "skipped_free").length;
+            const unmarkedCount = isPast ? dayLessons.filter(l => l.status === "planned").length : 0;
             const paidCount = isPast ? dayLessons.filter(l => l.status === "conducted" || l.status === "skipped_paid").length : 0;
 
             return (
@@ -766,7 +939,7 @@ export default function SchedulePage({ pageState }) {
                 key={idx} 
                 id={`month-slot-${dateStr}`} 
                 date={dateStr}
-                className={`group/day min-w-0 border-r border-b border-stone-200/60 p-2 sm:p-3 flex flex-col min-h-[100px] md:min-h-[120px] cursor-pointer ${isToday ? "bg-white ring-2 ring-inset ring-emerald-500/40 shadow-sm z-10" : isPast ? "bg-stone-100/60 hover:bg-stone-200/50 transition-colors" : "bg-white hover:bg-stone-50 transition-colors"} relative`}
+                className={`group/day min-w-0 border-r border-b border-stone-200/60 p-2 sm:p-3 flex flex-col min-h-[100px] md:min-h-[120px] cursor-pointer ${isToday ? "bg-white ring-2 ring-inset ring-emerald-500/40 shadow-sm z-10 hover:shadow-neu-sm-inset hover:bg-stone-50" : isPast ? "bg-stone-100/60 hover:bg-stone-200/50 hover:shadow-neu-sm-inset" : "bg-white hover:bg-stone-50 hover:shadow-neu-sm-inset"} relative transition-all duration-300`}
                 onClick={() => {
                   setCurrentDate(new Date(year, currentDate.getMonth(), day));
                   setView("day");
@@ -778,23 +951,39 @@ export default function SchedulePage({ pageState }) {
                   <div className="flex items-start justify-between w-full h-7">
                     <div className="flex flex-col gap-1.5 mt-1">
                       {!isPast && hasHwDebtors && (
-                        <Tooltip text="Не сдано ДЗ" position="top-left">
+                        <Tooltip text="Не сдано ДЗ" position="bottom-left">
                           <div className="w-2 h-2 rounded-full bg-[#006584] shadow-sm cursor-help" />
                         </Tooltip>
                       )}
                       {!isPast && hasFinDebtors && (
-                        <Tooltip text="Задолженность" position="top-left">
+                        <Tooltip text="Задолженность" position="bottom-left">
                           <div className="w-2 h-2 rounded-full bg-[#B71234] shadow-sm cursor-help" />
                         </Tooltip>
                       )}
-                      {isPast && (lessonCount - paidCount) > 0 && (
-                        <span className="text-[9px] sm:text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100/50 whitespace-nowrap shadow-sm">
-                          {lessonCount - paidCount} {
-                            [11,12,13,14].includes((lessonCount - paidCount)%100) ? 'отмен' : 
-                            (lessonCount - paidCount)%10 === 1 ? 'отмена' : 
-                            [2,3,4].includes((lessonCount - paidCount)%10) ? 'отмены' : 'отмен'
-                          }
-                        </span>
+                      {(cancelledCount > 0 || skippedFreeCount > 0 || unmarkedCount > 0) && (
+                        <div className="flex flex-wrap gap-1">
+                          {cancelledCount > 0 && (
+                            <Tooltip text="Отмены уроков" position="bottom-left">
+                              <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1 rounded-md border border-rose-100/50 shadow-sm flex items-center justify-center min-w-[16px]">
+                                {cancelledCount}
+                              </span>
+                            </Tooltip>
+                          )}
+                          {skippedFreeCount > 0 && (
+                            <Tooltip text="Пропуски без оплаты" position="bottom-left">
+                              <span className="text-[9px] font-bold text-stone-500 bg-stone-100 px-1 rounded-md border border-stone-200/50 shadow-sm flex items-center justify-center min-w-[16px]">
+                                {skippedFreeCount}
+                              </span>
+                            </Tooltip>
+                          )}
+                          {unmarkedCount > 0 && (
+                            <Tooltip text="Без отметки" position="bottom-left">
+                              <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100/50 shadow-sm flex items-center justify-center whitespace-nowrap">
+                                {unmarkedCount} без отметки
+                              </span>
+                            </Tooltip>
+                          )}
+                        </div>
                       )}
                     </div>
                     {isToday ? (
@@ -892,8 +1081,8 @@ export default function SchedulePage({ pageState }) {
     return (
       <div className="max-w-6xl mx-auto w-full flex-1 min-h-0 flex flex-col bg-ivory/30 rounded-xl border border-stone-200/50 shadow-sm overflow-hidden">
         {/* Headers */}
-        <div className="flex shrink-0 border-b border-stone-200/50 bg-white/60">
-          <div className="w-10 sm:w-12 shrink-0 border-r border-stone-200/50"></div>
+        <div className="flex shrink-0 border-b border-stone-200 bg-white/80 backdrop-blur-sm z-50 pr-[16px]">
+          <div className="w-10 sm:w-12 shrink-0 border-r border-stone-200"></div>
           <div className="flex-1 flex min-w-0">
             {weekDays.map((wd, i) => {
               const dateStr = ymd(wd);
@@ -923,27 +1112,47 @@ export default function SchedulePage({ pageState }) {
               });
               
               const paidCount = isPast ? dayLessons.filter(l => l.status === "conducted" || l.status === "skipped_paid").length : 0;
-              const cancelCount = isPast ? (dayLessons.length - paidCount) : 0;
+              const cancelCount = dayLessons.filter(l => l.status === "cancelled").length;
+              const skippedFreeCount = dayLessons.filter(l => l.status === "skipped_free").length;
+              const unmarkedCount = isPast ? dayLessons.filter(l => l.status === "planned").length : 0;
 
               return (
-                <div key={dateStr} className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 sm:py-3 border-r border-stone-200/50 last:border-r-0 relative ${isToday ? "bg-white ring-2 ring-emerald-500/40 ring-inset z-10" : isPast ? "bg-stone-100/60" : "bg-white hover:bg-stone-50/30"} transition-all`}>
+                <div key={dateStr} className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 sm:py-3 border-r border-stone-200 last:border-r-0 relative ${isToday ? "bg-white ring-2 ring-emerald-500/40 ring-inset z-10" : isPast ? "bg-stone-100/60" : "bg-white hover:bg-stone-50/30"} transition-all`}>
                   <div className="absolute top-1 left-1 flex flex-col gap-1">
                     {!isPast && hasHwDebtors && (
-                      <Tooltip text="Не сдано ДЗ" position="top-left">
+                      <Tooltip text="Не сдано ДЗ" position="bottom-left">
                         <div className="w-2 h-2 rounded-full bg-[#006584] shadow-sm cursor-help" />
                       </Tooltip>
                     )}
                     {!isPast && hasFinDebtors && (
-                      <Tooltip text="Задолженность" position="top-left">
+                      <Tooltip text="Задолженность" position="bottom-left">
                         <div className="w-2 h-2 rounded-full bg-[#B71234] shadow-sm cursor-help" />
                       </Tooltip>
                     )}
                   </div>
-                  {isPast && cancelCount > 0 && (
-                    <div className="absolute top-1 right-1">
-                      <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1 rounded-md border border-rose-100/50 shadow-sm">
-                        {cancelCount}
-                      </span>
+                  {(cancelCount > 0 || skippedFreeCount > 0 || unmarkedCount > 0) && (
+                    <div className="absolute top-1 right-1 flex gap-0.5">
+                      {cancelCount > 0 && (
+                        <Tooltip text="Отмены уроков" position="bottom-right">
+                          <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1 rounded-md border border-rose-100/50 shadow-sm">
+                            {cancelCount}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {skippedFreeCount > 0 && (
+                        <Tooltip text="Пропуски без оплаты" position="bottom-right">
+                          <span className="text-[9px] font-bold text-stone-500 bg-stone-100 px-1 rounded-md border border-stone-200/50 shadow-sm">
+                            {skippedFreeCount}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {unmarkedCount > 0 && (
+                        <Tooltip text="Без отметки" position="bottom-right">
+                          <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 rounded-md border border-amber-100/50 shadow-sm">
+                            {unmarkedCount}
+                          </span>
+                        </Tooltip>
+                      )}
                     </div>
                   )}
                   <div className={`text-[9px] sm:text-[10px] font-bold tracking-widest uppercase mb-1 ${isToday ? 'text-emerald-700' : 'text-stone-400'}`}>{dayName}</div>
@@ -957,19 +1166,19 @@ export default function SchedulePage({ pageState }) {
         </div>
         
         {/* Body (Scrollable) */}
-        <div className="flex-1 overflow-y-auto flex relative scrollbar-thin pt-3 pb-6">
-          <div className="w-10 sm:w-12 shrink-0 border-r border-stone-200/50 bg-white/40 sticky left-0 z-20 pt-3">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden flex relative scrollbar-thin pb-6 pr-2">
+          <div className="w-10 sm:w-12 shrink-0 border-r border-stone-200 bg-white sticky left-0 z-40" style={{ minHeight: hours.length * hourHeight }}>
             <div className="relative" style={{ height: hours.length * hourHeight }}>
               {hours.map(h => (
-                <div key={h} className="absolute w-full text-right pr-2 text-[10px] font-medium text-stone-400 -translate-y-1/2" style={{ top: (h - tlStartH) * hourHeight }}>
-                  {h}:00
+                <div key={h} className={`absolute w-full text-right pr-2 text-[10px] font-semibold text-stone-600 ${h === tlStartH ? 'translate-y-1' : '-translate-y-1/2'}`} style={{ top: (h - tlStartH) * hourHeight }}>
+                  {h === tlStartH ? null : `${h}:00`}
                 </div>
               ))}
             </div>
           </div>
           
-          <div className="flex-1 flex min-w-[500px] relative pt-3">
-            <div className="absolute top-3 left-0 right-0 pointer-events-none z-20" style={{ height: hours.length * hourHeight }}>
+          <div className="flex-1 flex min-w-[500px] relative">
+            <div className="absolute left-0 right-0 pointer-events-none z-20" style={{ height: hours.length * hourHeight }}>
               {hours.map(h => (
                 <div key={h} className="absolute w-full border-t border-stone-300 border-dashed" style={{ top: (h - tlStartH) * hourHeight }} />
               ))}
@@ -982,14 +1191,27 @@ export default function SchedulePage({ pageState }) {
               const dayLessons = lessonsByDate[dateStr] || [];
 
               return (
-                <div key={dateStr} className={`group flex-1 min-w-0 border-r border-stone-200/50 last:border-r-0 ${isToday ? "bg-emerald-50/30" : isPast ? "bg-stone-100/60" : "bg-white"} relative transition-all`}>
-                  <DroppableSlot 
-                    id={`week-slot-${dateStr}`}
-                    date={dateStr}
-                    className="w-full relative min-h-full"
+                <div key={dateStr} style={{ height: hours.length * hourHeight }} className={`group flex-1 min-w-0 border-r border-stone-200 last:border-r-0 ${isToday ? "bg-white ring-2 ring-emerald-500/40 ring-inset z-10" : isPast ? "bg-stone-100/60" : "bg-white"} relative transition-all`}>
+                  <div 
+                    className="w-full relative min-h-full transition-all duration-300"
                     style={{ height: hours.length * hourHeight }}
-                    onClick={() => handleOpenDrawer({ date: dateStr })}
                   >
+                    {/* Interactive Background Cells */}
+                    <div className="absolute inset-0 flex flex-col z-10">
+                      {hours.map(h => (
+                        <DroppableSlot
+                          key={h}
+                          id={`week-slot-${dateStr}-${h}`}
+                          date={dateStr}
+                          className="w-full cursor-pointer hover:bg-stone-200/40 hover:shadow-neu-sm-inset transition-all"
+                          style={{ height: hourHeight }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDrawer({ date: dateStr, startTime: `${String(h).padStart(2, '0')}:00` });
+                          }}
+                        />
+                      ))}
+                    </div>
                     {(() => {
                       const sorted = [...dayLessons].map(l => {
                         const [sH, sM] = l.startTime.split(':').map(Number);
@@ -1066,6 +1288,7 @@ export default function SchedulePage({ pageState }) {
                               lesson={l} 
                               layout={widthPercent < 50 ? "compact" : "vertical"}
                               compact={widthPercent <= 50}
+                              isCopyMode={isCopyMode}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenDrawer(l);
@@ -1080,7 +1303,7 @@ export default function SchedulePage({ pageState }) {
                         );
                       });
                     })()}
-                  </DroppableSlot>
+                  </div>
                 </div>
               );
             })}
@@ -1093,105 +1316,290 @@ export default function SchedulePage({ pageState }) {
   const renderDay = () => {
     const dateStr = ymd(currentDate);
     const dayLessons = lessonsByDate[dateStr] || [];
-    const formattedDate = currentDate.toLocaleString("ru", { weekday: 'long', day: 'numeric', month: 'long' });
+    const formattedDate = currentDate.toLocaleString("ru", { weekday: 'long' });
     
+    const getPlural = (num, forms) => {
+      const n = Math.abs(num) % 100;
+      const n1 = n % 10;
+      if (n > 10 && n < 20) return forms[2];
+      if (n1 > 1 && n1 < 5) return forms[1];
+      if (n1 === 1) return forms[0];
+      return forms[2];
+    };
+    const formatMoney = (num) => new Intl.NumberFormat('ru-RU').format(num) + ' ₽';
+    
+    const revenue = dayLessons
+      .filter(l => l.status !== 'cancelled' && l.status !== 'skipped_free')
+      .reduce((sum, l) => sum + (Number(l.price) || 0), 0);
+    const lessonCount = dayLessons.length;
+    
+    const todayStr = ymd(new Date());
+    const isToday = dateStr === todayStr;
+    
+    const tlStartH = 8;
+    const tlEndH = 23;
+    const hours = Array.from({ length: tlEndH - tlStartH }, (_, i) => tlStartH + i);
+    const hourHeight = 120; // px
+    
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
     return (
       <div className="flex-1 overflow-y-auto scrollbar-thin pb-8 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="sticky top-0 backdrop-blur-md bg-[rgb(var(--ivory))]/80 z-10 border-b border-stone-200/50 py-3 mb-4 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto flex flex-col h-full space-y-6">
+          <div className="shrink-0 sticky top-0 backdrop-blur-md bg-[rgb(var(--ivory))]/80 z-50 border-b border-stone-200/50 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               {navigatedFromMonth && (
-                <button 
-                  onClick={() => {
-                    setView("month");
-                    setNavigatedFromMonth(false);
-                  }}
-                  className="p-1.5 hover:bg-stone-200/50 text-stone-500 rounded-lg transition-colors"
-                  title="Назад к месяцу"
-                >
-                  <ArrowLeft size={18} />
-                </button>
+                <Tooltip text="Назад к месяцу" position="bottom">
+                  <button 
+                    onClick={() => {
+                      setView("month");
+                      setNavigatedFromMonth(false);
+                    }}
+                    className="p-1.5 hover:bg-stone-200/50 text-stone-500 rounded-lg transition-colors"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                </Tooltip>
               )}
               <h3 className="text-base font-bold text-stone-800 capitalize">
                 {formattedDate}
               </h3>
             </div>
-            <button 
-              onClick={() => handleOpenDrawer({ date: dateStr })}
-              className="text-stone-500 hover:text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 text-sm font-medium"
-            >
-              <Plus size={16} /> Добавить урок
-            </button>
+            {lessonCount > 0 && (
+              <div className="text-stone-600 bg-white/60 px-4 py-1.5 rounded-xl text-sm font-bold shadow-neu-sm-inset border border-stone-200/50 flex items-center gap-2">
+                <span>{lessonCount} {getPlural(lessonCount, ["урок", "урока", "уроков"])}</span>
+                {revenue > 0 && (
+                  <>
+                    <span className="text-stone-300">•</span>
+                    <span className="text-emerald-600">{formatMoney(revenue)}</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           
-          {dayLessons.length === 0 ? (
-            <div className="text-center py-12 text-stone-500 bg-ivory shadow-neu-sm-inset rounded-2xl flex flex-col items-center justify-center">
-              "На этот день уроков не запланировано."
+          <div className="flex-1 flex bg-ivory/30 rounded-xl border border-stone-200/50 shadow-sm overflow-hidden mb-4 relative min-h-[600px] max-w-5xl mx-auto w-full">
+            {/* Y-axis timeline */}
+            <div className="w-12 sm:w-16 shrink-0 border-r border-stone-200 bg-white z-40">
+              <div className="relative" style={{ height: hours.length * hourHeight }}>
+                {hours.map(h => (
+                  <div key={h} className="absolute w-full text-right pr-2 text-[10px] font-semibold text-stone-500 -translate-y-1/2" style={{ top: (h - tlStartH) * hourHeight }}>
+                    {h}:00
+                  </div>
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {dayLessons.map(l => {
-                const topicTitle = getLessonTopic(l);
-                const { title, borderColorClass, textColorClass, entityStyle } = getLessonDisplayData(l);
-                
-                return (
-                  <div 
-                    key={l.id} 
-                    className={`border-l-4 ${borderColorClass} flex flex-col sm:flex-row gap-3 bg-ivory shadow-neu-sm p-4 rounded-2xl items-start sm:items-center justify-between cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[#006584] group @media (hover: hover) { hover:shadow-neu-md hover:-translate-y-px }`}
-                    style={entityStyle}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenDrawer(l);
-                    }}
-                  >
-                    <div className="flex gap-4 items-center flex-1 min-w-0">
-                      <div className={`font-bold tabular-nums text-lg flex items-center justify-center shrink-0 pr-4 border-r-2 border-[#006584]/20 ${textColorClass}`}>
-                        <span>{l.startTime} — {l.endTime}</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-bold text-stone-800 text-base truncate">{title}</div>
-                        <div className="text-xs text-stone-500 font-medium flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <span>{l.subjectName}</span>
-                          {renderStatusIcon(l.status)}
-                          {topicTitle && (
-                            <>
-                              <span className="text-stone-300">•</span>
-                              <span className="truncate max-w-[150px] sm:max-w-[300px]" title={topicTitle}>{topicTitle}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 mt-3 sm:mt-0 self-end sm:self-auto shrink-0">
-                      {l.homework && (
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenDrawer(l, "hw");
-                          }}
-                          className={`flex flex-col items-center justify-center w-11 h-11 shrink-0 rounded-xl font-bold text-[10px] uppercase transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isLessonHwFullyDone(l) ? 'text-[#006584] shadow-neu-sm-inset' : 'bg-ivory shadow-neu-sm active:shadow-neu-sm-inset text-[#B71234]'}`}
-                        >
-                          <span className="leading-none mb-0.5">ДЗ</span>
-                          {isLessonHwFullyDone(l) ? <CheckCircle2 size={12} strokeWidth={2.5}/> : <XCircle size={12} strokeWidth={2.5}/>}
-                        </button>
-                      )}
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setPopover({ lesson: l, triggerRect: rect });
-                        }}
-                        className="w-11 h-11 flex items-center justify-center text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all ml-1"
-                      >
-                        <MoreVertical size={20} />
-                      </button>
+            
+            {/* Grid Body */}
+            <div className="flex-1 relative min-w-[300px]">
+              {/* Horizontal Grid Lines */}
+              <div className="absolute inset-0 pointer-events-none z-0">
+                {hours.map(h => (
+                  <div key={h} className="absolute w-full border-t border-stone-300 border-dashed" style={{ top: (h - tlStartH) * hourHeight }} />
+                ))}
+              </div>
+
+              {/* Current Time Indicator */}
+              {isToday && currentMins >= tlStartH * 60 && currentMins <= tlEndH * 60 && (
+                <div 
+                  className="absolute left-0 right-0 z-30 pointer-events-none"
+                  style={{ top: ((currentMins - tlStartH * 60) / 60) * hourHeight }}
+                >
+                  <div className="h-[2px] bg-indigo-500 w-full relative shadow-[0_0_8px_rgba(99,102,241,0.5)]">
+                    <div className="absolute left-0 -translate-y-1/2 w-2.5 h-2.5 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.8)]">
+                      <div className="absolute inset-0 rounded-full bg-indigo-400 animate-ping opacity-75"></div>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              )}
+
+              <div 
+                className="absolute inset-0 z-10"
+              >
+                {/* Background Clickable Area (to add lesson) */}
+                <div className="absolute inset-0 flex flex-col z-10">
+                  {hours.map(h => (
+                    <DroppableSlot
+                      key={h}
+                      id={`day-slot-${dateStr}-${h}`}
+                      date={dateStr}
+                      className="w-full hover:bg-stone-200/40 hover:shadow-neu-sm-inset transition-all cursor-pointer"
+                      style={{ height: hourHeight }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenDrawer({ date: dateStr, startTime: `${String(h).padStart(2, '0')}:00` });
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Lessons */}
+                {(() => {
+                  const sorted = [...dayLessons].map(l => {
+                    const [sH, sM] = l.startTime.split(':').map(Number);
+                    const [eH, eM] = l.endTime.split(':').map(Number);
+                    let startMins = sH * 60 + sM;
+                    let endMins = eH * 60 + eM;
+                    if (endMins - startMins < 30) {
+                      endMins = startMins + 30; // Enforce minimum visual duration
+                    }
+                    return { ...l, startMins, endMins };
+                  }).sort((a, b) => a.startMins - b.startMins || (b.endMins - b.startMins) - (a.endMins - a.startMins));
+
+                  let clusters = [];
+                  sorted.forEach(l => {
+                    if (clusters.length === 0) {
+                      clusters.push([l]);
+                    } else {
+                      let lastCluster = clusters[clusters.length - 1];
+                      let clusterEnd = Math.max(...lastCluster.map(c => c.endMins));
+                      if (l.startMins < clusterEnd) {
+                        lastCluster.push(l);
+                      } else {
+                        clusters.push([l]);
+                      }
+                    }
+                  });
+
+                  const positioned = [];
+                  clusters.forEach(cluster => {
+                    let columns = [];
+                    cluster.forEach(l => {
+                      let placed = false;
+                      for (let i = 0; i < columns.length; i++) {
+                        const col = columns[i];
+                        const lastInCol = col[col.length - 1];
+                        if (l.startMins >= lastInCol.endMins) {
+                          col.push(l);
+                          placed = true;
+                          break;
+                        }
+                      }
+                      if (!placed) {
+                        columns.push([l]);
+                      }
+                    });
+                    
+                    const numCols = columns.length;
+                    columns.forEach((col, colIndex) => {
+                      col.forEach(l => {
+                        positioned.push({ ...l, colIndex, numCols });
+                      });
+                    });
+                  });
+
+                  return positioned.map(l => {
+                    let displayStart = l.startMins;
+                    let displayEnd = l.endMins;
+                    if (displayStart < tlStartH * 60) displayStart = tlStartH * 60;
+                    if (displayEnd > tlEndH * 60) displayEnd = tlEndH * 60;
+                    
+                    const top = ((displayStart - (tlStartH * 60)) / 60) * hourHeight;
+                    const height = Math.max(60, ((displayEnd - displayStart) / 60) * hourHeight); // Ensure minimum 60px height
+                    
+                    const leftPercent = (l.colIndex / l.numCols) * 100;
+                    const widthPercent = 100 / l.numCols;
+                    
+                    const { title, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt } = getLessonDisplayData(l);
+                    const topicTitle = getLessonTopic(l);
+                    const isPast = ymd(new Date(l.date)) < ymd(new Date());
+                    const isFaded = (isPast && l.status !== "planned" && !hasFinDebt && !hasHwDebt);
+                    
+                    return (
+                      <div 
+                        key={l.id} 
+                        className="absolute transition-all z-30 hover:z-40 px-1 py-[1px]"
+                        style={{ 
+                          top, 
+                          height,
+                          left: `${leftPercent}%`,
+                          width: `${widthPercent}%`
+                        }}
+                      >
+                        <div 
+                          className={`h-full w-full bg-ivory rounded-xl shadow-neu-sm border-l-4 ${borderColorClass} flex items-center justify-between px-3 py-2 cursor-pointer transition-all outline-none group hover:shadow-neu-md hover:-translate-y-px overflow-hidden ${isFaded ? "opacity-60" : ""}`}
+                          style={entityStyle}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDrawer(l);
+                          }}
+                        >
+                          {/* Left: Time & Info */}
+                          <div className="flex gap-3 items-center flex-1 min-w-0 h-full">
+                            
+                            <div className={`font-bold tabular-nums text-sm sm:text-base flex items-center justify-center shrink-0 pr-3 border-r-2 border-[#006584]/20 ${textColorClass} h-full`}>
+                              <span>{l.startTime} — {l.endTime}</span>
+                            </div>
+                            
+                            <div className="min-w-0 flex-1 flex flex-col justify-center">
+                              <div className="font-bold text-stone-800 text-sm sm:text-base truncate leading-tight mb-0.5">{title}</div>
+                              <div className="text-[10px] sm:text-xs text-stone-500 font-medium flex items-center gap-1.5 flex-wrap">
+                                <span className="bg-white/60 px-1.5 rounded">{l.subjectName}</span>
+                                {l.status === 'cancelled' ? (
+                                  <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1 rounded-sm">Отменён</span>
+                                ) : l.status === 'skipped_free' ? (
+                                  <span className="text-[9px] font-bold text-stone-600 bg-stone-200 px-1 rounded-sm">б/о</span>
+                                ) : (
+                                  renderStatusIcon(l.status)
+                                )}
+                                {topicTitle && height >= 60 && (
+                                  <>
+                                    <span className="text-stone-300">•</span>
+                                    <span className="truncate max-w-[120px] sm:max-w-[200px]" title={topicTitle}>{topicTitle}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Right: Actions */}
+                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-2">
+                            {hasHwDebt && (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenDrawer(l, "hw");
+                                }}
+                                className="flex flex-col items-center justify-center w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl font-bold text-[8px] sm:text-[9px] uppercase transition-all outline-none bg-ivory shadow-neu-sm active:shadow-neu-sm-inset text-[#B71234] hover:text-rose-600"
+                              >
+                                <span className="leading-none mb-0.5">ДЗ</span>
+                                <XCircle size={10} className="sm:hidden" strokeWidth={2.5}/>
+                                <XCircle size={12} className="hidden sm:block" strokeWidth={2.5}/>
+                              </button>
+                            )}
+                            {hasFinDebt && (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenDrawer(l, "fin");
+                                }}
+                                className="flex flex-col items-center justify-center w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl font-bold text-[8px] sm:text-[9px] uppercase transition-all outline-none bg-ivory shadow-neu-sm active:shadow-neu-sm-inset text-[#B71234] hover:text-rose-600"
+                              >
+                                <span className="leading-none mb-0.5">₽</span>
+                                <XCircle size={10} className="sm:hidden" strokeWidth={2.5}/>
+                                <XCircle size={12} className="hidden sm:block" strokeWidth={2.5}/>
+                              </button>
+                            )}
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setPopover({ lesson: l, triggerRect: rect });
+                              }}
+                              className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-stone-400 hover:text-indigo-600 hover:bg-white/50 shadow-sm rounded-xl transition-all"
+                            >
+                              <MoreVertical size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );
@@ -1199,8 +1607,8 @@ export default function SchedulePage({ pageState }) {
 
   return (
     <PageWrapper 
-      title="Календарь занятий" 
-      subtitle="Ваше время, уроки и финансы"
+      title="Рабочий календарь" 
+      subtitle="Ваше время под контролем"
       icon={CalendarDays}
       accentClass="text-[#006584]"
     >
@@ -1225,12 +1633,6 @@ export default function SchedulePage({ pageState }) {
           </div>
           
           <div className="flex items-center justify-between md:justify-end gap-4 flex-wrap">
-            {view !== 'month' && (
-              <div className="flex items-center gap-2 shrink-0" title="Показать предстоящие уроки с должниками">
-                <Switch checked={hwDebtOnly} onChange={setHwDebtOnly} />
-                <span className="text-sm font-bold text-stone-700 cursor-pointer select-none" onClick={() => setHwDebtOnly(!hwDebtOnly)}>Несданные ДЗ</span>
-              </div>
-            )}
 
             <div className="flex bg-ivory shadow-neu-sm-inset rounded-xl p-1 shrink-0">
               {['month', 'week', 'day'].map((v) => (
@@ -1283,6 +1685,7 @@ export default function SchedulePage({ pageState }) {
                     dragTimeDelta={dragTimeDelta}
                     width={dragWidth}
                     height={dragHeight}
+                    isCopyMode={isCopyMode}
                   />
                 ) : null}
               </DragOverlay>,
@@ -1306,6 +1709,7 @@ export default function SchedulePage({ pageState }) {
       {popover && createPortal(
         (() => {
           const rect = popover.triggerRect;
+          const currentStatus = popover.lesson.status || 'planned';
           let showAbove = false;
           const popoverEstimatedHeight = 350;
           const spaceBelow = window.innerHeight - rect.bottom;
@@ -1334,111 +1738,33 @@ export default function SchedulePage({ pageState }) {
                 className="fixed z-50 bg-ivory rounded-xl shadow-neu-xl p-2 w-56 animate-in fade-in zoom-in duration-200 overflow-y-auto"
                 style={style}
               >
-                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 px-2 pt-1">Действия</div>
-            <button 
-              className="w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 rounded-lg flex items-center gap-2"
-              onClick={() => {
-                const duplicated = { ...popover.lesson };
-                delete duplicated.id;
-                delete duplicated.seriesId;
-                handleOpenDrawer(duplicated);
-              }}
-            >
-              <Copy size={14} className="text-stone-400" /> Дублировать...
-            </button>
+                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 px-2 pt-1">Изменить статус</div>
+            
 
-            {popover.lesson.homework && (typeof popover.lesson.homework === 'string' ? popover.lesson.homework : popover.lesson.homework.text)?.trim() !== "" && (
-              <>
-                <div className="my-1 border-t border-stone-100" />
-                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 px-2 pt-1">Домашка</div>
-                {(() => {
-                  const lesson = popover.lesson;
-                  if (lesson.type === "individual") {
-                    const isDone = lesson.hwDoneBy?.includes(lesson.studentId);
-                    return (
-                      <label className="flex items-center justify-between px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 rounded-lg cursor-pointer">
-                        <span className="flex items-center gap-2">
-                          <FileText size={14} className={isDone ? "text-emerald-500" : "text-red-500"} />
-                          {isDone ? "ДЗ выполнено" : "Отметить ДЗ"}
-                        </span>
-                        <input 
-                          type="checkbox" 
-                          checked={isDone || false}
-                          onChange={(e) => handleQuickHomework(lesson, lesson.studentId, e.target.checked)}
-                          className="w-4 h-4 rounded border-stone-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                        />
-                      </label>
-                    );
-                  } else {
-                    const group = groups.find(g => g.id === lesson.groupId);
-                    if (!group || !group.studentIds) return null;
-                    const ids = group.studentIds;
-                    const doneCount = ids.filter(id => lesson.hwDoneBy?.includes(id)).length;
-                    
-                    if (ids.length > 5) {
-                      return (
-                        <button 
-                          className="w-full text-left px-3 py-2 text-sm text-indigo-700 hover:bg-indigo-50 rounded-lg flex items-center justify-between font-medium"
-                          onClick={() => handleOpenDrawer(lesson)}
-                        >
-                          <span>Отметить ДЗ (сдали {doneCount}/{ids.length})</span>
-                          <span className="text-lg leading-none">➔</span>
-                        </button>
-                      );
-                    } else {
-                      return (
-                        <div className="flex flex-col gap-0.5">
-                          {ids.map(id => {
-                            const st = students.find(s => s.id === id);
-                            const isDone = lesson.hwDoneBy?.includes(id);
-                            return (
-                              <label key={id} className="flex items-center justify-between px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 rounded-lg cursor-pointer">
-                                <span className="flex items-center gap-2 truncate pr-2">
-                                  <FileText size={14} className={isDone ? "text-emerald-500" : "text-stone-300"} />
-                                  <span className="truncate">{st?.name || "Ученик"}</span>
-                                </span>
-                                <input 
-                                  type="checkbox" 
-                                  checked={isDone || false}
-                                  onChange={(e) => handleQuickHomework(lesson, id, e.target.checked)}
-                                  className="w-4 h-4 rounded border-stone-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
-                                />
-                              </label>
-                            );
-                          })}
-                        </div>
-                      );
-                    }
-                  }
-                })()}
-              </>
-            )}
 
-            <div className="my-1 border-t border-stone-100" />
-            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 px-2 pt-1">Изменить статус</div>
             <button 
-              className="w-full text-left px-3 py-1.5 text-sm text-emerald-700 hover:bg-emerald-50 rounded-lg flex items-center gap-2"
-              onClick={() => handleQuickStatus(popover.lesson, "conducted")}
+              className={`w-full text-left px-3 py-1.5 text-sm rounded-lg flex items-center gap-2 ${currentStatus === 'conducted' ? 'bg-emerald-100 text-emerald-800 font-bold' : 'text-emerald-700 hover:bg-emerald-50'}`}
+              onClick={() => handleQuickStatus(popover.lesson, currentStatus === 'conducted' ? 'planned' : 'conducted')}
             >
               <CheckCircle2 size={14} /> Проведен
             </button>
             <button 
-              className="w-full text-left px-3 py-1.5 text-sm text-amber-700 hover:bg-amber-50 rounded-lg flex items-center gap-2"
-              onClick={() => handleQuickStatus(popover.lesson, "skipped_paid")}
+              className={`w-full text-left px-3 py-1.5 text-sm rounded-lg flex items-center gap-2 ${currentStatus === 'skipped_paid' ? 'bg-amber-100 text-amber-800 font-bold' : 'text-amber-700 hover:bg-amber-50'}`}
+              onClick={() => handleQuickStatus(popover.lesson, currentStatus === 'skipped_paid' ? 'planned' : 'skipped_paid')}
             >
-              <AlertCircle size={14} /> Пропуск (Оплачен)
+              <AlertCircle size={14} /> Оплаченный пропуск
             </button>
             <button 
-              className="w-full text-left px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 rounded-lg flex items-center gap-2"
-              onClick={() => handleQuickStatus(popover.lesson, "skipped_free")}
+              className={`w-full text-left px-3 py-1.5 text-sm rounded-lg flex items-center gap-2 ${currentStatus === 'skipped_free' ? 'bg-stone-200 text-stone-800 font-bold' : 'text-stone-700 hover:bg-stone-50'}`}
+              onClick={() => handleQuickStatus(popover.lesson, currentStatus === 'skipped_free' ? 'planned' : 'skipped_free')}
             >
-              <AlertCircle size={14} /> Пропуск (б/о)
+              <AlertCircle size={14} /> Неоплаченный пропуск
             </button>
             <button 
-              className="w-full text-left px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 rounded-lg flex items-center gap-2"
-              onClick={() => handleQuickStatus(popover.lesson, "cancelled")}
+              className={`w-full text-left px-3 py-1.5 text-sm rounded-lg flex items-center gap-2 ${currentStatus === 'cancelled' ? 'bg-red-100 text-red-800 font-bold' : 'text-red-700 hover:bg-red-50'}`}
+              onClick={() => handleQuickStatus(popover.lesson, currentStatus === 'cancelled' ? 'planned' : 'cancelled')}
             >
-              <XCircle size={14} /> Отменен
+              <XCircle size={14} /> Отменён
             </button>
           </div>
             </>
@@ -1451,10 +1777,41 @@ export default function SchedulePage({ pageState }) {
 
       {view === "week" && (
         <div className="text-center text-[11px] text-stone-400 mt-2 flex items-center justify-center gap-3">
-          <span>💡 <strong>Подсказка:</strong> Уроки можно перетаскивать мышкой на другой день.</span>
-          <span>Зажмите <strong>Ctrl</strong> (или <strong>Alt/Option</strong>) при перетаскивании, чтобы скопировать урок.</span>
+          <span>💡 <strong>Подсказка:</strong> Перетащите урок на другой день.</span>
+          <span>Чтобы скопировать его, зажмите <strong>Ctrl</strong> (или <strong>Alt</strong>).</span>
         </div>
       )}
+      
+      {/* ── Action Item Modal ─────────────────────────────────────────────── */}
+      <ActionItemModal
+        isOpen={actionModal.isOpen}
+        onClose={() => setActionModal({ isOpen: false, item: null, mode: "confirm" })}
+        item={actionModal.item}
+        mode={actionModal.mode}
+        onConfirm={async (item, selectedLessonsOrAmount) => {
+          if (item.type === 'hw') {
+            const l = item.lessons[0]; // We always pass a single lesson array here
+            await handleQuickHomework(l, item.student.id, true);
+          } else if (item.type === 'money') {
+            await addPayment({
+              studentId: item.student.id,
+              studentName: item.student.name,
+              amount: selectedLessonsOrAmount,
+              paidAt: new Date().toISOString(),
+              comment: "Оплата с расписания"
+            });
+            // We need to refresh data since addPayment is outside useSchedule
+            if (pageState?.refreshData) pageState.refreshData(); 
+            // Fallback: reload window if refreshData isn't available
+            // but useSchedule handles its own data fetching, let's just trigger a re-fetch?
+            // Since we can't easily trigger the outer fetchData from here without modifying useSchedule,
+            // we can just force a reload or hope the user uses the outer app refresh.
+            // Actually, we can use window.dispatchEvent to notify.
+            window.dispatchEvent(new CustomEvent('force-refresh-data'));
+          }
+        }}
+      />
+
       </div>
     </PageWrapper>
   );

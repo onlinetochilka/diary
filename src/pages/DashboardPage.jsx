@@ -358,18 +358,11 @@ export default function DashboardPage({ onNavigate }) {
               return (
                 <div
                   key={l.id}
-                  className="bg-ivory shadow-neu-sm p-4 rounded-2xl flex items-center gap-4 transition-all hover:shadow-neu-md cursor-pointer group"
+                  className={`bg-ivory shadow-neu-sm p-4 rounded-2xl flex items-center gap-4 transition-all hover:shadow-neu-md cursor-pointer group border-l-[3px] ${c.border}`}
+                  style={getEntityStyle(l.displayName)}
                   onClick={() => onNavigate("schedule")}
                 >
-                  <div
-                    className={`h-12 w-12 rounded-xl ${c.bg} flex items-center justify-center shrink-0 shadow-inner`}
-                    style={getEntityStyle(l.displayName)}
-                  >
-                    <span className={`text-base font-bold ${c.text}`}>
-                      {l.displayName[0]}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 pl-1">
                     <p className="text-base font-bold text-stone-900 truncate group-hover:text-blue-600 transition-colors">
                       {l.displayName}
                     </p>

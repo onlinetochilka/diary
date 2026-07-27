@@ -302,9 +302,9 @@ export default function LessonDrawer({
                   >
                     <option value="planned">Запланирован</option>
                     <option value="conducted">Проведен</option>
-                    <option value="cancelled">Отменен</option>
-                    <option value="skipped_paid">Пропущен (оплачен)</option>
-                    <option value="skipped_free">Пропущен (б/о)</option>
+                    <option value="cancelled">Отменён</option>
+                    <option value="skipped_paid">Оплаченный пропуск</option>
+                    <option value="skipped_free">Неоплаченный пропуск</option>
                   </Select>
                 </div>
               </div>

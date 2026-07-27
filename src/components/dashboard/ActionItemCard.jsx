@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Check, Bell, Copy, Send, MessageCircle, Mail } from "lucide-react";
 import { Tooltip } from "../ui";
+import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
 function getHwText(n) {
   if (!n) return 'Все ДЗ сданы';
@@ -18,6 +19,9 @@ export default function ActionItemCard({ item, onMarkDone }) {
   const [copied, setCopied] = useState(false);
   
   const isMoney = item.type === 'money';
+
+  const c = getEntityColorClasses();
+  const style = getEntityStyle(item.student);
 
   useEffect(() => {
     const name = item.student.name.split(" ")[0];
@@ -45,7 +49,10 @@ export default function ActionItemCard({ item, onMarkDone }) {
   }`;
 
   return (
-    <div className="bg-ivory shadow-neu-sm rounded-2xl flex flex-col transition-all hover:shadow-neu-md">
+    <div 
+      className={`bg-ivory shadow-neu-sm rounded-2xl flex flex-col transition-all hover:shadow-neu-md border-l-[3px] ${c.border}`}
+      style={style}
+    >
       {/* Top row (always visible) */}
       <div className="flex items-center justify-between p-4 group">
         <div className="min-w-0 flex-1 pl-1">
