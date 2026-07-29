@@ -24,87 +24,9 @@ import ExcelImportFlow from "../components/programs/ExcelImportFlow.jsx";
 import { cn } from "../utils/cn.js";
 
 
-// ─── Локальный генератор ID (для новых тем в Drawer) ─────────────────────────
+// ─── Локальный генератор ID ─────────────────────────
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-// ─── Drawer: только создание новой программы ─────────────────────────────────
-function ProgramCreateDrawer({ isOpen, onClose, onSubmit }) {
-  const [formData, setFormData] = useState({ name: "", subject: "", topics: [] });
-  const [initialStateStr, setInitialStateStr] = useState("");
-
-  useEffect(() => {
-    if (isOpen) {
-      const initial = { name: "", subject: "", topics: [] };
-      setFormData(initial);
-      setInitialStateStr(JSON.stringify(initial));
-    }
-  }, [isOpen]);
-
-  const isDirty = JSON.stringify(formData) !== initialStateStr;
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit({
-      name:    formData.name,
-      subject: formData.subject,
-      topics:  formData.topics.map((t) => ({ id: generateId(), title: t })),
-    });
-    onClose();
-  };
-
-  const drawerFooter = (requestClose) => (
-    <div className="flex justify-end gap-2">
-      <Button type="button" variant="ghost" onClick={requestClose}>Отмена</Button>
-      <Button type="submit" form="program-create-form" variant="filled">Создать</Button>
-    </div>
-  );
-
-  return (
-    <SideDrawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Новая программа"
-      width="max-w-md sm:max-w-xl"
-      isDirty={isDirty}
-      footer={drawerFooter}
-    >
-      <form id="program-create-form" onSubmit={handleSubmit}>
-        <div className="space-y-4">
-          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
-            <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
-              ОСНОВНОЕ
-            </h3>
-            <Input
-              label="Название программы"
-              placeholder="Например: ОГЭ Математика"
-              value={formData.name}
-              onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-              required
-            />
-            <Input
-              label="Предмет"
-              placeholder="Например: Математика"
-              value={formData.subject}
-              onChange={(e) => setFormData((p) => ({ ...p, subject: e.target.value }))}
-            />
-          </div>
-
-          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
-            <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
-              ТЕМЫ ЗАНЯТИЙ
-            </h3>
-            <ListInput
-              label="Темы занятий"
-              helperText="Нажмите Enter для добавления (или вставьте готовый список из Word/Excel)."
-              value={formData.topics}
-              onChange={(topics) => setFormData((p) => ({ ...p, topics }))}
-            />
-          </div>
-        </div>
-      </form>
-    </SideDrawer>
-  );
-}
 
 // ─── Список карточек программ ─────────────────────────────────────────────────
 function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreateNew }) {
@@ -118,10 +40,10 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
           </span>
           <div>
             <h1 className="text-xl font-bold text-stone-900 tracking-tight">
-              Учебные планы
+              Мои курсы
             </h1>
             <p className="text-sm text-stone-500 mt-0.5">
-              Программы подготовки и темы
+              Учебные планы и материалы
             </p>
           </div>
         </div>
@@ -146,8 +68,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
             У вас ещё нет учебных программ.
           </p>
           <p className="text-stone-500 text-sm max-w-sm mx-auto leading-relaxed">
-            Создайте программу, добавьте в неё темы и назначайте ученикам для
-            отслеживания прогресса.
+            Начните с создания программы! Добавьте темы, чтобы легко планировать уроки и видеть прогресс каждого ученика.
           </p>
         </Card>
       ) : (
@@ -159,7 +80,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
                 key={prog.id}
                 variant="elevated"
                 className={cn(
-                  "flex flex-col group cursor-pointer",
+                  "flex flex-col group cursor-pointer overflow-visible",
                   "hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300",
                   `border-l-4 ${c.border}`,
                 )}
@@ -179,7 +100,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
                   </div>
                   {/* Hover-actions */}
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 flex-shrink-0">
-                    <Tooltip text="Удалить программу">
+                    <Tooltip text="Удалить программу" position="bottom-left">
                       <button
                         className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         onClick={(e) => {
@@ -190,7 +111,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
                         <Trash2 size={15} strokeWidth={2} />
                       </button>
                     </Tooltip>
-                    <Tooltip text="Открыть редактор">
+                    <Tooltip text="Открыть редактор" position="bottom-left">
                       <div className="p-1.5 text-stone-400">
                         <ChevronRight size={15} strokeWidth={2} />
                       </div>
@@ -201,8 +122,21 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
                 <div className="mt-4 flex items-center gap-2 text-sm text-stone-500">
                   <ListChecks size={16} className="text-stone-400" />
                   <span>
-                    Тем в программе:{" "}
-                    <strong>{prog.topics?.length ?? 0}</strong>
+                    {(() => {
+                      const count = prog.topics?.length ?? 0;
+                      const n = Math.abs(count) % 100;
+                      const n1 = n % 10;
+                      let label = "тем";
+                      if (n <= 10 || n >= 20) {
+                        if (n1 === 1) label = "тема";
+                        else if (n1 >= 2 && n1 <= 4) label = "темы";
+                      }
+                      return (
+                        <>
+                          <strong>{count}</strong> {label}
+                        </>
+                      );
+                    })()}
                   </span>
                 </div>
               </Card>
@@ -218,7 +152,6 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
 export default function ProgramsPage() {
   const [programs, setPrograms]               = useState([]);
   const [isLoading, setIsLoading]             = useState(true);
-  const [isCreateDrawerOpen, setCreateDrawer] = useState(false);
 
   // State-роутинг: null = список, string = редактор
   const [selectedProgramId, setSelectedProgramId] = useState(null);
@@ -238,8 +171,12 @@ export default function ProgramsPage() {
   useEffect(() => { fetchPrograms(); }, [fetchPrograms]);
 
   // ── Создание новой программы ────────────────────────────────────────
-  const handleCreate = useCallback(async (data) => {
-    const newId = await addProgram(data);
+  const handleCreate = useCallback(async () => {
+    const newId = await addProgram({
+      name: "Новая программа",
+      subject: "",
+      topics: [],
+    });
     await fetchPrograms();
     // Сразу открываем редактор созданной программы
     setSelectedProgramId(newId);
@@ -289,21 +226,13 @@ export default function ProgramsPage() {
 
   // ── Список карточек ──────────────────────────────────────────────────
   return (
-    <>
-      <ProgramsListView
-        programs={programs}
-        isLoading={isLoading}
-        onOpenEditor={setSelectedProgramId}
-        onDelete={handleDelete}
-        onCreateNew={() => setCreateDrawer(true)}
-      />
-
-      <ProgramCreateDrawer
-        isOpen={isCreateDrawerOpen}
-        onClose={() => setCreateDrawer(false)}
-        onSubmit={handleCreate}
-      />
-    </>
+    <ProgramsListView
+      programs={programs}
+      isLoading={isLoading}
+      onOpenEditor={setSelectedProgramId}
+      onDelete={handleDelete}
+      onCreateNew={handleCreate}
+    />
   );
 }
 

@@ -21,8 +21,6 @@ import {
   ArrowLeft,
   BookOpen,
   FileSpreadsheet,
-  Plus,
-  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "../../utils/cn.js";
 import {
@@ -35,9 +33,9 @@ import { useToast } from "../ui/Toast.jsx";
 // ─── Skeleton пока программа загружается ─────────────────────────────────────
 function EditorSkeleton() {
   return (
-    <div className="pe-body animate-pulse">
+    <div className="flex w-full h-full max-w-[1400px] mx-auto bg-white rounded-2xl shadow-sm border border-stone-200/80 overflow-hidden animate-pulse">
       {/* Левая колонка */}
-      <div className="pe-structure space-y-3">
+      <div className="pe-structure w-[55%] space-y-3">
         <div className="h-5 w-40 rounded-md bg-stone-200/80" />
         {Array.from({ length: 7 }).map((_, i) => (
           <div
@@ -56,7 +54,7 @@ function EditorSkeleton() {
         ))}
       </div>
       {/* Правая колонка */}
-      <div className="pe-inspector p-4 space-y-3">
+      <div className="pe-inspector w-[45%] flex-shrink-0 p-4 space-y-3">
         <div className="h-4 w-24 rounded bg-stone-200/80" />
         <div className="h-20 rounded-xl bg-stone-100" />
         <div className="h-4 w-32 rounded bg-stone-200/80 mt-2" />
@@ -244,6 +242,8 @@ export default function ProgramEditorPage({
     if (!program || !isDirty) return;
     try {
       await updateProgramStructure(programId, {
+        name:     program.name,
+        subject:  program.subject,
         sections: program.sections,
         topics:   program.topics,
       });
@@ -309,8 +309,17 @@ export default function ProgramEditorPage({
             <ArrowLeft size={18} strokeWidth={2} />
           </button>
 
-          {/* Иконка + название */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          {/* Иконка + название (кликабельно, открывает настройки программы) */}
+          <button
+            type="button"
+            onClick={() => setSelectedItem(null)}
+            className={cn(
+              "flex items-center gap-2 min-w-0 flex-1 text-left",
+              "hover:bg-stone-50 px-2 py-1 -ml-2 rounded-lg transition-colors cursor-pointer",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
+            )}
+            title="Открыть настройки программы"
+          >
             <BookOpen
               size={16}
               strokeWidth={2}
@@ -331,26 +340,15 @@ export default function ProgramEditorPage({
                 className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"
               />
             )}
-          </div>
+          </button>
 
           {/* Правые действия */}
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="flex items-center gap-2 ml-auto">
             <HeaderButton
               icon={FileSpreadsheet}
               label="Excel"
               variant="outline"
               onClick={() => setShowExcelFlow(true)}
-              disabled={isLoading}
-            />
-            <HeaderButton
-              icon={Plus}
-              label="Раздел"
-              variant="ghost"
-              disabled={isLoading}
-            />
-            <HeaderButton
-              icon={MoreHorizontal}
-              variant="ghost"
               disabled={isLoading}
             />
             {isDirty && (
@@ -364,13 +362,13 @@ export default function ProgramEditorPage({
           </div>
         </header>
 
-        {/* ── Тело: две скроллящихся колонки ──────────────────── */}
-        <div className="pe-body">
+        {/* ── Тело: две скроллящихся колонки в виде центрированного листа ──── */}
+        <div className="pe-body p-6 lg:p-8">
           {isLoading ? (
             <EditorSkeleton />
           ) : loadError ? (
             /* Состояние ошибки загрузки */
-            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center bg-white rounded-2xl border border-stone-200/80 shadow-sm max-w-[1400px] mx-auto w-full">
               <BookOpen size={40} strokeWidth={1} className="text-stone-300" />
               <p className="text-stone-800 font-medium">Что-то пошло не так</p>
               <p className="text-sm text-stone-500 max-w-xs">
@@ -386,9 +384,9 @@ export default function ProgramEditorPage({
               </button>
             </div>
           ) : (
-            <>
-              {/* Левая: структура программы */}
-              <div className="pe-structure">
+            <div className="flex w-full h-full max-w-[1400px] mx-auto bg-white rounded-2xl shadow-sm border border-stone-200/80 overflow-hidden">
+              {/* Левая: структура программы (строго 55%) */}
+              <div className="pe-structure w-[55%]">
                 {renderStructure ? (
                   renderStructure({
                     program,
@@ -403,8 +401,8 @@ export default function ProgramEditorPage({
                 )}
               </div>
 
-              {/* Правая: инспектор */}
-              <div className="pe-inspector">
+              {/* Правая: инспектор (строго 45% flex-shrink-0) */}
+              <div className="pe-inspector w-[45%] flex-shrink-0">
                 {renderInspector ? (
                   renderInspector({
                     program,
@@ -418,7 +416,7 @@ export default function ProgramEditorPage({
                   </p>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

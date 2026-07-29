@@ -49,9 +49,7 @@ export default function AppShell({ children, defaultPage = "dashboard" }) {
           // On mobile: bottom padding for BottomTabs
           "pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0",
           // Prevent horizontal overflow
-          "min-w-0 max-w-full overflow-x-hidden",
-          // Animate in
-          "animate-fade-in",
+          "min-w-0 max-w-full overflow-x-hidden"
         )}
       >
         {/* Skip-to-main link for accessibility */}

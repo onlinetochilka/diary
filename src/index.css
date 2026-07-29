@@ -372,9 +372,10 @@
     overflow: hidden;
   }
 
-  /* ── Левая колонка: структура программы (65%) ────────────────────────── */
+  /* ── Левая колонка: структура программы (55%) ────────────────────────── */
   .pe-structure {
-    flex: 1 1 0%;
+    width: 55%;
+    flex-shrink: 0;
     min-width: 0;                         /* КРИТИЧНО: не даёт длинным текстам раздвинуть колонку */
     overflow-y: auto;
     overflow-x: hidden;
@@ -384,10 +385,9 @@
     scroll-behavior: smooth;
   }
 
-  /* ── Правая колонка: инспектор (фиксированная ширина) ───────────────── */
+  /* ── Правая колонка: инспектор (45% flex-shrink-0) ───────────────── */
   .pe-inspector {
-    width: var(--inspector-width);
-    max-width: 340px;
+    width: 45%;
     flex-shrink: 0;                       /* НИКОГДА не сжимается */
     min-width: 0;
     overflow-y: auto;
@@ -409,8 +409,7 @@
     /* Плавный переход для hover/active без bouncy */
     transition:
       background-color 150ms var(--ease-out-quart),
-      box-shadow      150ms var(--ease-out-quart),
-      transform       150ms var(--ease-out-quart);
+      box-shadow      150ms var(--ease-out-quart);
     /* Длинные названия не выходят за пределы */
     min-width: 0;
   }
@@ -465,13 +464,14 @@
 
   /* ── DnD Drag Overlay: тема в полёте ─────────────────────────────────── */
   .pe-drag-overlay {
-    transform: scale(1.02);
     box-shadow: 0 8px 24px -4px rgb(0 0 0 / 0.15), 0 4px 8px -2px rgb(0 0 0 / 0.08);
-    /* GPU-слой чтобы не перерисовывать соседей при анимации */
-    will-change: transform;
     border-radius: 0.625rem;
     background-color: #fff;
     cursor: grabbing;
+  }
+  .pe-drag-overlay .pe-grip {
+    opacity: 1 !important;
+    color: rgb(var(--stone-400)) !important;
   }
 
   /* ── DnD Placeholder: «дыра» на месте захваченного элемента ─────────── */

@@ -520,17 +520,16 @@ function generateId() {
 // ─── Запись структуры ────────────────────────────────────────────────────────
 
 /**
- * Атомарно сохраняет всю структуру программы (разделы + темы).
- * Вызывается после DnD-перетаскивания или переименования.
+ * Атомарно сохраняет структуру программы (разделы + темы), а также основные поля (имя, предмет).
+ * Вызывается после DnD-перетаскивания, переименования или изменения названия программы.
  *
  * @param {string} id    — Firestore doc ID программы
- * @param {object} data  — { sections: Section[], topics: Topic[] }
+ * @param {object} data  — { sections, topics, name, subject }
  */
-export async function updateProgramStructure(id, { sections, topics }) {
+export async function updateProgramStructure(id, payload) {
   invalidateCache('programs');
   await updateDoc(doc(col.programs(), id), {
-    sections,
-    topics,
+    ...payload,
     updatedAt: serverTimestamp(),
   });
 }
