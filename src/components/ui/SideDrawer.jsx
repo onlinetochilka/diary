@@ -208,20 +208,20 @@ export default function SideDrawer({
       {/* ── Unsaved changes confirm ────────────────────────── */}
       <Modal isOpen={showConfirm} onClose={() => setShowConfirm(false)} title="Несохраненные изменения">
         <div className="text-center mb-6">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 mb-4">
-            <AlertTriangle className="h-6 w-6 text-amber-600" />
+          <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-amber-500/10 border border-amber-500/20 mb-4">
+            <AlertTriangle className="h-7 w-7 text-amber-600" />
           </div>
-          <p className="text-stone-600 text-sm">
+          <p className="text-stone-600 text-sm leading-relaxed">
             Вы внесли изменения, но не сохранили их. Закрыть без сохранения?
           </p>
         </div>
         <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setShowConfirm(false)}>
+          <Button variant="secondary" onClick={() => setShowConfirm(false)} className="bg-stone-100 hover:bg-stone-200 text-stone-700 border-transparent">
             Вернуться к редактированию
           </Button>
           <Button
             variant="primary"
-            className="bg-red-600 hover:bg-red-700 focus:ring-red-500/20 border-transparent text-white"
+            className="bg-red-500 hover:bg-red-600 focus:ring-red-500/20 border-transparent text-white shadow-sm"
             onClick={handleConfirmClose}
           >
             Не сохранять

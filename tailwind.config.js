@@ -41,8 +41,18 @@ export default {
         },
         // Academic blue for CommunityNewsCard headings & Telegram icon
         academic: {
+          DEFAULT: "#1B2A47",
           blue: "#1B4F72",
           "blue-light": "#2874A6",
+        },
+        emerald: {
+          muted: "#2D7A5D",
+        },
+        terracotta: {
+          DEFAULT: "#C94A4A",
+        },
+        steel: {
+          DEFAULT: "#8C9BAB",
         },
         // Section accent palette
         finance:  { DEFAULT: "#10b981", light: "#d1fae5", ring: "#6ee7b7" }, // emerald
@@ -51,7 +61,7 @@ export default {
         settings: { DEFAULT: "#78716c", light: "#f5f5f4", ring: "#d6d3d1" }, // stone
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"],
       },
       transitionTimingFunction: {
         "out-quart": "cubic-bezier(0.165, 0.84, 0.44, 1)",

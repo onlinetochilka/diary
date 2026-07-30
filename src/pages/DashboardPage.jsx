@@ -54,7 +54,6 @@ export default function DashboardPage({ onNavigate }) {
 
   const [actionModal, setActionModal] = useState({ isOpen: false, item: null, mode: "remind" });
   const [refreshKey, setRefreshKey] = useState(0);
-  const [showAllActionItems, setShowAllActionItems] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -303,13 +302,13 @@ export default function DashboardPage({ onNavigate }) {
       subtitle={dayStr}
       icon={LayoutDashboard}
       accentClass="text-stone-600"
-      maxWidth="max-w-7xl"
-      noGlobalScroll={!showAllActionItems}
+      maxWidth="max-w-[1400px]"
+      noGlobalScroll={true}
       actionRight={
         <Tooltip text="Настроить метрики" position="bottom-right">
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-ivory shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all text-stone-400 hover:text-stone-600 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 hover:bg-stone-50 active:scale-95 transition-all text-stone-500 hover:text-stone-700 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <Settings2 size={20} />
           </button>
@@ -326,20 +325,20 @@ export default function DashboardPage({ onNavigate }) {
               key={i}
               onClick={() => onNavigate(config.nav)}
               type="button"
-              className="group animate-scale-in flex flex-col items-center justify-center py-6 bg-ivory rounded-2xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer select-none"
+              className="group animate-scale-in flex flex-col items-start justify-center p-5 rounded-[24px] border border-stone-100 bg-white shadow-sm hover:shadow-md card-hover-lift active:scale-[0.98] transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer select-none overflow-hidden"
             >
-              <p className={`text-2xl sm:text-3xl font-black mb-1.5 transition-transform duration-200 group-active:scale-95 bg-clip-text text-transparent ${config.color}`}>
+              <p className="text-[28px] leading-tight font-bold mb-1 transition-transform duration-200 group-hover:scale-[1.02] text-stone-900 truncate w-full text-left">
                 {loading ? "..." : config.value}
               </p>
-              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{loading ? "Загрузка..." : config.label}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-left text-stone-400 truncate w-full">{loading ? "Загрузка..." : config.label}</p>
             </button>
           );
         })}
       </div>
 
       {/* ── Расписание на сегодня (full width) ───────────────────────────── */}
-      <section className="shrink-0">
-        <div className="flex items-center gap-2 mb-4">
+      <section className="shrink-0 bg-white p-5 sm:p-6 rounded-[32px] shadow-sm border border-stone-100">
+        <div className="flex items-center gap-2 mb-5">
           <Clock size={20} className="text-stone-400" />
           <h2 className="text-lg font-bold text-stone-800">Расписание на сегодня</h2>
         </div>
@@ -358,17 +357,17 @@ export default function DashboardPage({ onNavigate }) {
               return (
                 <div
                   key={l.id}
-                  className={`bg-ivory shadow-neu-sm p-4 rounded-2xl flex items-center gap-4 transition-all hover:shadow-neu-md cursor-pointer group border-l-[3px] ${c.border}`}
+                  className="entity-light-bg ring-1 ring-slate-200 border-l-[4px] entity-border-l shadow-sm p-3 rounded-xl flex items-center gap-3 transition-all duration-300 hover:shadow-md cursor-pointer group card-hover-lift"
                   style={getEntityStyle(l.displayName)}
                   onClick={() => onNavigate("schedule")}
                 >
                   <div className="min-w-0 flex-1 pl-1">
-                    <p className="text-base font-bold text-stone-900 truncate group-hover:text-blue-600 transition-colors">
+                    <p className="text-sm font-semibold text-stone-900 truncate transition-colors">
                       {l.displayName}
                     </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-sm font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md tabular-nums">{l.startTime} — {l.endTime}</span>
-                      <span className="text-xs text-stone-500 truncate">{l.subjectName}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[11px] font-semibold bg-white/80 text-stone-700 px-2 py-0.5 rounded-md tabular-nums">{l.startTime} — {l.endTime}</span>
+                      <span className="text-[12px] font-medium text-stone-500 truncate">{l.subjectName}</span>
                     </div>
                   </div>
                 </div>
@@ -382,10 +381,10 @@ export default function DashboardPage({ onNavigate }) {
             Левая колонка: список «Рабочие моменты»
             Правая колонка: «На острие пера» — sticky при скролле
       ─────────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 pb-4 lg:pb-0">
 
         {/* LEFT COLUMN — Action Items */}
-        <section className="lg:col-span-2 flex flex-col">
+        <section className="lg:col-span-2 flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 h-full min-h-0 relative">
           <div className="flex items-center gap-2 mb-5 shrink-0">
             <AlertCircle size={20} className="text-stone-400" />
             <h2 className="text-lg font-bold text-stone-800">Рабочие моменты</h2>
@@ -407,35 +406,32 @@ export default function DashboardPage({ onNavigate }) {
               ))}
             </div>
           ) : actionItems.length === 0 ? (
-            <div className="flex items-center gap-3 text-stone-500 py-3 shrink-0">
+            <div className="flex items-center gap-3 text-stone-500 py-2 shrink-0">
               <CheckCircle2 size={20} className="text-emerald-500" />
               <span className="text-base font-bold">Всё в порядке — задолженностей нет</span>
             </div>
           ) : (
-            /* Single-column list with 'show all' logic */
-            <div className="flex flex-col gap-6 pb-8">
-              {(showAllActionItems ? actionItems : actionItems.slice(0, 3)).map(item => (
-                <ActionItemCard
-                  key={item.id}
-                  item={item}
-                  onMarkDone={(item) => setActionModal({ isOpen: true, item, mode: "mark_done" })}
-                />
-              ))}
-              
+            /* Single-column list with internal scroll */
+            <>
+              <div className="flex flex-col gap-3 relative z-0 flex-1 min-h-0 overflow-y-auto hide-scrollbar pb-6">
+                {actionItems.map(item => (
+                  <ActionItemCard
+                    key={item.id}
+                    item={item}
+                    onMarkDone={(item) => setActionModal({ isOpen: true, item, mode: "mark_done" })}
+                  />
+                ))}
+              </div>
+              {/* Bottom scroll shadow cue */}
               {actionItems.length > 3 && (
-                <button 
-                  onClick={() => setShowAllActionItems(!showAllActionItems)}
-                  className="w-full py-4 mt-2 flex items-center justify-center text-[10px] font-bold text-stone-500 uppercase tracking-widest hover:text-stone-700 hover:bg-stone-200/50 transition-colors bg-stone-100/50 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500 shadow-sm"
-                >
-                  {showAllActionItems ? "Свернуть ↑" : "Показать все ↓"}
-                </button>
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-[28px] z-10" />
               )}
-            </div>
+            </>
           )}
         </section>
 
         {/* RIGHT COLUMN — Community News (sticky) */}
-        <aside className="lg:col-span-1 lg:sticky lg:top-6">
+        <aside className="lg:col-span-1 flex flex-col min-h-0 overflow-y-auto hide-scrollbar">
           <div className="flex items-center gap-2 mb-5">
             <TelegramIcon size={20} className="text-[#1B4F72]" />
             <h2 className="text-lg font-bold text-stone-800">Лайфхаки от «Точилки»</h2>

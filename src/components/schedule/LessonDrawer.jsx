@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Loader2, User, AlignLeft, CheckCircle2, AlertCircle } from "lucide-react";
-import { SideDrawer, Button, Input, Select, SegmentedControl } from "../ui/index.js";
+import { SideDrawer, Button, Input, Select, SegmentedControl, Card } from "../ui/index.js";
 
 export default function LessonDrawer({
   isOpen,
@@ -30,6 +30,7 @@ export default function LessonDrawer({
     topicId: "",
     homework: "",
     hwDoneBy: [],
+    hwStatuses: {},
     notes: ""
   });
 
@@ -53,6 +54,7 @@ export default function LessonDrawer({
           topicId: initialData.topicId || "",
           homework: initialData.homework || "",
           hwDoneBy: initialData.hwDoneBy || [],
+          hwStatuses: initialData.hwStatuses || {},
           notes: initialData.notes || ""
         };
       } else {
@@ -69,6 +71,7 @@ export default function LessonDrawer({
           topicId: "",
           homework: "",
           hwDoneBy: [],
+          hwStatuses: {},
           notes: "",
           isRecurring: false,
           repeatUntil: (() => {
@@ -240,8 +243,8 @@ export default function LessonDrawer({
                 
                 if (daysUntilEnd <= 14 && daysUntilEnd >= 0) {
                   return (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800">
-                      <AlertCircle className="shrink-0 mt-0.5" size={18} />
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 text-amber-900">
+                      <AlertCircle className="shrink-0 mt-0.5 text-amber-600" size={18} />
                       <div className="text-sm leading-relaxed">
                         <strong className="font-semibold block mb-1">Серия занятий заканчивается!</strong>
                         Последний урок в этой серии запланирован на {new Date(maxDateLesson.date).toLocaleDateString("ru")}. Не забудьте запланировать новую серию.
@@ -252,7 +255,7 @@ export default function LessonDrawer({
                 return null;
               })()}
 
-              <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+              <Card variant="elevated" className="space-y-4">
                 <SegmentedControl
                   options={[
                     { label: "Индивидуальный", value: "individual" },
@@ -307,9 +310,9 @@ export default function LessonDrawer({
                     <option value="skipped_free">Неоплаченный пропуск</option>
                   </Select>
                 </div>
-              </div>
+              </Card>
 
-              <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+              <Card variant="elevated" className="space-y-4">
                 <Input
                   label="Дата"
                   type="date"
@@ -378,9 +381,9 @@ export default function LessonDrawer({
                     </p>
                   )}
                 </div>
-              </div>
+              </Card>
 
-              <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+              <Card variant="elevated" className="space-y-4">
                 <Select
                   label="Программа (из назначенных)"
                   value={formData.programId}
@@ -388,9 +391,18 @@ export default function LessonDrawer({
                     handleChange("programId", e.target.value);
                     handleChange("topicId", ""); // reset topic
                   }}
-                  disabled={isSubmitting || activePrograms.length === 0}
+                  disabled={isSubmitting}
                 >
-                  <option value="">Не выбрана</option>
+                  <option value="" disabled>
+                    {formData.type === "individual" && !formData.studentId 
+                      ? "Сначала выберите ученика"
+                      : formData.type === "group" && !formData.groupId
+                        ? "Сначала выберите группу"
+                        : activePrograms.length === 0
+                          ? "Нет назначенных программ"
+                          : "Не выбрана"
+                    }
+                  </option>
                   {activePrograms.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -400,9 +412,16 @@ export default function LessonDrawer({
                   label="Тема урока"
                   value={formData.topicId}
                   onChange={(e) => handleChange("topicId", e.target.value)}
-                  disabled={isSubmitting || activeTopics.length === 0}
+                  disabled={isSubmitting}
                 >
-                  <option value="">Не выбрана</option>
+                  <option value="" disabled>
+                    {!formData.programId 
+                      ? "Сначала выберите программу" 
+                      : activeTopics.length === 0 
+                        ? "В программе нет тем" 
+                        : "Не выбрана"
+                    }
+                  </option>
                   {activeTopics.map(t => (
                     <option key={t.id} value={t.id}>
                       {t.isCompleted ? "✓ " : ""}{t.title}
@@ -410,19 +429,19 @@ export default function LessonDrawer({
                   ))}
                 </Select>
                 {formData.status === "conducted" && formData.topicId && (
-                  <p className="text-[11px] text-teal-600 bg-teal-50 p-2 rounded-lg flex items-center gap-1.5 border border-teal-100">
-                    <CheckCircle2 size={12} />
+                  <p className="text-[11px] font-medium text-emerald-700 bg-emerald-50/80 p-2.5 rounded-xl flex items-center gap-2 border border-emerald-100/80">
+                    <CheckCircle2 size={14} className="text-emerald-500" />
                     При сохранении тема будет отмечена как пройденная
                   </p>
                 )}
-              </div>
+              </Card>
 
             </div>
           )}
 
           {activeTab === "hw" && (
             <div className="space-y-4">
-              <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+              <Card variant="elevated" className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
                     Домашнее задание
@@ -437,22 +456,36 @@ export default function LessonDrawer({
                 </div>
                 
                 {formData.type === "individual" ? (
-                  <label className="flex items-center gap-3 p-3 bg-stone-50 rounded-xl border border-stone-200/60 cursor-pointer hover:bg-stone-100 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={formData.hwDoneBy.includes(formData.studentId)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          handleChange("hwDoneBy", [formData.studentId]);
+                  <div className="pt-2">
+                    <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">Отметка о выполнении</label>
+                    <SegmentedControl
+                      options={[
+                        { label: 'Не сдано', value: 'none' },
+                        { label: 'Сдано вовремя', value: 'on_time' },
+                        { label: 'С опозданием', value: 'late' }
+                      ]}
+                      value={
+                        formData.hwDoneBy.includes(formData.studentId)
+                          ? (formData.hwStatuses?.[formData.studentId] || "on_time")
+                          : "none"
+                      }
+                      onChange={(val) => {
+                        if (val === 'none') {
+                          setFormData(prev => ({
+                            ...prev,
+                            hwDoneBy: [],
+                            hwStatuses: {}
+                          }));
                         } else {
-                          handleChange("hwDoneBy", []);
+                          setFormData(prev => ({
+                            ...prev,
+                            hwDoneBy: [formData.studentId],
+                            hwStatuses: { [formData.studentId]: val }
+                          }));
                         }
                       }}
-                      className="w-5 h-5 text-violet-600 rounded border-stone-300 focus:ring-violet-500"
-                      disabled={isSubmitting || !formData.studentId}
                     />
-                    <span className="text-sm font-medium text-stone-700">ДЗ выполнено</span>
-                  </label>
+                  </div>
                 ) : (
                   <div className="space-y-2 mt-4">
                     <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">Отметки о выполнении</label>
@@ -462,36 +495,60 @@ export default function LessonDrawer({
                       return group.studentIds.map(studentId => {
                         const student = students.find(s => s.id === studentId);
                         const isDone = formData.hwDoneBy.includes(studentId);
+                        const status = isDone ? (formData.hwStatuses?.[studentId] || "on_time") : "none";
+                        
                         return (
-                          <label key={studentId} className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-200/60 cursor-pointer hover:bg-stone-100 transition-colors">
-                            <span className="text-sm font-medium text-stone-700">{student?.name || "Неизвестный ученик"}</span>
-                            <input
-                              type="checkbox"
-                              checked={isDone}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
-                                setFormData(prev => {
-                                  const newHw = checked 
-                                    ? [...prev.hwDoneBy, studentId] 
-                                    : prev.hwDoneBy.filter(id => id !== studentId);
-                                  return { ...prev, hwDoneBy: newHw };
-                                });
-                              }}
-                              className="w-5 h-5 text-violet-600 rounded border-stone-300 focus:ring-violet-500"
-                              disabled={isSubmitting}
-                            />
-                          </label>
+                          <div key={studentId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-stone-50/60 rounded-xl border border-stone-200/50 hover:bg-white hover:shadow-sm hover:border-stone-300 transition-all duration-200">
+                            <span className="text-sm font-medium text-stone-800">{student?.name || "Неизвестный ученик"}</span>
+                            
+                            <div className="flex bg-stone-200/50 p-1 rounded-lg shrink-0">
+                              {[
+                                { label: 'Нет', value: 'none' },
+                                { label: 'Вовремя', value: 'on_time' },
+                                { label: 'С опозданием', value: 'late' }
+                              ].map(opt => (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  disabled={isSubmitting}
+                                  onClick={() => {
+                                    setFormData(prev => {
+                                      const newHw = opt.value === 'none' 
+                                        ? prev.hwDoneBy.filter(id => id !== studentId)
+                                        : prev.hwDoneBy.includes(studentId) ? prev.hwDoneBy : [...prev.hwDoneBy, studentId];
+                                      
+                                      const newStatuses = { ...prev.hwStatuses };
+                                      if (opt.value === 'none') {
+                                        delete newStatuses[studentId];
+                                      } else {
+                                        newStatuses[studentId] = opt.value;
+                                      }
+
+                                      return { ...prev, hwDoneBy: newHw, hwStatuses: newStatuses };
+                                    });
+                                  }}
+                                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                                    status === opt.value
+                                      ? "bg-white text-academic-blue shadow-sm"
+                                      : "text-stone-500 hover:text-stone-700"
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         );
                       });
                     })()}
                   </div>
                 )}
-              </div>
+              </Card>
             </div>
           )}
 
           {activeTab === "notes" && (
-            <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm">
+            <Card variant="elevated">
               <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
                 Приватные заметки
               </label>
@@ -502,7 +559,7 @@ export default function LessonDrawer({
                 className="w-full min-h-[250px] p-3 text-sm text-stone-800 bg-stone-50 rounded-xl border border-stone-200/60 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition-all outline-none resize-y"
                 disabled={isSubmitting}
               />
-            </div>
+            </Card>
           )}
 
       </form>

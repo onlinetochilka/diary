@@ -50,7 +50,7 @@ export function TelegramIcon({ size = 20, className = "" }) {
 
 function NewsCardSkeleton() {
   return (
-    <div className="bg-ivory shadow-neu-sm rounded-2xl p-6 space-y-5" aria-busy="true" aria-label="Загрузка новости сообщества">
+    <div className="bg-white shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 space-y-5" aria-busy="true" aria-label="Загрузка новости сообщества">
       {/* Title / date line */}
       <div className="skeleton-line-sm w-24" />
 
@@ -71,7 +71,7 @@ function NewsCardSkeleton() {
 
 function NewsCardFallback() {
   return (
-    <div className="bg-ivory shadow-neu-sm rounded-2xl p-6 space-y-4 animate-card-float-in">
+    <div className="bg-white shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 space-y-4 animate-card-float-in">
       {/* Body */}
       <p className="text-sm text-stone-500 leading-relaxed">
         Полезные инструменты для преподавателей в одном месте. Делимся инсайтами, переводим новости на человеческий язык и обсуждаем наболевшее.
@@ -87,14 +87,12 @@ function NewsCardFallback() {
         className="
           group inline-flex w-full items-center justify-center gap-2
           px-4 py-3 rounded-xl
-          text-sm font-semibold text-white
-          bg-gradient-to-b from-[#256a96] to-[#1B4F72]
-          shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_8px_20px_rgba(27,79,114,0.3)]
-          hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(27,79,114,0.45)]
-          hover:-translate-y-1
-          transition-all duration-300 ease-out
-          outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72] focus-visible:ring-offset-2 focus-visible:ring-offset-ivory
-          active:scale-[0.97] active:shadow-inner
+          text-sm font-medium text-white
+          bg-academic-blue hover:bg-academic-blue-light
+          shadow-sm hover:shadow-md
+          transition-all duration-300
+          outline-none focus-visible:ring-2 focus-visible:ring-academic-blue focus-visible:ring-offset-2
+          active:scale-[0.97]
         "
       >
         <TelegramIcon size={16} className="transition-transform duration-200 group-hover:scale-110" />
@@ -153,8 +151,8 @@ export default function CommunityNewsCard() {
   return (
     <article
       className="
-        bg-ivory shadow-neu-sm rounded-2xl p-6 space-y-4
-        card-hover-lift animate-card-float-in
+        bg-white shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 space-y-4
+        card-hover-lift animate-card-float-in hover:shadow-md hover:ring-black/10 transition-all duration-300
       "
       aria-labelledby="community-news-title"
     >
@@ -220,14 +218,12 @@ export default function CommunityNewsCard() {
         className="
           group inline-flex w-full items-center justify-center gap-2
           px-4 py-3 rounded-xl
-          text-sm font-semibold text-white
-          bg-gradient-to-b from-[#256a96] to-[#1B4F72]
-          shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_8px_20px_rgba(27,79,114,0.3)]
-          hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(27,79,114,0.45)]
-          hover:-translate-y-1
-          transition-all duration-300 ease-out
-          outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72] focus-visible:ring-offset-2 focus-visible:ring-offset-ivory
-          active:scale-[0.97] active:shadow-inner
+          text-sm font-medium text-white
+          bg-academic-blue hover:bg-academic-blue-light
+          shadow-sm hover:shadow-md
+          transition-all duration-300
+          outline-none focus-visible:ring-2 focus-visible:ring-academic-blue focus-visible:ring-offset-2
+          active:scale-[0.97]
         "
         aria-label="Обсудить публикацию с коллегами в Telegram"
       >

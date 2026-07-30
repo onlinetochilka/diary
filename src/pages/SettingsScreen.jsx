@@ -198,7 +198,7 @@ export default function SettingsPage() {
       icon={SettingsIcon}
       accentClass="text-stone-600"
     >
-      <div className="max-w-5xl mx-auto pb-12">
+      <div className="max-w-[1400px] mx-auto pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           
           {/* LEFT COLUMN */}

@@ -61,24 +61,23 @@ export default function Modal({
       onClose={onClose}
       className={cn(
         "backdrop:bg-stone-900/40 backdrop:backdrop-blur-sm",
-        "bg-ivory rounded-2xl shadow-neu-xl w-full p-0 overflow-visible",
+        "bg-white rounded-[24px] shadow-2xl ring-1 ring-slate-200/50 w-full p-0 overflow-visible",
         "open:animate-in open:fade-in-0 open:zoom-in-95 open:duration-200",
         maxWidth,
         className
       )}
     >
-      <div className="flex items-center justify-between p-5 border-b border-stone-100">
+      <div className="flex items-center justify-between p-6 pb-2">
         <h2 className="text-lg font-semibold text-stone-900">{title}</h2>
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={onClose}
           aria-label="Закрыть"
+          className="flex items-center justify-center w-8 h-8 rounded-full border border-stone-200/80 text-stone-400 hover:text-stone-700 hover:bg-stone-50 transition-colors"
         >
-          <X size={18} strokeWidth={2} />
-        </Button>
+          <X size={16} strokeWidth={2} />
+        </button>
       </div>
-      <div className="p-5">
+      <div className="p-6 pt-4">
         {children}
       </div>
     </dialog>

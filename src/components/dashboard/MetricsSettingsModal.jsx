@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SideDrawer, Button, Checkbox } from "../ui";
+import { SideDrawer, Button, Checkbox, Card } from "../ui";
 
 export const METRICS_CONFIG = [
   {
@@ -95,7 +95,7 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
         </p>
 
         {METRICS_CONFIG.map((group, gIdx) => (
-          <div key={gIdx} className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <Card key={gIdx} variant="elevated" className="space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
               {group.group}
             </h3>
@@ -120,7 +120,7 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
                 );
               })}
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </SideDrawer>

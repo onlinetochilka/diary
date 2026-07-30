@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { Modal } from "../ui/index.js";
+import { Modal, Button } from "../ui/index.js";
 import { Copy, Check, Bell, CheckCircle2 } from "lucide-react";
 
 export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm }) {
   const [copied, setCopied] = useState(false);
   const [text, setText] = useState("");
-  // Local state for tracking which homeworks are selected
+  // Local state for tracking which homeworks are selected (stores 'on_time' | 'late' | false)
   const [selectedLessons, setSelectedLessons] = useState({});
+  // Local state for tracking single homework status
+  const [singleHwStatus, setSingleHwStatus] = useState("on_time");
   const [paymentAmount, setPaymentAmount] = useState("");
   
   const isMoney = item?.type === "money";
@@ -59,6 +61,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
         // Initialize as empty so the user has to explicitly check them
         if (!isMoney && item.lessons) {
           setSelectedLessons({});
+          setSingleHwStatus("on_time");
         } else if (isMoney) {
           setPaymentAmount(item.amount.toString());
         }
@@ -74,18 +77,19 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isMultiple = !isMoney && item.count > 1 && item.lessons;
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={title}
       maxWidth="max-w-md"
-      className="bg-ivory" // Ensure it matches the neumorphic bg
     >
       <div className="space-y-6">
         {mode === "remind" ? (
           <>
-            <div className="p-4 bg-ivory shadow-neu-sm-inset rounded-2xl">
+            <div className="p-4 bg-stone-50 border border-stone-200/50 rounded-2xl">
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -94,20 +98,21 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
             </div>
             
             <div className="flex justify-end">
-              <button
+              <Button
+                variant="primary"
                 onClick={handleCopy}
-                className="flex items-center gap-2 px-6 py-3 bg-ivory text-brand-blue font-bold rounded-xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all"
+                className="flex items-center justify-center min-w-[160px]"
               >
-                {copied ? <Check size={18} strokeWidth={3} /> : <Copy size={18} strokeWidth={2} />}
+                {copied ? <Check size={18} strokeWidth={2.5} className="mr-2" /> : <Copy size={18} strokeWidth={2} className="mr-2" />}
                 {copied ? "Скопировано" : "Скопировать текст"}
-              </button>
+              </Button>
             </div>
           </>
         ) : (
           <>
             <div className="flex flex-col items-center justify-center py-4 text-center space-y-3">
-              <div className={`p-4 rounded-full shadow-neu-sm-inset ${isMoney ? 'text-[#B71234]' : 'text-[#006584]'}`}>
-                <CheckCircle2 size={48} strokeWidth={1.5} />
+              <div className={`p-4 rounded-full ${isMoney ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                <CheckCircle2 size={40} strokeWidth={2} />
               </div>
               <p className="text-stone-600 font-medium text-base mb-2">
                 Подтверждаете, что <span className="font-bold text-stone-900">
@@ -116,6 +121,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                     : item.student.name}
                 </span> {getVerb()} {isMoney ? "задолженность" : "домашнее задание"}?
               </p>
+              
               {isMoney && (
                 <div className="mt-2 flex items-center justify-center gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200 shadow-inner max-w-[240px] mx-auto">
                   <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">Сумма:</span>
@@ -130,44 +136,90 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                   <span className="text-lg font-bold text-stone-400">₽</span>
                 </div>
               )}
+
+              {!isMoney && !isMultiple && (
+                <div className="mt-4 flex bg-stone-100 p-1 rounded-xl w-full max-w-[280px] mx-auto border border-stone-200 shadow-inner">
+                  <button
+                    onClick={() => setSingleHwStatus("on_time")}
+                    className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      singleHwStatus === "on_time" 
+                        ? "bg-white text-emerald-600 shadow-sm ring-1 ring-slate-200" 
+                        : "text-stone-500 hover:text-stone-700"
+                    }`}
+                  >
+                    Вовремя
+                  </button>
+                  <button
+                    onClick={() => setSingleHwStatus("late")}
+                    className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      singleHwStatus === "late" 
+                        ? "bg-white text-amber-600 shadow-sm ring-1 ring-slate-200" 
+                        : "text-stone-500 hover:text-stone-700"
+                    }`}
+                  >
+                    С опозданием
+                  </button>
+                </div>
+              )}
             </div>
             
-            {!isMoney && item.count > 1 && item.lessons && (
+            {isMultiple && (
               <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 text-left mb-4 shadow-inner">
                 <p className="text-xs font-bold text-stone-500 uppercase px-1 mb-2">Выберите сданные ДЗ:</p>
                 {item.lessons.map(l => (
-                  <label key={l.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-stone-100 cursor-pointer transition-colors">
+                  <label key={l.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-stone-100 cursor-pointer transition-colors">
                     <input 
                       type="checkbox" 
-                      className="mt-1 h-4 w-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
                       checked={!!selectedLessons[l.id]}
-                      onChange={(e) => setSelectedLessons(prev => ({ ...prev, [l.id]: e.target.checked }))}
+                      onChange={(e) => setSelectedLessons(prev => ({ ...prev, [l.id]: e.target.checked ? "on_time" : false }))}
                     />
-                    <div className="flex flex-col min-w-0">
+                    <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-sm font-bold text-stone-800">{l.date}</span>
                       <span className="text-xs text-stone-500 truncate">{l.homework}</span>
                     </div>
+                    {selectedLessons[l.id] && (
+                      <select 
+                        className="text-[11px] border border-stone-200 rounded px-1.5 py-1 bg-white text-stone-600 outline-none focus:border-blue-400 font-medium"
+                        value={selectedLessons[l.id]}
+                        onChange={(e) => setSelectedLessons(prev => ({ ...prev, [l.id]: e.target.value }))}
+                        onClick={(e) => e.stopPropagation()} // Prevent toggling the checkbox when interacting with the select
+                      >
+                        <option value="on_time">Вовремя</option>
+                        <option value="late">С опозданием</option>
+                      </select>
+                    )}
                   </label>
                 ))}
               </div>
             )}
 
             <div className="flex gap-4">
-              <button
+              <Button
+                variant="secondary"
                 onClick={onClose}
-                className="flex-1 py-3 text-stone-500 font-bold rounded-xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all"
+                className="flex-1 justify-center py-2.5 bg-stone-100 hover:bg-stone-200 border-transparent text-stone-700"
               >
                 Отмена
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 onClick={() => {
-                  if (onConfirm) onConfirm(item, isMoney ? paymentAmount : selectedLessons);
+                  if (onConfirm) {
+                    if (isMoney) {
+                      onConfirm(item, paymentAmount);
+                    } else if (isMultiple) {
+                      onConfirm(item, selectedLessons);
+                    } else {
+                      onConfirm(item, singleHwStatus);
+                    }
+                  }
                   onClose();
                 }}
-                className={`flex-1 py-3 font-bold rounded-xl shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset transition-all ${isMoney ? 'text-[#B71234]' : 'text-[#006584]'}`}
+                className={`flex-1 justify-center py-2.5 shadow-sm border-transparent text-white ${isMoney ? 'bg-red-500 hover:bg-red-600 focus:ring-red-500/20' : 'bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-500/20'}`}
               >
                 Отметить
-              </button>
+              </Button>
             </div>
           </>
         )}

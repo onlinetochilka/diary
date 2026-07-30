@@ -2,7 +2,7 @@ import { useState, useEffect, useId } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { 
   SideDrawer, Button, Input, SegmentedControl, 
-  Select, TagsInput, Checkbox, Tooltip
+  Select, TagsInput, Checkbox, Tooltip, Card
 } from "../ui/index.js";
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -214,7 +214,7 @@ export default function GroupFormDrawer({
         <div className="space-y-5">
           
           {/* Card: Основное */}
-          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <Card variant="elevated" className="space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОСНОВНОЕ</h3>
             
             <Input
@@ -268,7 +268,7 @@ export default function GroupFormDrawer({
                       const totalCount = prog.topics?.length || 0;
                       
                       return (
-                        <div key={prog.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-stone-200/60 shadow-sm">
+                        <div key={prog.id} className="flex items-center justify-between p-3 rounded-xl bg-stone-50/60 border border-stone-200/50 hover:bg-white hover:shadow-sm hover:border-stone-300 transition-all duration-200">
                           <div>
                             <p className="text-sm font-medium text-stone-800">{prog.name}</p>
                             <p className="text-xs text-stone-500 mt-0.5">
@@ -291,10 +291,10 @@ export default function GroupFormDrawer({
                 )}
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Card: Финансы и Программа */}
-          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <Card variant="elevated" className="space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОПЛАТА И ТЕМЫ (ДЛЯ ВСЕХ УЧАСТНИКОВ)</h3>
             
             <SegmentedControl
@@ -350,10 +350,10 @@ export default function GroupFormDrawer({
             </div>
 
 
-          </div>
+          </Card>
 
           {/* Card: Состав группы */}
-          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <Card variant="elevated" className="space-y-4">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase">
                 СОСТАВ ГРУППЫ ({formData.studentIds.length})
@@ -377,10 +377,10 @@ export default function GroupFormDrawer({
                   return (
                     <label
                       key={student.id}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors border ${
+                      className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all duration-200 border ${
                         isSelected
-                          ? "bg-teal-50 border-teal-200"
-                          : "bg-white border-transparent hover:bg-stone-100"
+                          ? "bg-emerald-50/80 border-emerald-200/60"
+                          : "bg-stone-50/60 border-stone-200/50 hover:bg-white hover:shadow-sm hover:border-stone-300"
                       }`}
                     >
                       <Checkbox
@@ -397,7 +397,7 @@ export default function GroupFormDrawer({
                 })
               )}
             </div>
-          </div>
+          </Card>
           
         </div>
       </form>

@@ -1,6 +1,6 @@
 import React from "react";
 
-export function PageWrapper({ children, title, subtitle, icon: Icon, accentClass, maxWidth = "max-w-5xl", noGlobalScroll = false, actionRight }) {
+export function PageWrapper({ children, title, subtitle, icon: Icon, accentClass, maxWidth = "max-w-[1400px]", noGlobalScroll = false, actionRight }) {
   return (
     <div className={`p-4 sm:p-6 lg:p-8 ${maxWidth} mx-auto ${noGlobalScroll ? 'lg:h-dvh lg:overflow-hidden flex flex-col gap-6' : 'space-y-6'}`}>
       {(title || Icon || actionRight) && (

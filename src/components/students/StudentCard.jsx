@@ -40,13 +40,13 @@ const StudentCard = memo(({
             const bal = student.balance || 0;
             if (bal > 0) {
               return (
-                <div className="bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase whitespace-nowrap">
+                <div className="bg-emerald-muted/10 text-emerald-muted px-2 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase whitespace-nowrap">
                   + {bal} ₽
                 </div>
               );
             } else if (bal < 0) {
               return (
-                <div className="bg-rose-500/10 text-rose-600 px-2 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase whitespace-nowrap">
+                <div className="bg-terracotta/10 text-terracotta px-2 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase whitespace-nowrap">
                   - {Math.abs(bal)} ₽
                 </div>
               );
@@ -132,7 +132,7 @@ const StudentCard = memo(({
                         <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden">
                           <div 
                             className="h-full rounded-full transition-all duration-500" 
-                            style={{ ...getEntityStyle(prog), backgroundColor: 'oklch(var(--card-l) 0.08 var(--card-h))', width: `${percent}%` }}
+                            style={{ ...getEntityStyle(prog), backgroundColor: 'oklch(var(--card-l) 0.12 var(--card-h))', width: `${percent}%` }}
                           />
                         </div>
                       )}

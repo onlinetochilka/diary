@@ -3,7 +3,7 @@ import { Loader2, Plus, X, Trash2 } from "lucide-react";
 
 import { 
   SideDrawer, Button, Input, SegmentedControl, 
-  Select, Checkbox, Tooltip
+  Select, Checkbox, Tooltip, Card
 } from "../ui/index.js";
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -334,7 +334,7 @@ export default function StudentFormDrawer({
         <div className="space-y-5">
           
           {/* Card: Основное */}
-          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <Card variant="elevated" className="space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОСНОВНОЕ</h3>
             
             <div className="grid grid-cols-[1fr_120px] gap-3">
@@ -398,10 +398,10 @@ export default function StudentFormDrawer({
                 <option value="UTC+12 (Камчатка)">UTC+12 (Камчатка)</option>
               </Select>
             </div>
-          </div>
+          </Card>
 
           {/* Card: Контакты плательщика */}
-          <div className="bg-white border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+          <Card variant="elevated" className="space-y-4">
             <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">ОПЛАТА И КОНТАКТЫ</h3>
             
             <SegmentedControl
@@ -470,11 +470,11 @@ export default function StudentFormDrawer({
                 />
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Dynamic Subjects List */}
           {formData.subjects.map((subj, index) => (
-            <div key={subj.id} className="bg-stone-50/50 backdrop-blur-sm border border-stone-200/60 rounded-2xl p-5 shadow-sm space-y-4 relative group">
+            <Card key={subj.id} variant="flat" className="bg-stone-50/50 backdrop-blur-sm space-y-4 relative group">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-[10px] font-bold tracking-widest text-stone-400 uppercase">
                   ПРЕДМЕТ {index + 1} {subj.name && `(${subj.name})`}
@@ -592,7 +592,7 @@ export default function StudentFormDrawer({
                         const totalCount = prog.topics?.length || 0;
                         
                         return (
-                          <div key={prog.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-stone-200/60 shadow-sm">
+                          <div key={prog.id} className="flex items-center justify-between p-3 rounded-xl bg-stone-50/60 border border-stone-200/50 hover:bg-white hover:shadow-sm hover:border-stone-300 transition-all duration-200">
                             <div>
                               <p className="text-sm font-medium text-stone-800">{prog.name}</p>
                               <p className="text-xs text-stone-500 mt-0.5">
@@ -618,7 +618,7 @@ export default function StudentFormDrawer({
 
 
 
-            </div>
+            </Card>
           ))}
 
           <Button

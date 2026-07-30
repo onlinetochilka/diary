@@ -114,8 +114,8 @@ export default function Sidebar({ activePage, onNavigate }) {
       className={cn(
         "hidden lg:flex flex-col",
         "fixed top-0 left-0 h-full w-[240px] z-40",
-        "bg-ivory",
-        "shadow-neu-xl",
+        "bg-white",
+        "border-r border-stone-200 shadow-sm",
       )}
       aria-label="Основная навигация"
     >
@@ -152,10 +152,10 @@ export default function Sidebar({ activePage, onNavigate }) {
                 "transition-all duration-200 ease-out-quart",
                 isActive ? [
                   "active",
-                  "shadow-neu-sm-inset", // "физическое вдавливание"
+                  item.activeBg || "bg-stone-50",
                   "font-semibold",
                 ] : [
-                  "hover:shadow-neu-sm", // hover only raises the non-active items
+                  "hover:bg-stone-50",
                 ]
               )}
             >
@@ -187,10 +187,10 @@ export default function Sidebar({ activePage, onNavigate }) {
           onClick={handleToggleDemo}
           disabled={isLoading}
           className={cn(
-            "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-sm",
+            "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all",
             isAnonymous 
-              ? "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200" 
-              : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200"
+              ? "bg-transparent text-steel border border-transparent shadow-none hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200" 
+              : "bg-indigo-50 text-indigo-600 border border-indigo-200 shadow-sm hover:bg-indigo-100"
           )}
         >
           {isLoading ? (

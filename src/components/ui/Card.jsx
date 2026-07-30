@@ -16,7 +16,7 @@ const variants = {
     "bg-ivory border border-stone-200/30",
   ],
   elevated: [
-    "bg-ivory shadow-neu-sm",
+    "bg-white shadow-sm ring-1 ring-slate-200",
   ],
   glass: [
     "glass-card",     // defined in index.css
@@ -51,7 +51,7 @@ export default function Card({
         // Hover lift animation
         hoverLift && [
           "transition-all duration-300 ease-out-quart",
-          "hover:shadow-neu-md hover:-translate-y-0.5",
+          "hover:shadow-md hover:-translate-y-1",
         ],
         // Default padding
         padding && "p-5",

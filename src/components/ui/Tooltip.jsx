@@ -13,10 +13,10 @@ export default function Tooltip({ text, children, position = "top" }) {
   };
 
   return (
-    <div className="group/tooltip relative flex items-center justify-center">
+    <div className="group/tooltip relative flex items-center justify-center hover:z-[100]">
       {children}
-      <div className={`absolute ${posClasses[position]} z-50 pointer-events-none opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 scale-95 group-hover/tooltip:scale-100`}>
-        <div className="bg-ivory text-stone-600 text-xs font-bold px-3 py-2 rounded-xl shadow-neu-md whitespace-nowrap">
+      <div className={`absolute ${posClasses[position]} z-[9999] pointer-events-none opacity-0 group-hover/tooltip:opacity-100 transition-all duration-200 ease-out-quart scale-[0.97] group-hover/tooltip:scale-100`}>
+        <div className="bg-zinc-900/90 backdrop-blur-md border border-white/10 text-zinc-50 text-[11px] font-medium tracking-wide px-2.5 py-1 rounded-md shadow-lg whitespace-nowrap">
           {text}
         </div>
       </div>

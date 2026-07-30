@@ -12,7 +12,7 @@
  * ProgramDrawer сохранён для создания новой программы.
  * Редактирование существующей — только через ProgramEditorPage.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { BookOpen, Plus, Trash2, ListChecks, ChevronRight } from "lucide-react";
 import { Card, Button, Input, SideDrawer, ListInput, Tooltip } from "../components/ui/index.js";
 import { getPrograms, addProgram, deleteProgram } from "../services/database.js";
@@ -31,7 +31,7 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 // ─── Список карточек программ ─────────────────────────────────────────────────
 function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreateNew }) {
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
       {/* Шапка */}
       <header className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -80,7 +80,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
                 key={prog.id}
                 variant="elevated"
                 className={cn(
-                  "flex flex-col group cursor-pointer overflow-visible",
+                  "flex flex-col h-full group cursor-pointer overflow-visible",
                   "hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300",
                   `border-l-4 ${c.border}`,
                 )}
@@ -93,7 +93,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
                       {prog.name}
                     </h3>
                     {prog.subject && (
-                      <p className={`text-xs font-medium ${c.text} mt-1`}>
+                      <p className={`text-xs font-medium ${c.text} mt-1 truncate`}>
                         {prog.subject}
                       </p>
                     )}
@@ -119,7 +119,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center gap-2 text-sm text-stone-500">
+                <div className="mt-auto pt-4 flex items-center gap-2 text-sm text-stone-500">
                   <ListChecks size={16} className="text-stone-400" />
                   <span>
                     {(() => {
@@ -149,7 +149,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
 }
 
 // ─── Корневой компонент страницы ──────────────────────────────────────────────
-export default function ProgramsPage() {
+export default function ProgramsPage({ pageState, onNavigate }) {
   const [programs, setPrograms]               = useState([]);
   const [isLoading, setIsLoading]             = useState(true);
 
@@ -182,6 +182,15 @@ export default function ProgramsPage() {
     setSelectedProgramId(newId);
   }, [fetchPrograms]);
 
+  // ── Обработка навигации с параметрами ───────────────────────────────
+  const createProcessed = useRef(false);
+  useEffect(() => {
+    if (pageState?.action === 'create_program' && !createProcessed.current) {
+      createProcessed.current = true;
+      handleCreate();
+    }
+  }, [pageState, handleCreate]);
+
   // ── Удаление ────────────────────────────────────────────────────────
   const handleDelete = useCallback(async (id) => {
     await deleteProgram(id);
@@ -196,6 +205,10 @@ export default function ProgramsPage() {
         onBack={() => {
           setSelectedProgramId(null);
           fetchPrograms(); // обновляем список (могли измениться данные)
+          
+          if (pageState?.returnTo) {
+             onNavigate(pageState.returnTo, { action: 'restore_draft', studentId: pageState.studentId });
+          }
         }}
         renderStructure={({ program, selectedItem, onSelect, onProgramChange }) => (
           <ProgramStructure

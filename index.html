@@ -25,20 +25,27 @@
     <!-- Preconnect for Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-    <!--
-      =====================================================
-      Yandex Tag Manager — placeholder (не активен)
-      Замените на реальный код YTM при подключении аналитики
-      =====================================================
-      <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-      'https://mc.yandex.ru/metrika/tag.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-      })(window,document,'script','ym','XXXXXXXX');</script>
-      =====================================================
-    -->
+    <!-- Yandex Tag Manager (Stub for Analytics) -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      
+      // Global click listener for YTM data-action tracking
+      document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (target) {
+          const action = target.getAttribute('data-action');
+          dataLayer.push({
+            event: 'user_action',
+            action_name: action,
+            element_text: target.innerText?.trim() || ''
+          });
+        }
+      });
+    </script>
+    <!-- End Yandex Tag Manager -->
   </head>
   <body>
     <div id="root"></div>

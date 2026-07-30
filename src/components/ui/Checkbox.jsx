@@ -19,7 +19,7 @@ export default function Checkbox({
   const inputId = externalId ?? `checkbox-${autoId}`;
 
   return (
-    <div className={cn("flex items-start gap-3", className)}>
+    <label className={cn("flex items-start gap-3 cursor-pointer", className, disabled && "cursor-not-allowed")}>
       <div className="relative flex items-center justify-center shrink-0 group">
         <input
           id={inputId}
@@ -36,7 +36,7 @@ export default function Checkbox({
             "group-active:scale-95",
             "peer-focus-visible:ring-4 peer-focus-visible:ring-brand-blue/20 peer-focus-visible:border-brand-blue",
             "peer-checked:bg-brand-blue peer-checked:border-brand-blue",
-            disabled && "opacity-50 cursor-not-allowed peer-checked:bg-stone-400 peer-checked:border-stone-400"
+            disabled && "opacity-50 peer-checked:bg-stone-400 peer-checked:border-stone-400"
           )}
         />
         <Check
@@ -49,11 +49,11 @@ export default function Checkbox({
         />
       </div>
       {(label || helperText) && (
-        <label htmlFor={inputId} className="flex flex-col cursor-pointer select-none">
+        <div className="flex flex-col select-none pt-0.5">
           {label && <span className="text-sm font-medium text-stone-800">{label}</span>}
           {helperText && <span className="text-xs text-stone-500 leading-relaxed mt-0.5">{helperText}</span>}
-        </label>
+        </div>
       )}
-    </div>
+    </label>
   );
 }

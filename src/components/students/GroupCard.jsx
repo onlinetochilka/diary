@@ -103,12 +103,12 @@ const GroupCard = memo(({
                       )}
                     </div>
                     {total > 0 && (
-                      <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full rounded-full transition-all duration-500" 
-                          style={{ ...getEntityStyle(prog), backgroundColor: 'oklch(var(--card-l) 0.08 var(--card-h))', width: `${percent}%` }}
-                        />
-                      </div>
+                        <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all duration-500" 
+                            style={{ ...getEntityStyle(prog), backgroundColor: 'oklch(var(--card-l) 0.12 var(--card-h))', width: `${percent}%` }}
+                          />
+                        </div>
                     )}
                   </div>
                 );

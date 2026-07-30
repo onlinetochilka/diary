@@ -42,40 +42,44 @@ export default function ActionItemCard({ item, onMarkDone }) {
   const encoded = encodeURIComponent(text);
   const MAX_MESSENGER_URL = "https://max.ru/share";
 
-  const btnClass = `w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-ivory shadow-neu-sm outline-none focus-visible:ring-2 focus-visible:ring-[#006584] transition-all ${
+  const btnClass = `w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#006584] transition-all ${
     !text.trim() 
       ? 'opacity-50 cursor-not-allowed pointer-events-none' 
-      : 'hover:shadow-neu-md active:shadow-neu-sm-inset cursor-pointer'
+      : 'hover:shadow-md hover:ring-black/10 active:scale-95 cursor-pointer text-stone-500 hover:text-stone-700'
   }`;
 
   return (
     <div 
-      className={`bg-ivory shadow-neu-sm rounded-2xl flex flex-col transition-all hover:shadow-neu-md border-l-[3px] ${c.border}`}
+      className="entity-light-bg ring-1 ring-slate-200 border-l-[4px] entity-border-l shadow-sm rounded-[20px] flex flex-col transition-all duration-300 hover:shadow-md card-hover-lift group"
       style={style}
     >
       {/* Top row (always visible) */}
-      <div className="flex items-center justify-between p-4 group">
-        <div className="min-w-0 flex-1 pl-1">
-          <p className="text-sm font-bold text-stone-800 truncate">{item.student.name}</p>
-          <p className={`text-xs font-bold mt-0.5 ${isMoney ? 'text-[#B71234]' : 'text-[#006584]'}`}>
-            {isMoney ? getMoneyText(item.count, item.amount) : getHwText(item.count)}
-          </p>
+      <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+        <div className="flex items-center min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pl-1">
+            <p className="text-sm font-semibold text-stone-900 truncate transition-colors">{item.student.name}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-md ${isMoney ? 'bg-red-50 text-red-700 ring-1 ring-red-100' : 'bg-white/80 text-violet-700 ring-1 ring-violet-100/50'}`}>
+                {isMoney ? getMoneyText(item.count, item.amount) : getHwText(item.count)}
+              </span>
+            </div>
+          </div>
         </div>
         <div className="flex gap-2">
           <Tooltip text={isMoney ? "Отметить оплату" : "Отметить ДЗ"} position="bottom-right">
             <button 
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-ivory shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584]" 
-              onClick={() => onMarkDone(item)}
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all bg-white border border-stone-200 shadow-sm hover:bg-stone-50 active:scale-95 group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584]" 
+              onClick={(e) => { e.stopPropagation(); onMarkDone(item); }}
             >
-              <Check size={18} strokeWidth={3} className="text-emerald-500 transition-colors" />
+              <Check size={16} strokeWidth={3} className={isMoney ? "text-emerald-500" : "text-blue-500"} />
             </button>
           </Tooltip>
-          <Tooltip text="Напомнить" position="bottom-right">
+          <Tooltip text={isExpanded ? "Свернуть" : "Написать"} position="bottom-right">
             <button 
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-ivory group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isExpanded ? 'shadow-neu-sm-inset' : 'shadow-neu-sm hover:shadow-neu-md active:shadow-neu-sm-inset'}`}
-              onClick={() => setIsExpanded(!isExpanded)}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isExpanded ? 'bg-stone-100 border-stone-200 text-stone-700' : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50 hover:text-stone-700 active:scale-95'}`}
+              onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
             >
-              <Bell size={18} fill="currentColor" className="text-[#006584] transition-colors" />
+              <MessageCircle size={16} strokeWidth={2} />
             </button>
           </Tooltip>
         </div>
@@ -87,7 +91,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
       >
         <div className="overflow-hidden">
           <div className="px-4 pb-4 space-y-4">
-            <div className="p-3 bg-ivory shadow-neu-sm-inset rounded-xl">
+            <div className="p-3 bg-stone-50 rounded-xl ring-1 ring-black/[0.03]">
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -102,8 +106,9 @@ export default function ActionItemCard({ item, onMarkDone }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnClass}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <Mail size={18} className="text-[#006584]" />
+                  <Mail size={16} />
                 </a>
               </Tooltip>
               <Tooltip text="WhatsApp" position="top-right">
@@ -112,18 +117,9 @@ export default function ActionItemCard({ item, onMarkDone }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnClass}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <MessageCircle size={18} className="text-[#006584]" />
-                </a>
-              </Tooltip>
-              <Tooltip text="Макс" position="top-right">
-                <a
-                  href={`${MAX_MESSENGER_URL}?text=${encoded}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={btnClass}
-                >
-                  <MessageCircle size={18} className="text-[#006584]" />
+                  <MessageCircle size={16} />
                 </a>
               </Tooltip>
               <Tooltip text="Telegram" position="top-right">
@@ -132,17 +128,18 @@ export default function ActionItemCard({ item, onMarkDone }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnClass}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <Send size={18} className="text-[#006584]" />
+                  <Send size={16} />
                 </a>
               </Tooltip>
               <Tooltip text="Скопировать" position="top-right">
                 <button
-                  onClick={handleCopy}
+                  onClick={(e) => { e.stopPropagation(); handleCopy(); }}
                   disabled={!text.trim()}
                   className={btnClass}
                 >
-                  {copied ? <Check size={18} strokeWidth={3} className="text-emerald-500" /> : <Copy size={18} className="text-[#006584]" />}
+                  {copied ? <Check size={16} strokeWidth={3} className="text-emerald-500" /> : <Copy size={16} />}
                 </button>
               </Tooltip>
             </div>
