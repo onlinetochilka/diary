@@ -9,21 +9,24 @@ export const METRICS_CONFIG = [
       { id: "lessonsWeek", label: "Уроков на этой неделе" },
       { id: "lessonsLeftWeek", label: "Осталось уроков на неделе" },
       { id: "lessonsMonth", label: "Уроков в этом месяце" },
-      { id: "lessonsLeftMonth", label: "Осталось уроков в месяце" },
-      { id: "hoursWorkedThisMonth", label: "Проведено часов (мес)" },
-      { id: "hoursLeftWeek", label: "Осталось часов (нед)" },
-      { id: "hoursLeftMonth", label: "Осталось часов (мес)" },
+      { id: "lessonsLeftMonth", label: "Уроков до конца месяца" },
+      { id: "freeSlotsWeek", label: "Свободные окна на неделе" },
+      { id: "hoursWorkedThisMonth", label: "Отработано часов за месяц" },
+      { id: "hoursLeftWeek", label: "Часов до конца недели" },
+      { id: "hoursLeftMonth", label: "Часов до конца месяца" },
       { id: "cancelledMonth", label: "Отмен за месяц" },
+      { id: "rescheduledMonth", label: "Переносов за месяц" },
     ]
   },
   {
     group: "Финансовые",
     items: [
       { id: "incomeMonth", label: "Доход за месяц" },
-      { id: "expectedIncomeMonth", label: "Ожидаемый доход (мес)" },
-      { id: "totalDebt", label: "Сумма задолженностей" },
-      { id: "totalAdvances", label: "Сумма авансов" },
+      { id: "expectedIncomeMonth", label: "Ожидаемый доход за месяц" },
+      { id: "totalDebt", label: "Задолженность" },
+      { id: "totalAdvances", label: "Авансы" },
       { id: "averageReceipt", label: "Средний чек" },
+      { id: "unpaidLessons", label: "Неоплаченные занятия" },
     ]
   },
   {
@@ -46,18 +49,33 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
 
   const toggleMetric = (id) => {
     setSelected(prev => {
-      if (prev.includes(id)) return prev.filter(m => m !== id);
-      if (prev.length >= 4) return prev; // max 4
+      if (prev.includes(id)) {
+        // Replace with null to keep the slot vacant
+        return prev.map(m => m === id ? null : m);
+      }
+      
+      const activeCount = prev.filter(Boolean).length;
+      if (activeCount >= 4) return prev; // max 4
+      
+      const firstNullIdx = prev.indexOf(null);
+      if (firstNullIdx !== -1) {
+        const next = [...prev];
+        next[firstNullIdx] = id;
+        return next;
+      }
+      
       return [...prev, id];
     });
   };
 
+  const activeSelected = selected.filter(Boolean);
+  
   const handleSave = () => {
-    if (selected.length === 4) onSave(selected);
+    if (activeSelected.length === 4) onSave(selected);
   };
 
-  const isDirty = selected.length === 4 &&
-    JSON.stringify([...selected].sort()) !== JSON.stringify([...(initialMetrics || [])].sort());
+  const isDirty = activeSelected.length === 4 &&
+    JSON.stringify([...activeSelected].sort()) !== JSON.stringify([...(initialMetrics || [])].sort());
 
   /* ── Footer ─────────────────────────────────────────────── */
   const drawerFooter = (requestClose) => (
@@ -68,7 +86,7 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
       <Button
         variant="filled"
         onClick={handleSave}
-        disabled={selected.length !== 4}
+        disabled={activeSelected.length !== 4}
         className="min-w-[120px]"
       >
         Сохранить
@@ -89,8 +107,8 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
         <p className="text-sm text-stone-500">
           Выберите ровно 4 метрики для отображения на главной странице.{" "}
           Выбрано:{" "}
-          <span className={selected.length === 4 ? "text-emerald-600 font-bold" : "font-bold text-stone-700"}>
-            {selected.length}/4
+          <span className={activeSelected.length === 4 ? "text-emerald-600 font-bold" : "font-bold text-stone-700"}>
+            {activeSelected.length}/4
           </span>
         </p>
 
@@ -102,7 +120,7 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
               {group.items.map(item => {
                 const isSelected = selected.includes(item.id);
-                const isDisabled = !isSelected && selected.length >= 4;
+                const isDisabled = !isSelected && activeSelected.length >= 4;
                 return (
                   <div
                     key={item.id}

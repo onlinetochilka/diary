@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
-import { cn } from '../../../utils/classnames.js';
+import { cn } from '../../../utils/cn.js';
 
 export default function StudentTileFinance({
   studentId,

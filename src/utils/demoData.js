@@ -98,9 +98,11 @@ export async function generateDemoData(tutorId) {
     const balance = (i === 1 || i === 2) ? -2500 : 5000;
     
     let assignedPrograms = [];
+    let notes = "";
     if (subjects[i] === "Физика" || subjects[i] === "Математика") {
       const isMath = subjects[i] === "Математика";
       const baseProg = isMath ? p2Data : p1Data;
+      notes = isMath ? "Готовится к ЕГЭ. Западает тема тригонометрии." : "Нужно подтянуть решение задач по динамике.";
       
       // Give them a program with a 70% chance
       if (rng() > 0.3) {
@@ -118,6 +120,8 @@ export async function generateDemoData(tutorId) {
           topics: customTopics
         });
       }
+    } else {
+      notes = "Подготовка к контрольным и повышение общего уровня успеваемости.";
     }
 
     batch.set(r, { 
@@ -128,6 +132,7 @@ export async function generateDemoData(tutorId) {
       active: true, 
       colorOklch: hue, 
       balance, 
+      notes,
       tutorId,
       createdAt: new Date() 
     });

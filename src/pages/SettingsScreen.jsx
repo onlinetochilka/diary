@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
-import { Card, Button, Input } from "../components/ui/index.js";
+import { Card, Button, Input, Switch } from "../components/ui/index.js";
 import { 
   User, Palette, Globe, Database, AlertTriangle, 
   Check, Loader2, Download, Link as LinkIcon, LogOut, Trash2, Settings as SettingsIcon
@@ -90,10 +90,121 @@ const THEMES = [
   { id: "dark", name: "Темная", color: "#1c2433", border: "#263044", icon: "text-white" },
 ];
 
-const DAYS = [
-  { id: 1, name: "Пн" }, { id: 2, name: "Вт" }, { id: 3, name: "Ср" },
-  { id: 4, name: "Чт" }, { id: 5, name: "Пт" }, { id: 6, name: "Сб" }, { id: 0, name: "Вс" },
+const DEFAULT_WORKING_HOURS = {
+  1: { active: true, start: "10:00", end: "19:00" },
+  2: { active: true, start: "10:00", end: "19:00" },
+  3: { active: true, start: "10:00", end: "19:00" },
+  4: { active: true, start: "10:00", end: "19:00" },
+  5: { active: true, start: "10:00", end: "19:00" },
+  6: { active: false, start: "10:00", end: "14:00" },
+  0: { active: false, start: "10:00", end: "14:00" }
+};
+
+const DAYS_OF_WEEK = [
+  { id: 1, name: "Пн" },
+  { id: 2, name: "Вт" },
+  { id: 3, name: "Ср" },
+  { id: 4, name: "Чт" },
+  { id: 5, name: "Пт" },
+  { id: 6, name: "Сб" },
+  { id: 0, name: "Вс" },
 ];
+
+function WorkingHoursSettings({ value, onSave }) {
+  const [hours, setHours] = useState(value || DEFAULT_WORKING_HOURS);
+  const [status, setStatus] = useState("idle");
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    if (value) setHours(value);
+  }, [value]);
+
+  const handleChange = (day, field, val) => {
+    const newHours = { ...hours, [day]: { ...hours[day], [field]: val } };
+    setHours(newHours);
+    setStatus("saving");
+    onSave(newHours).then(() => {
+      setStatus("success");
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setStatus("idle"), 2000);
+    }).catch(() => setStatus("idle"));
+  };
+
+  const timeInputCls = (active) =>
+    `text-sm font-medium bg-stone-50 border border-stone-200 rounded-lg px-2 py-1 text-stone-700
+     focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-400
+     transition-all appearance-none
+     ${active ? "opacity-100" : "opacity-30 pointer-events-none"}`;
+
+  return (
+    <div className="mt-6 border-t border-stone-100 pt-6">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <p className="text-sm font-semibold text-stone-800">Рабочий график</p>
+          <p className="text-xs text-stone-400 mt-0.5">Используется для расчёта свободных окон</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-stone-400 h-5">
+          {status === "saving" && <Loader2 size={14} className="animate-spin" />}
+          {status === "success" && (
+            <span className="flex items-center gap-1 text-emerald-500 font-medium">
+              <Check size={13} /> Сохранено
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="space-y-1">
+        {DAYS_OF_WEEK.map(day => {
+          const h = hours[day.id] || DEFAULT_WORKING_HOURS[day.id];
+          return (
+            <div
+              key={day.id}
+              className={`flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors ${h.active ? "bg-stone-50" : "bg-transparent hover:bg-stone-50/60"}`}
+            >
+              {/* Day name + toggle */}
+              <div className="flex items-center gap-3 w-20">
+                <Switch
+                  checked={h.active}
+                  onChange={(v) => handleChange(day.id, "active", v)}
+                  size="sm"
+                  accent="emerald"
+                  aria-label={day.name}
+                />
+                <span className={`text-sm font-medium w-5 ${h.active ? "text-stone-800" : "text-stone-400"}`}>
+                  {day.name}
+                </span>
+              </div>
+
+              {/* Time range */}
+              <div className={`flex items-center gap-2 transition-opacity ${h.active ? "opacity-100" : "opacity-30 pointer-events-none"}`}>
+                <input
+                  type="time"
+                  value={h.start}
+                  onChange={(e) => handleChange(day.id, "start", e.target.value)}
+                  className={timeInputCls(h.active)}
+                />
+                <span className="text-stone-300 text-sm">—</span>
+                <input
+                  type="time"
+                  value={h.end}
+                  onChange={(e) => handleChange(day.id, "end", e.target.value)}
+                  className={timeInputCls(h.active)}
+                />
+                <span className="text-xs text-stone-400 w-16 text-right">
+                  {h.active && (() => {
+                    const [sh, sm] = h.start.split(":").map(Number);
+                    const [eh, em] = h.end.split(":").map(Number);
+                    const dur = (eh + em/60) - (sh + sm/60);
+                    return dur > 0 ? `${dur % 1 === 0 ? dur : dur.toFixed(1)} ч` : "—";
+                  })()}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -193,10 +304,11 @@ export default function SettingsPage() {
 
   return (
     <PageWrapper 
-      title="Настройки профиля" 
-      subtitle="Конфигурация приложения"
-      icon={SettingsIcon}
-      accentClass="text-stone-600"
+      title="Настройки" 
+      subtitle="Управление профилем и системой" 
+      icon={SettingsIcon} 
+      iconBgClass="bg-[#636B74]/10"
+      iconTextClass="text-[#636B74]"
     >
       <div className="max-w-[1400px] mx-auto pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -274,40 +386,18 @@ export default function SettingsPage() {
                 onChange={(e) => updateConfig("currency", e.target.value)}
                 className="w-full h-11 bg-white border border-stone-200 rounded-xl px-4 text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-300"
               >
-                <option value="RUB">₽ Рубль</option>
+                <option value="BYN">Br Белорусский рубль</option>
                 <option value="USD">$ Доллар</option>
                 <option value="EUR">€ Евро</option>
+                <option value="RUB">₽ Рубль</option>
                 <option value="KZT">₸ Тенге</option>
               </select>
             </div>
           </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700 ml-1">Рабочие дни</label>
-            <div className="flex flex-wrap gap-2">
-              {DAYS.map(day => {
-                const isWorking = config.workingDays?.includes(day.id);
-                return (
-                  <button
-                    key={day.id}
-                    onClick={() => {
-                      const newDays = isWorking 
-                        ? config.workingDays.filter(d => d !== day.id)
-                        : [...(config.workingDays || []), day.id];
-                      updateConfig("workingDays", newDays);
-                    }}
-                    className={`w-11 h-11 rounded-xl font-medium text-sm transition-all ${
-                      isWorking 
-                        ? "bg-stone-900 text-white shadow-sm" 
-                        : "bg-stone-100 text-stone-400 hover:bg-stone-200"
-                    }`}
-                  >
-                    {day.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <WorkingHoursSettings 
+            value={config.workingHours} 
+            onSave={(v) => updateConfig("workingHours", v)} 
+          />
         </SettingsSection>
 
         {/* Data */}

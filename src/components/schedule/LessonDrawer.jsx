@@ -31,7 +31,9 @@ export default function LessonDrawer({
     homework: "",
     hwDoneBy: [],
     hwStatuses: {},
-    notes: ""
+    presentStudentIds: [], // кто присутствовал на групповом уроке
+    notes: "",
+    format: "online"
   });
 
   const [initialStateStr, setInitialStateStr] = useState("");
@@ -55,7 +57,9 @@ export default function LessonDrawer({
           homework: initialData.homework || "",
           hwDoneBy: initialData.hwDoneBy || [],
           hwStatuses: initialData.hwStatuses || {},
-          notes: initialData.notes || ""
+          presentStudentIds: initialData.presentStudentIds || [],
+          notes: initialData.notes || "",
+          format: initialData.format || "online"
         };
       } else {
         initial = {
@@ -73,6 +77,7 @@ export default function LessonDrawer({
           hwDoneBy: [],
           hwStatuses: {},
           notes: "",
+          format: "online",
           isRecurring: false,
           repeatUntil: (() => {
             const d = new Date();
@@ -98,7 +103,9 @@ export default function LessonDrawer({
       if (field === "studentId" && next.type === "individual") {
         const student = students.find(s => s.id === value);
         if (student && student.subjects && student.subjects.length > 0) {
-          next.subjectName = student.subjects[0].name;
+          const subject = student.subjects[0];
+          next.subjectName = subject.name;
+          next.format = subject.format === "mixed" ? "online" : (subject.format || "online");
           next.programId = "";
           next.topicId = "";
         }
@@ -106,8 +113,11 @@ export default function LessonDrawer({
         const group = groups.find(g => g.id === value);
         if (group) {
           next.subjectName = group.subjectName;
+          next.format = group.format === "mixed" ? "online" : (group.format || "online");
           next.programId = "";
           next.topicId = "";
+          // По умолчанию все ученики группы присутствуют
+          next.presentStudentIds = group.studentIds || [];
         }
       } else if (field === "type") {
         next.studentId = "";
@@ -126,17 +136,21 @@ export default function LessonDrawer({
   // Derived state for programs and topics
   let activePrograms = [];
   let subjectPrice = 0;
+  let subjectFormat = "online";
+  
   if (formData.type === "individual" && formData.studentId) {
     const student = students.find(s => s.id === formData.studentId);
     if (student) {
       const subject = student.subjects?.find(sub => sub.name === formData.subjectName) || student.subjects?.[0];
       if (subject?.programs) activePrograms = subject.programs;
       if (subject?.price !== undefined) subjectPrice = Number(subject.price);
+      if (subject?.format) subjectFormat = subject.format;
     }
   } else if (formData.type === "group" && formData.groupId) {
     const group = groups.find(g => g.id === formData.groupId);
     if (group?.programs) activePrograms = group.programs;
     if (group?.price !== undefined) subjectPrice = Number(group.price);
+    if (group?.format) subjectFormat = group.format;
   }
 
   const activeTopics = formData.programId 
@@ -310,6 +324,17 @@ export default function LessonDrawer({
                     <option value="skipped_free">Неоплаченный пропуск</option>
                   </Select>
                 </div>
+                {subjectFormat === "mixed" && (
+                  <Select
+                    label="Формат урока"
+                    value={formData.format}
+                    onChange={(e) => handleChange("format", e.target.value)}
+                    disabled={isSubmitting}
+                  >
+                    <option value="online">Онлайн</option>
+                    <option value="offline">Офлайн</option>
+                  </Select>
+                )}
               </Card>
 
               <Card variant="elevated" className="space-y-4">
@@ -488,60 +513,106 @@ export default function LessonDrawer({
                   </div>
                 ) : (
                   <div className="space-y-2 mt-4">
-                    <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">Отметки о выполнении</label>
+                    <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">Отметки по ученикам</label>
                     {(() => {
                       const group = groups.find(g => g.id === formData.groupId);
-                      if (!group || !group.studentIds) return <div className="text-sm text-stone-500">Сначала выберите группу</div>;
+                      if (!group || !group.studentIds) return (
+                        <div className="text-sm text-stone-500">Сначала выберите группу</div>
+                      );
                       return group.studentIds.map(studentId => {
-                        const student = students.find(s => s.id === studentId);
-                        const isDone = formData.hwDoneBy.includes(studentId);
-                        const status = isDone ? (formData.hwStatuses?.[studentId] || "on_time") : "none";
-                        
-                        return (
-                          <div key={studentId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-stone-50/60 rounded-xl border border-stone-200/50 hover:bg-white hover:shadow-sm hover:border-stone-300 transition-all duration-200">
-                            <span className="text-sm font-medium text-stone-800">{student?.name || "Неизвестный ученик"}</span>
-                            
-                            <div className="flex bg-stone-200/50 p-1 rounded-lg shrink-0">
-                              {[
-                                { label: 'Нет', value: 'none' },
-                                { label: 'Вовремя', value: 'on_time' },
-                                { label: 'С опозданием', value: 'late' }
-                              ].map(opt => (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  disabled={isSubmitting}
-                                  onClick={() => {
-                                    setFormData(prev => {
-                                      const newHw = opt.value === 'none' 
-                                        ? prev.hwDoneBy.filter(id => id !== studentId)
-                                        : prev.hwDoneBy.includes(studentId) ? prev.hwDoneBy : [...prev.hwDoneBy, studentId];
-                                      
-                                      const newStatuses = { ...prev.hwStatuses };
-                                      if (opt.value === 'none') {
-                                        delete newStatuses[studentId];
-                                      } else {
-                                        newStatuses[studentId] = opt.value;
-                                      }
+                        const student   = students.find(s => s.id === studentId);
+                        const isPresent = (formData.presentStudentIds || []).includes(studentId);
+                        const isDone    = formData.hwDoneBy.includes(studentId);
+                        const hwStatus  = isDone ? (formData.hwStatuses?.[studentId] || 'on_time') : 'none';
+                        const hasHw     = !!formData.homework;
 
-                                      return { ...prev, hwDoneBy: newHw, hwStatuses: newStatuses };
-                                    });
-                                  }}
-                                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                                    status === opt.value
-                                      ? "bg-white text-academic-blue shadow-sm"
-                                      : "text-stone-500 hover:text-stone-700"
-                                  }`}
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
+                        return (
+                          <div key={studentId} className="flex flex-col gap-2 p-3 bg-stone-50/60 rounded-xl border border-stone-200/50 hover:bg-white hover:border-stone-300 transition-all duration-200">
+                            {/* Имя */}
+                            <span className="text-sm font-semibold text-stone-800">
+                              {student?.name || 'Неизвестный ученик'}
+                            </span>
+
+                            <div className="flex flex-col gap-1.5">
+                              {/* Посещаемость */}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[11px] text-stone-400 font-medium w-20 shrink-0">Явка</span>
+                                <div className="flex bg-stone-200/50 p-0.5 rounded-lg">
+                                  {[
+                                    { label: 'Присутствовал', value: true },
+                                    { label: 'Отсутствовал',  value: false },
+                                  ].map(opt => (
+                                    <button
+                                      key={String(opt.value)}
+                                      type="button"
+                                      disabled={isSubmitting}
+                                      onClick={() => {
+                                        setFormData(prev => {
+                                          const cur  = prev.presentStudentIds || [];
+                                          const next = opt.value
+                                            ? cur.includes(studentId) ? cur : [...cur, studentId]
+                                            : cur.filter(id => id !== studentId);
+                                          return { ...prev, presentStudentIds: next };
+                                        });
+                                      }}
+                                      className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-all whitespace-nowrap ${
+                                        isPresent === opt.value
+                                          ? opt.value
+                                            ? 'bg-emerald-500 text-white shadow-sm'
+                                            : 'bg-stone-300 text-stone-700 shadow-sm'
+                                          : 'text-stone-500 hover:text-stone-700'
+                                      }`}
+                                    >
+                                      {opt.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* ДЗ — только если задание задано */}
+                              {hasHw && (
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[11px] text-stone-400 font-medium w-20 shrink-0">ДЗ</span>
+                                  <div className="flex bg-stone-200/50 p-0.5 rounded-lg">
+                                    {[
+                                      { label: 'Нет',           value: 'none' },
+                                      { label: 'Вовремя',       value: 'on_time' },
+                                      { label: 'С опозданием',  value: 'late' },
+                                    ].map(opt => (
+                                      <button
+                                        key={opt.value}
+                                        type="button"
+                                        disabled={isSubmitting}
+                                        onClick={() => {
+                                          setFormData(prev => {
+                                            const newHw = opt.value === 'none'
+                                              ? prev.hwDoneBy.filter(id => id !== studentId)
+                                              : prev.hwDoneBy.includes(studentId) ? prev.hwDoneBy : [...prev.hwDoneBy, studentId];
+                                            const newStatuses = { ...prev.hwStatuses };
+                                            if (opt.value === 'none') { delete newStatuses[studentId]; }
+                                            else { newStatuses[studentId] = opt.value; }
+                                            return { ...prev, hwDoneBy: newHw, hwStatuses: newStatuses };
+                                          });
+                                        }}
+                                        className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-all whitespace-nowrap ${
+                                          hwStatus === opt.value
+                                            ? 'bg-white text-academic-blue shadow-sm'
+                                            : 'text-stone-500 hover:text-stone-700'
+                                        }`}
+                                      >
+                                        {opt.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
                       });
                     })()}
                   </div>
+
                 )}
               </Card>
             </div>

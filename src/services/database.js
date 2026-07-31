@@ -334,65 +334,19 @@ export async function getPrograms(tutorId) {
   const snap = await getDocs(q);
   const res = snapshotToArray(snap);
 
-  // One-time cleanup and high-quality program injection
-  if (!cache.cleanupRealisticProgramsDone) {
-    cache.cleanupRealisticProgramsDone = true;
-    
-    // 1. Delete all spammy/test programs
-    const toDelete = res.filter(p => 
-      p.name.includes("132") || p.name.includes("46") || p.name.includes("Мега") || p.name.includes("Интенсив")
+  // Migration: cleanup accidentally injected demo programs for existing users
+  if (!cache.demoProgramsCleanupDone) {
+    cache.demoProgramsCleanupDone = true;
+    const demoPrograms = res.filter(p => 
+      p.name === "Английский (Грамматика B2)" || p.name === "Русский язык ЕГЭ 2026"
     );
-    // don't delete "Интенсив Механика" if it doesn't have 46 or 132
-    const spam = res.filter(p => p.name.includes("132") || p.name.includes("46"));
     
-    const deletePromises = spam.map(p => deleteDoc(doc(col.programs(), p.id)));
-    if (deletePromises.length > 0) {
-       await Promise.all(deletePromises);
-       console.log(`Deleted ${deletePromises.length} spam programs`);
+    if (demoPrograms.length > 0) {
+      const deletePromises = demoPrograms.map(p => deleteDoc(doc(col.programs(), p.id)));
+      await Promise.all(deletePromises);
+      invalidateCache('programs');
+      return getPrograms(tutorId); // recursive call to return clean data
     }
-
-    // 2. Add realistic English Program (46 topics)
-    const engTopicsList = [
-      "Present Simple", "Present Continuous", "Present Perfect", "Present Perfect Continuous",
-      "Past Simple", "Past Continuous", "Past Perfect", "Past Perfect Continuous",
-      "Future Simple", "Future Continuous", "Future Perfect", "Be going to",
-      "Articles: A / An", "Articles: The", "Zero Article", "Plural Nouns",
-      "Countable & Uncountable", "Much, Many, A lot of", "Some, Any, No", "Pronouns",
-      "Possessive adjectives", "Comparatives", "Superlatives", "Adverbs of frequency",
-      "Prepositions of time (in, on, at)", "Prepositions of place", "Can / Could", "Must / Have to",
-      "Should / Ought to", "May / Might", "First Conditional", "Second Conditional",
-      "Third Conditional", "Passive Voice (Present)", "Passive Voice (Past)", "Reported Speech",
-      "Relative Clauses", "Gerunds vs Infinitives", "Used to / Would", "Question Tags",
-      "Phrasal Verbs (Part 1)", "Phrasal Verbs (Part 2)", "Word formation", "Idioms overview",
-      "Reading Practice", "Listening Practice"
-    ];
-    const engTopics = engTopicsList.map((t, i) => ({ id: `eng_${i}`, title: t, isCompleted: false }));
-    
-    // 3. Add realistic Russian Program (132 topics)
-    const rusBlocks = ["Орфоэпия", "Лексика", "Морфология", "Орфография", "Пунктуация", "Синтаксис", "Культура речи", "Работа с текстом"];
-    const rusTopics = [];
-    for (let i = 0; i < 132; i++) {
-       const block = rusBlocks[Math.floor(i / 17) % rusBlocks.length];
-       rusTopics.push({ id: `rus_${i}`, title: `${block}: Урок ${i % 17 + 1}`, isCompleted: false });
-    }
-
-    await addProgram({
-      name: "Английский (Грамматика B2)",
-      subject: "Английский язык",
-      tutorId: uid,
-      topics: engTopics
-    });
-    
-    await addProgram({
-      name: "Русский язык ЕГЭ 2026",
-      subject: "Русский язык",
-      tutorId: uid,
-      topics: rusTopics
-    });
-    
-    // invalidate cache so they reload
-    invalidateCache('programs');
-    return getPrograms(tutorId); // recursive call to return fresh data
   }
 
   // Migration: deduplicate colorOklch across programs
@@ -893,6 +847,16 @@ export async function updateLesson(id, data) {
   const oldSnap = await getDoc(doc(col.lessons(), id));
   const oldData = oldSnap.exists() ? oldSnap.data() : null;
 
+  if (oldData) {
+    const isDateChanged = data.date !== undefined && data.date !== oldData.date;
+    const isStartTimeChanged = data.startTime !== undefined && data.startTime !== oldData.startTime;
+    const isEndTimeChanged = data.endTime !== undefined && data.endTime !== oldData.endTime;
+    
+    if (isDateChanged || isStartTimeChanged || isEndTimeChanged) {
+      data.reschedules = [...(oldData.reschedules || []), new Date().toISOString()];
+    }
+  }
+
   await updateDoc(doc(col.lessons(), id), {
     ...data,
     updatedAt: serverTimestamp(),
@@ -908,6 +872,108 @@ export async function updateLesson(id, data) {
       await applyLessonBalanceChange(oldData, true);
     }
   }
+
+  // Recalculate hwDebtCount on affected students when hwDoneBy changes
+  if (data.hwDoneBy !== undefined) {
+    await recalcHwDebtCount(id, { ...oldData, ...data });
+  }
+}
+
+/**
+ * Patch a lesson with partial data (for optimistic Inspector updates).
+ * Unlike updateLesson, does NOT re-read the old doc for reschedule tracking —
+ * use this only for non-scheduling field changes (status, homework, notes).
+ *
+ * @param {string} id       — lesson Firestore doc ID
+ * @param {object} partial  — only the fields to update
+ * @returns {Promise<void>}
+ */
+export async function patchLesson(id, partial) {
+  invalidateCache('lessons');
+
+  // Read old data only if we need balance or hwDebtCount side-effects
+  const needsOldData = partial.status !== undefined || partial.hwDoneBy !== undefined;
+  let oldData = null;
+  if (needsOldData) {
+    const oldSnap = await getDoc(doc(col.lessons(), id));
+    oldData = oldSnap.exists() ? oldSnap.data() : null;
+  }
+
+  await updateDoc(doc(col.lessons(), id), {
+    ...partial,
+    updatedAt: serverTimestamp(),
+  });
+
+  // Balance side-effect when status changes
+  if (oldData && partial.status !== undefined && partial.status !== oldData.status) {
+    const isOldPaid = oldData.status === "conducted" || oldData.status === "skipped_paid";
+    const isNewPaid = partial.status === "conducted" || partial.status === "skipped_paid";
+    if (isNewPaid && !isOldPaid) {
+      await applyLessonBalanceChange({ ...oldData, ...partial }, false);
+    } else if (!isNewPaid && isOldPaid) {
+      await applyLessonBalanceChange(oldData, true);
+    }
+  }
+
+  // hwDebtCount recalc when hwDoneBy changes
+  if (partial.hwDoneBy !== undefined && oldData) {
+    await recalcHwDebtCount(id, { ...oldData, ...partial });
+  }
+}
+
+/**
+ * Пересчитывает hwDebtCount на студентах, затронутых изменением урока.
+ *
+ * Логика:
+ *   - Для индивидуального урока: hwDebtCount — кол-во прошедших уроков
+ *     у этого студента, где homework задан и студент не в hwDoneBy.
+ *   - Вызывается при каждом сохранении урока с изменённым hwDoneBy.
+ *
+ * @param {string} lessonId     — ID изменённого урока (для исключения из старого подсчёта)
+ * @param {object} updatedLesson — данные урока после изменений
+ */
+async function recalcHwDebtCount(lessonId, updatedLesson) {
+  const studentIds = [];
+  if (updatedLesson.type === "individual" && updatedLesson.studentId) {
+    studentIds.push(updatedLesson.studentId);
+  } else if (updatedLesson.type === "group" && updatedLesson.groupId) {
+    const grSnap = await getDoc(doc(col.groups(), updatedLesson.groupId));
+    if (grSnap.exists()) {
+      (grSnap.data().studentIds || []).forEach(id => studentIds.push(id));
+    }
+  }
+
+  if (studentIds.length === 0) return;
+
+  // Fetch all lessons for affected students to count HW debts
+  const uid = updatedLesson.tutorId || auth.currentUser?.uid;
+  const allLessonsSnap = await getDocs(
+    query(col.lessons(), where("tutorId", "==", uid))
+  );
+  const allLessons = allLessonsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Merge in the updated lesson so count is based on fresh data
+  const merged = allLessons.map(l => l.id === lessonId ? { ...l, ...updatedLesson } : l);
+
+  const today = new Date().toISOString().split('T')[0];
+  const pastLessons = merged.filter(l => l.date < today);
+
+  const updates = studentIds.map(async (sid) => {
+    const debtCount = pastLessons.filter(l => {
+      const hw = typeof l.homework === 'string' ? l.homework : (l.homework?.text || "");
+      if (!hw.trim()) return false;
+      if (l.type === "individual") return l.studentId === sid && !(l.hwDoneBy || []).includes(sid);
+      if (l.type === "group") {
+        const inGroup = (l.groupId === updatedLesson.groupId);
+        return inGroup && !(l.hwDoneBy || []).includes(sid);
+      }
+      return false;
+    }).length;
+
+    await updateDoc(doc(col.students(), sid), { hwDebtCount: debtCount });
+  });
+
+  await Promise.all(updates);
+  invalidateCache('students');
 }
 
 /**

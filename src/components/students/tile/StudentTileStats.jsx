@@ -1,15 +1,6 @@
 import React from 'react';
 import { CheckCircle2, BookOpen } from 'lucide-react';
-
-// Утилита для правильного склонения слов
-function getPlural(count, one, two, five) {
-  let n = Math.abs(count) % 100;
-  if (n >= 5 && n <= 20) return five;
-  n %= 10;
-  if (n === 1) return one;
-  if (n >= 2 && n <= 4) return two;
-  return five;
-}
+import { getPlural } from '../../../utils/plural.js';
 
 export default function StudentTileStats({
   studentId,

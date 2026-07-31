@@ -54,11 +54,15 @@ export default {
         steel: {
           DEFAULT: "#8C9BAB",
         },
-        // Section accent palette
-        finance:  { DEFAULT: "#10b981", light: "#d1fae5", ring: "#6ee7b7" }, // emerald
-        schedule: { DEFAULT: "#006584", light: "#e0e7ff", ring: "#a5b4fc" }, // brand teal
-        students: { DEFAULT: "#8b5cf6", light: "#ede9fe", ring: "#c4b5fd" }, // violet
-        settings: { DEFAULT: "#78716c", light: "#f5f5f4", ring: "#d6d3d1" }, // stone
+        // Sophisticated, muted section colors harmonizing with academic-blue (#1B4F72)
+        section: {
+          dashboard: "#3B5266", // Slate Blue (muted, professional)
+          schedule:  "#B36A5E", // Dusty Terracotta (warm, calm)
+          students:  "#1B4F72", // Academic Blue (established base)
+          programs:  "#735B7A", // Muted Plum (creative but grounded)
+          finance:   "#426B5C", // Deep Sage / Viridian (stable, financial)
+          settings:  "#636B74", // Cool Graphite
+        },
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"],
@@ -102,6 +106,11 @@ export default {
           from: { opacity: "0", transform: "translateY(8px) scale(0.99)" },
           to:   { opacity: "1", transform: "none" },
         },
+        "highlight-pulse": {
+          "0%":   { boxShadow: "0 0 0 0 rgba(96, 165, 250, 0.5)" },
+          "50%":  { boxShadow: "0 0 0 6px rgba(96, 165, 250, 0.15)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(96, 165, 250, 0)" },
+        },
       },
       animation: {
         "fade-in":       "fade-in 0.2s cubic-bezier(0.165, 0.84, 0.44, 1) both",
@@ -109,6 +118,7 @@ export default {
         spin:            "spin 0.8s linear infinite",
         "skeleton-pulse": "skeleton-pulse 1.6s ease-in-out infinite",
         "card-float-in": "card-float-in 0.3s cubic-bezier(0.25, 1, 0.5, 1) both",
+        "highlight-pulse": "highlight-pulse 1.2s ease-out 2",
       },
     },
   },

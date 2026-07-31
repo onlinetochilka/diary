@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, UserPlus, FolderPlus } from 'lucide-react';
 import StudentsFilterBar from './StudentsFilterBar.jsx';
 import StudentTile from './StudentTile.jsx';
 import ActionItemModal from '../dashboard/ActionItemModal.jsx';
-import { MOCK_STUDENTS } from '../../services/studentsAdapter.js';
+import GroupCard from './GroupCard.jsx';
 import { useStudentsFilter } from '../../hooks/useStudentsFilter.js';
 import StudentsEmptyState from './StudentsEmptyState.jsx';
 
-export default function StudentsDirectoryView({ onEdit, onCreate }) {
+export default function StudentsDirectoryView({ students = [], groups = [], onEdit, onEditGroup, onCreate, onCreateGroup, highlightStudentId, onHighlightDone, onOpenGuestLink, onOpenReport, onOpenLessonHistory, onOpenGroupLessonHistory, onOpenGroupReport }) {
   // Состояние модалки ДЗ
   const [hwModal, setHwModal] = useState({ isOpen: false, item: null });
 
   // Логика фильтрации вынесена в кастомный хук
   const {
-    filteredStudents,
+    filteredItems,
     activeStatus,
     setActiveStatus,
     activeFormat,
@@ -22,16 +22,34 @@ export default function StudentsDirectoryView({ onEdit, onCreate }) {
     setShowDebtorsOnly,
     searchQuery,
     setSearchQuery
-  } = useStudentsFilter(MOCK_STUDENTS);
+  } = useStudentsFilter(students, groups);
+
+  // Скролл к подсвеченному ученику
+  useEffect(() => {
+    if (!highlightStudentId || students.length === 0) return;
+
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-student-id="${highlightStudentId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      // Снять подсветку через 2.5 секунды
+      const clearTimer = setTimeout(() => {
+        onHighlightDone?.();
+      }, 2500);
+      return () => clearTimeout(clearTimer);
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [highlightStudentId, students.length]);
 
   // Обработчик "Внести оплату" (заглушка для модалки)
   const handlePayment = (studentId) => {
-    console.log('Open payment modal for student:', studentId);
-    // В будущем здесь будет вызов dispatch / контекста для открытия модалки
+    // TODO: открыть модалку оплаты (dispatch / контекст)
   };
 
   const handleHomeworkClick = (studentId, subjectId) => {
-    const student = MOCK_STUDENTS.find(s => s.id === studentId);
+    const student = students.find(s => s.id === studentId);
     if (!student) return;
     const subject = student.subjects?.find(s => s.id === subjectId) || student.subjects?.[0];
     const pendingCount = subject?.stats?.pendingHomeworks || 1;
@@ -52,8 +70,7 @@ export default function StudentsDirectoryView({ onEdit, onCreate }) {
   };
 
   const handleHwConfirm = (item, statuses) => {
-    console.log('Homework confirmed', statuses);
-    // Здесь должна быть логика обновления БД
+    // TODO: обновление БД статусов ДЗ
   };
 
   return (
@@ -61,7 +78,7 @@ export default function StudentsDirectoryView({ onEdit, onCreate }) {
       {/* Шапка */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="p-2.5 rounded-2xl bg-academic-blue/10 text-academic-blue">
+          <span className="p-2.5 rounded-2xl bg-[#7A404D]/10 text-[#7A404D]">
             <Users size={24} strokeWidth={1.5} />
           </span>
           <div>
@@ -72,14 +89,25 @@ export default function StudentsDirectoryView({ onEdit, onCreate }) {
           </div>
         </div>
         
-        <button
-          onClick={onCreate}
-          data-action="create_student"
-          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-academic-blue text-white rounded-xl text-sm font-medium hover:bg-academic-blue-light transition-colors shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-academic-blue active:scale-[0.98]"
-        >
-          <Users size={18} strokeWidth={2} />
-          Новый ученик
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onCreateGroup}
+            data-action="create_group"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-[#7A404D] rounded-xl text-sm font-medium border border-[#7A404D]/30 hover:bg-[#7A404D]/5 hover:border-[#7A404D]/50 transition-colors shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A404D] active:scale-[0.98]"
+          >
+            <FolderPlus size={18} strokeWidth={2} />
+            Новая группа
+          </button>
+          
+          <button
+            onClick={onCreate}
+            data-action="create_student"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#7A404D] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A404D] active:scale-[0.98]"
+          >
+            <UserPlus size={18} strokeWidth={2} />
+            Новый ученик
+          </button>
+        </div>
       </header>
 
       {/* Панель фильтров */}
@@ -95,17 +123,44 @@ export default function StudentsDirectoryView({ onEdit, onCreate }) {
       />
 
       {/* Сетка карточек */}
-      {filteredStudents.length > 0 ? (
+      {filteredItems.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 items-start">
-          {filteredStudents.map((student) => (
-            <StudentTile
-              key={student.id}
-              student={student}
-              onEdit={onEdit}
-              onPayment={handlePayment}
-              onHomeworkClick={handleHomeworkClick}
-            />
-          ))}
+          {filteredItems.map((item) => {
+            if (item.type === 'group') {
+              const group = item.data;
+              const studentsInGroup = group.studentIds
+                ? group.studentIds.map(id => students.find(s => s.id === id)).filter(Boolean)
+                : [];
+              return (
+                <GroupCard
+                  key={`group-${group.id}`}
+                  group={group}
+                  studentsInGroup={studentsInGroup}
+                  onOpenDrawer={() => onEditGroup(group)}
+                  onOpenProgressModal={() => {}}
+                  onOpenLessonHistory={onOpenGroupLessonHistory}
+                  onOpenReport={onOpenGroupReport}
+                />
+              );
+            }
+            // type === 'student'
+            const student = item.data;
+            return (
+              <StudentTile
+                key={`student-${student.id}`}
+                student={student}
+                studentType={item.studentType}
+                showTypeBadge={activeFormat === 'all'}
+                onEdit={onEdit}
+                onPayment={handlePayment}
+                onHomeworkClick={handleHomeworkClick}
+                onOpenGuestLink={onOpenGuestLink}
+                onOpenReport={onOpenReport}
+                onOpenLessonHistory={onOpenLessonHistory}
+                isHighlighted={student.id === highlightStudentId}
+              />
+            );
+          })}
         </div>
       ) : (
         <StudentsEmptyState
@@ -115,6 +170,7 @@ export default function StudentsDirectoryView({ onEdit, onCreate }) {
           activeStatus={activeStatus}
           onClearSearch={() => setSearchQuery('')}
           onResetDebtors={() => setShowDebtorsOnly(false)}
+          onCreate={onCreate}
         />
       )}
 

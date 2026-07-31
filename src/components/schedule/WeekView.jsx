@@ -18,7 +18,13 @@ export default function WeekView({
   setPopover,
   isCopyMode,
   getLessonDisplayData,
-  getLessonTopic
+  getLessonTopic,
+  onFinClick,
+  onHwClick,
+  onCreateStudent,
+  onGoToProfile,
+  selectedEntityId,
+  onCardClick,
 }) {
   const d = new Date(currentDate);
   const dayOfWeek = d.getDay() === 0 ? 6 : d.getDay() - 1;
@@ -234,10 +240,12 @@ export default function WeekView({
                       const leftPercent = (l.colIndex / l.numCols) * 100;
                       const widthPercent = 100 / l.numCols;
                       
+                      const isSelectedLesson = !selectedEntityId || l.studentId === selectedEntityId || l.groupId === selectedEntityId || l.studentIds?.includes(selectedEntityId);
+                      
                       return (
                         <div 
                           key={l.id} 
-                          className="absolute transition-all z-30 hover:z-40 px-[1px] sm:px-[2px]"
+                          className={`absolute transition-all z-30 hover:z-40 px-[1px] sm:px-[2px] ${!isSelectedLesson ? 'opacity-30 grayscale saturate-50' : ''}`}
                           style={{ 
                             top, 
                             height,
@@ -255,7 +263,9 @@ export default function WeekView({
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenDrawer(l);
-                            }} 
+                            }}
+                            onFinClick={onFinClick}
+                            onHwClick={onHwClick}
                             onMoreClick={(e) => {
                               e.stopPropagation();
                               const rect = e.currentTarget.getBoundingClientRect();
@@ -278,6 +288,19 @@ export default function WeekView({
         students={students} 
         groups={groups} 
         periodLabel="на этой неделе" 
+        onCreateLesson={() => handleOpenDrawer({})}
+        onCreateStudent={onCreateStudent}
+        onAddLesson={(entity) => {
+          const isGroup = !entity.grade && entity.subjects?.[0]?.name === "Групповое занятие";
+          handleOpenDrawer(
+            isGroup
+              ? { type: "group",      groupId:   entity.id }
+              : { type: "individual", studentId: entity.id }
+          );
+        }}
+        onGoToProfile={onGoToProfile}
+        selectedEntityId={selectedEntityId}
+        onCardClick={onCardClick}
       />
     </div>
   );

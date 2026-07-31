@@ -1,14 +1,58 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { formatMoney } from "../../utils/format.js";
-import { Video, MapPin, User as UserIcon } from "lucide-react";
+import { Video, MapPin, Plus, ArrowRight } from "lucide-react";
 import { getEntityStyle } from "../../utils/colors.js";
 import { getPlural } from "../../utils/plural.js";
+
+import { createPortal } from "react-dom";
+
+// Тултип через Portal в document.body — не обрезается никаким overflow/transform
+function FixedTooltip({ text, children }) {
+  const [pos, setPos] = useState(null);
+  const wrapRef = useRef(null);
+
+  const show = () => {
+    if (!wrapRef.current) return;
+    const r = wrapRef.current.getBoundingClientRect();
+    setPos({ x: r.left + r.width / 2, y: r.top - 6 });
+  };
+
+  const hide = () => setPos(null);
+
+  return (
+    <div ref={wrapRef} className="relative" onMouseEnter={show} onMouseLeave={hide}>
+      {children}
+      {pos && createPortal(
+        <div
+          className="pointer-events-none z-[9999]"
+          style={{
+            position: 'fixed',
+            left: pos.x,
+            top: pos.y,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <div className="bg-zinc-900/90 backdrop-blur-md border border-white/10 text-zinc-50 text-[11px] font-medium tracking-wide px-2.5 py-1 rounded-md shadow-lg whitespace-nowrap animate-fade-in">
+            {text}
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
 
 export default function StudentMiniCard({ 
   student, 
   lessons, 
-  periodLabel = "на неделе"
+  periodLabel = "на неделе",
+  onAddLesson,
+  onGoToProfile,
+  onCardClick,
+  isSelected,
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   if (!student || !lessons || lessons.length === 0) return null;
 
   // Sorting lessons to find the next one
@@ -41,11 +85,51 @@ export default function StudentMiniCard({
 
   return (
     <div 
-      className="bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4 flex flex-col gap-3 relative overflow-hidden shrink-0 border-t-4 entity-border-top"
+      className={`bg-white rounded-xl p-4 flex flex-col gap-3 relative shrink-0 border-t-4 entity-border-top transition-all duration-200 ${
+        isSelected
+          ? "shadow-[0_0_0_2px_rgba(99,102,241,0.35),0_4px_20px_rgba(99,102,241,0.12)]"
+          : onCardClick
+            ? "shadow-sm ring-1 ring-slate-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.10)] hover:ring-slate-300"
+            : "shadow-sm ring-1 ring-slate-200"
+      } ${onCardClick ? "cursor-pointer" : ""}`}
       style={style}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onCardClick?.(student)}
     >
+      {/* Hover action buttons */}
+      <div
+        className="absolute top-2.5 right-2.5 flex items-center gap-1 transition-all duration-150"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          transform: isHovered ? "translateY(0)" : "translateY(-4px)",
+          pointerEvents: isHovered ? "auto" : "none",
+        }}
+      >
+        {onAddLesson && (
+          <FixedTooltip text="Добавить урок">
+            <button
+              onClick={(e) => { e.stopPropagation(); onAddLesson(student); }}
+              className="w-6 h-6 rounded-md bg-slate-100 hover:bg-blue-100 hover:text-blue-600 text-slate-500 flex items-center justify-center transition-colors duration-100"
+            >
+              <Plus size={13} strokeWidth={2.5} />
+            </button>
+          </FixedTooltip>
+        )}
+        {onGoToProfile && (
+          <FixedTooltip text="К ученику">
+            <button
+              onClick={(e) => { e.stopPropagation(); onGoToProfile(student); }}
+              className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 hover:text-slate-700 text-slate-500 flex items-center justify-center transition-colors duration-100"
+            >
+              <ArrowRight size={13} strokeWidth={2.5} />
+            </button>
+          </FixedTooltip>
+        )}
+      </div>
+
       {/* Header */}
-      <div className="flex gap-3 items-center">
+      <div className="flex gap-3 items-center pr-14">
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-stone-900 truncate">
             {student.name}

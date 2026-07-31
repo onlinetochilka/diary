@@ -1,11 +1,6 @@
 import React from 'react';
 import { Search, User, Users, Archive, LayoutGrid } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '../../utils/cn.js';
 
 export default function StudentsFilterBar({
   activeStatus,

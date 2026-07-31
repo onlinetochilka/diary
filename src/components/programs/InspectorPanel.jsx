@@ -9,24 +9,21 @@
  *   'section' → Переименование раздела + статистика раздела
  *   'theme'   → Библиотека ДЗ: просмотр/добавление/удаление заданий
  *
- * Банк ДЗ: topic.homeworkBank: [{ id, text, type }]
- *   type ∈ 'task' | 'question' | 'exercise'
- *
  * Все 8 состояний интерактива реализованы через Tailwind-классы:
  *   Default, Hover, Focus-visible, Active, Disabled, Loading, Error, Success
  *
  * НЕ вызывает Firestore напрямую — делегирует через onProgramChange.
+ *
+ * Атомарные компоненты → InspectorPanelAtoms.jsx
+ * Компонент задания    → TaskComposer.jsx
  */
 import { useState, useCallback, useRef, useEffect, useId } from "react";
 import {
   BookOpen,
-  FolderOpen,
   ListChecks,
   CheckCircle2,
   Circle,
   Plus,
-  Trash2,
-  Pencil,
   BarChart3,
   FileSpreadsheet,
   Check,
@@ -35,300 +32,8 @@ import {
 import { cn } from "../../utils/cn.js";
 import { updateTheme, renameSection } from "../../services/database.js";
 import { useToast } from "../ui/Toast.jsx";
-
-// ─── Токены типов заданий ──────────────────────────────────────────────────
-const POP_TYPES = [
-  "тест", "рабочий лист", "работа над ошибками", "конспект", "пробник",
-  "сочинение", "перевод", "учить слова", "наизусть", "решение задач",
-  "выучить формулы", "теорема", "Свой вариант"
-];
-
-const legacyMap = { task: "Задача", question: "Вопрос", exercise: "Упражнение" };
-
-// ─── Вспомогательные компоненты ────────────────────────────────────────────
-
-/** Метка секции (ОСНОВНОЕ / БИБЛИОТЕКА ДЗ) */
-function SectionLabel({ children }) {
-  return (
-    <p className="text-[10px] font-bold tracking-widest text-stone-400 uppercase px-4 pt-4 pb-1 select-none">
-      {children}
-    </p>
-  );
-}
-
-/** Горизонтальный разделитель */
-function Divider() {
-  return <hr className="border-stone-100 mx-4" />;
-}
-
-/** Бейдж типа задания */
-function TypeBadge({ typeId }) {
-  if (!typeId) return null;
-  const label = legacyMap[typeId] || typeId;
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold border bg-stone-50 text-stone-700 border-stone-200"
-    >
-      <BookOpen size={10} strokeWidth={2} />
-      {label}
-    </span>
-  );
-}
-
-// ─── Компоненты для заданий ────────────────────────────────────────────────
-
-function TaskComposer({ initialText = "", initialType = "", onSave, onCancel, autoFocus = false }) {
-  const [text, setText] = useState(initialText);
-  const [type, setType] = useState(initialType);
-  const [isCustom, setIsCustom] = useState(initialType && !POP_TYPES.includes(initialType) && !legacyMap[initialType]);
-  const [customType, setCustomType] = useState(isCustom ? initialType : "");
-  const textareaRef = useRef(null);
-  const customInputRef = useRef(null);
-
-  useEffect(() => {
-    if (autoFocus && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [autoFocus]);
-
-  const handleSave = () => {
-    if (!text.trim()) return;
-    const finalType = isCustom && customType.trim() ? customType.trim() : type;
-    onSave(text, finalType);
-  };
-
-  const toggleType = (t) => {
-    if (t === "Свой вариант") {
-      if (isCustom) {
-        setIsCustom(false);
-        setType("");
-      } else {
-        setIsCustom(true);
-        setType("Свой вариант");
-        if (!customType) setCustomType("");
-        setTimeout(() => customInputRef.current?.focus(), 0);
-      }
-    } else {
-      if (type === t && !isCustom) {
-        setType("");
-      } else {
-        setIsCustom(false);
-        setType(t);
-      }
-    }
-  };
-
-  return (
-    <div className="border border-[#1B4F72]/20 rounded-xl bg-white overflow-hidden shadow-sm">
-      <textarea
-        ref={textareaRef}
-        autoFocus={autoFocus}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSave();
-          if (e.key === "Escape") onCancel();
-        }}
-        placeholder="Опишите задание для ученика..."
-        maxLength={500}
-        rows={3}
-        className={cn(
-          "w-full px-3 py-2.5 text-sm text-stone-800 resize-none",
-          "placeholder:text-stone-400",
-          "focus:outline-none",
-          "border-0 bg-transparent",
-        )}
-      />
-
-      {/* Cloud options container */}
-      <div className="border-t border-stone-100 bg-stone-50/40 px-3 py-3">
-        <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-2.5">
-          Выберите тип задания:
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {POP_TYPES.map((t) => {
-            const isActive = (t === "Свой вариант" && isCustom) || (t === type && !isCustom);
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => toggleType(t)}
-                className={cn(
-                  "px-2 py-1 rounded-full text-[11px] font-medium transition-all duration-150 border",
-                  isActive
-                    ? "bg-[#1B4F72]/10 text-[#1B4F72] border-[#1B4F72]/30 shadow-sm"
-                    : "bg-white text-stone-600 border-stone-200 hover:border-stone-300 hover:bg-stone-50 shadow-sm"
-                )}
-              >
-                {t}
-              </button>
-            );
-          })}
-          {isCustom && (
-            <input
-              ref={customInputRef}
-              type="text"
-              value={customType}
-              onChange={(e) => setCustomType(e.target.value)}
-              placeholder="Введите свой тип..."
-              className="w-32 px-2 py-1 text-[11px] border border-[#1B4F72]/40 rounded-full outline-none focus:ring-2 focus:ring-[#1B4F72]/20 transition-all bg-white shadow-sm"
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-end px-3 py-2 bg-stone-50/60 border-t border-stone-100">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-stone-400 mr-1 hidden sm:inline">
-            Ctrl+Enter
-          </span>
-          <button
-            type="button"
-            onClick={onCancel}
-            className={cn(
-              "px-2.5 py-1.5 rounded-lg text-xs font-medium",
-              "text-stone-500 hover:bg-stone-100 hover:text-stone-700",
-              "transition-colors duration-150 active:scale-[0.97]",
-            )}
-          >
-            Отмена
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!text.trim() || (isCustom && !customType.trim())}
-            className={cn(
-              "px-2.5 py-1.5 rounded-lg text-xs font-medium",
-              "bg-[#1B4F72] text-white hover:bg-[#154060]",
-              "transition-all duration-150 active:scale-[0.97]",
-              "disabled:opacity-40 disabled:pointer-events-none",
-            )}
-          >
-            Сохранить
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TaskCard({ item, isDone, onToggleDone, onDelete, onEdit, isDeleting }) {
-  const [isEditing, setIsEditing] = useState(false);
-
-  if (isEditing) {
-    return (
-      <TaskComposer
-        initialText={item.text}
-        initialType={item.type}
-        autoFocus
-        onSave={(text, type) => {
-          onEdit(item.id, text, type);
-          setIsEditing(false);
-        }}
-        onCancel={() => setIsEditing(false)}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        "group/hw flex items-start gap-2 p-2.5 rounded-xl border",
-        "transition-all duration-150",
-        isDone
-          ? "bg-emerald-50/60 border-emerald-100"
-          : "bg-stone-50 border-stone-100 hover:border-stone-200",
-        isDeleting && "opacity-40 pointer-events-none",
-      )}
-    >
-      {/* Чекбокс сессии */}
-      <button
-        type="button"
-        aria-label={isDone ? "Убрать отметку" : "Отметить как использованное"}
-        onClick={() => onToggleDone(item.id)}
-        className={cn(
-          "mt-0.5 flex-shrink-0 transition-all duration-150",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
-          "active:scale-[0.85]",
-        )}
-      >
-        {isDone
-          ? <CheckCircle2 size={14} strokeWidth={2} className="text-emerald-500" />
-          : <Circle size={14} strokeWidth={2} className="text-stone-300 hover:text-stone-500" />
-        }
-      </button>
-
-      {/* Текст задания */}
-      <div className="flex-1 min-w-0 space-y-1">
-        <p className={cn(
-          "text-xs leading-relaxed text-stone-700 whitespace-pre-wrap",
-          isDone && "line-through text-stone-400",
-        )}>
-          {item.text}
-        </p>
-        <TypeBadge typeId={item.type} />
-      </div>
-
-      {/* Actions */}
-      <div className="flex flex-col gap-0.5 opacity-0 group-hover/hw:opacity-100 transition-opacity">
-        <button
-          type="button"
-          aria-label="Редактировать задание"
-          onClick={() => setIsEditing(true)}
-          disabled={isDeleting}
-          className={cn(
-            "p-1 rounded text-stone-300 hover:text-[#1B4F72] hover:bg-[#1B4F72]/10",
-            "transition-all duration-150 active:scale-[0.85]",
-          )}
-        >
-          <Pencil size={13} strokeWidth={2} />
-        </button>
-        <button
-          type="button"
-          aria-label="Удалить задание"
-          onClick={() => onDelete(item.id)}
-          disabled={isDeleting}
-          className={cn(
-            "p-1 rounded text-stone-300 hover:text-red-400 hover:bg-red-50",
-            "transition-all duration-150 active:scale-[0.85]",
-          )}
-        >
-          {isDeleting
-            ? <div className="w-3 h-3 rounded-full border-2 border-stone-300 border-t-transparent animate-spin" />
-            : <Trash2 size={13} strokeWidth={2} />
-          }
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** Вспомогательная функция склонения существительных */
-function getPlural(number, one, few, many) {
-  const n = Math.abs(number) % 100;
-  const n1 = n % 10;
-  if (n > 10 && n < 20) return many;
-  if (n1 > 1 && n1 < 5) return few;
-  if (n1 === 1) return one;
-  return many;
-}
-
-/** Счётчик-пилюля */
-function CountPill({ count, label, accent }) {
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span
-        className={cn(
-          "text-xl font-bold tabular-nums",
-          accent ?? "text-stone-800",
-        )}
-      >
-        {count}
-      </span>
-      <span className="text-[11px] text-stone-400">{label}</span>
-    </div>
-  );
-}
+import { SectionLabel, Divider, CountPill, getPlural } from "./InspectorPanelAtoms.jsx";
+import { TaskComposer, TaskCard } from "./TaskComposer.jsx";
 
 // ─── Режим: пустой (статистика программы) ──────────────────────────────────
 function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
@@ -351,7 +56,7 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
       <div className="px-4 pb-3 space-y-3">
         <div>
           <label className="text-xs font-medium text-stone-600 mb-1.5 block">
-            Название программы
+            Название программы <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -369,7 +74,7 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
         </div>
         <div>
           <label className="text-xs font-medium text-stone-600 mb-1.5 block">
-            Предмет
+            Предмет <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -459,10 +164,10 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
 // ─── Режим: выбран раздел ──────────────────────────────────────────────────
 function SectionInspector({ section, topics, programId, onProgramChange }) {
   const { showToast } = useToast();
-  const [title, setTitle]       = useState(section.title);
-  const [status, setStatus]     = useState("idle"); // idle | saving | success | error
-  const savedTitle              = useRef(section.title);
-  const inputId                 = useId();
+  const [title, setTitle]   = useState(section.title);
+  const [status, setStatus] = useState("idle"); // idle | saving | success | error
+  const savedTitle          = useRef(section.title);
+  const inputId             = useId();
 
   // При смене выбранного раздела — сбрасываем форму
   useEffect(() => {
@@ -497,9 +202,9 @@ function SectionInspector({ section, topics, programId, onProgramChange }) {
   };
 
   // Статистика раздела
-  const sectionTopics   = topics.filter((t) => t.sectionId === section.id);
-  const completedCount  = sectionTopics.filter((t) => t.isCompleted).length;
-  const totalHw         = sectionTopics.reduce((n, t) => n + (t.homeworkBank?.length ?? 0), 0);
+  const sectionTopics  = topics.filter((t) => t.sectionId === section.id);
+  const completedCount = sectionTopics.filter((t) => t.isCompleted).length;
+  const totalHw        = sectionTopics.reduce((n, t) => n + (t.homeworkBank?.length ?? 0), 0);
 
   return (
     <div className="flex flex-col animate-fade-in">
@@ -554,7 +259,7 @@ function SectionInspector({ section, topics, programId, onProgramChange }) {
           {status === "saving"  && "Сохраняем..."}
           {status === "success" && "Название сохранено"}
           {status === "error"   && "Не удалось сохранить. Попробуйте ещё раз."}
-          {(status === "idle" && isDirty) && "Нажмите Enter или уберите фокус для сохранения"}
+          {(status === "idle" && isDirty)  && "Нажмите Enter или уберите фокус для сохранения"}
           {(status === "idle" && !isDirty) && "Изменения сохраняются автоматически"}
         </p>
       </div>
@@ -582,11 +287,11 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
   const { showToast } = useToast();
 
   // Локальная копия банка — оптимистичные обновления
-  const [bank, setBank]         = useState(theme.homeworkBank ?? []);
-  const [isAdding, setIsAdding] = useState(false);
-  const [savingId, setSavingId] = useState(null); // id задания, которое сейчас удаляем
-  const [sessionDone, setSessionDone] = useState({}); // id → bool (чекбокс сессии)
-  const addFormRef  = useRef(null);
+  const [bank, setBank]               = useState(theme.homeworkBank ?? []);
+  const [isAdding, setIsAdding]       = useState(false);
+  const [savingId, setSavingId]       = useState(null);
+  const [sessionDone, setSessionDone] = useState({});
+  const addFormRef                    = useRef(null);
 
   // При смене темы — сбрасываем форму и локальный банк
   useEffect(() => {
@@ -623,7 +328,6 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
   /** Добавить задание в банк */
   const handleAddItem = useCallback(async (text, type) => {
     if (!text.trim()) return;
-
     const newItem = {
       id:   `hw_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       text,
@@ -631,7 +335,6 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
     };
     const snapshot = bank;
     const newBank  = [...bank, newItem];
-
     setBank(newBank);
     setIsAdding(false);
     await persistBank(newBank, snapshot);
@@ -640,7 +343,9 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
   /** Редактировать задание */
   const handleEditItem = useCallback(async (itemId, newText, newType) => {
     const snapshot = bank;
-    const newBank = bank.map(item => item.id === itemId ? { ...item, text: newText, type: newType } : item);
+    const newBank = bank.map(item =>
+      item.id === itemId ? { ...item, text: newText, type: newType } : item
+    );
     setBank(newBank);
     await persistBank(newBank, snapshot);
   }, [bank, persistBank]);
@@ -700,7 +405,7 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
           </p>
         </div>
 
-        {/* Плашка "Тема завершена" - интерактивный тумблер */}
+        {/* Плашка «Тема завершена» — интерактивный тумблер */}
         <div className="mt-2 ml-5">
           <button
             type="button"

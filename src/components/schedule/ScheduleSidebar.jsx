@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import StudentMiniCard from "./StudentMiniCard.jsx";
 
-export default function ScheduleSidebar({ lessons, students, groups, periodLabel = "на неделе" }) {
+export default function ScheduleSidebar({ lessons, students, groups, periodLabel = "на неделе", onCreateLesson, onCreateStudent, onAddLesson, onGoToProfile, selectedEntityId, onCardClick }) {
   const cardsData = useMemo(() => {
     if (!lessons || lessons.length === 0) return [];
     
@@ -55,12 +55,41 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
     return items;
   }, [lessons, students, groups]);
 
+  const hasAnyStudents = (students && students.length > 0) || (groups && groups.length > 0);
+
+  if (!hasAnyStudents) {
+    return (
+      <div className="hidden xl:flex flex-col w-80 shrink-0">
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white rounded-[28px] shadow-sm border border-stone-200 animate-fade-in w-full">
+          <button 
+            onClick={onCreateStudent}
+            className="outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 rounded-full"
+          >
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5 transition-all bg-blue-100 text-blue-600 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+            </div>
+          </button>
+          <h3 className="text-xl font-bold text-stone-900 mb-2 tracking-tight">Здесь пока пусто</h3>
+          <p className="text-stone-500 text-sm font-medium">Чтобы составить расписание, сначала добавьте учеников</p>
+        </div>
+      </div>
+    );
+  }
+
   if (cardsData.length === 0) {
     return (
       <div className="hidden xl:flex flex-col w-80 shrink-0">
-        <h3 className="font-semibold text-slate-800 mb-4 px-1">Ученики</h3>
-        <div className="text-sm text-slate-500 bg-white p-4 rounded-2xl shadow-sm ring-1 ring-slate-200 text-center">
-          Нет запланированных занятий {periodLabel}
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white rounded-[28px] shadow-sm border border-stone-200 animate-fade-in w-full">
+          <button 
+            onClick={onCreateLesson} 
+            className="outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 rounded-full"
+          >
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5 transition-all bg-indigo-100 text-indigo-600 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="10" x2="14" y1="16" y2="16"/><line x1="12" x2="12" y1="14" y2="18"/></svg>
+            </div>
+          </button>
+          <h3 className="text-xl font-bold text-stone-900 mb-2 tracking-tight">Уроков пока нет</h3>
+          <p className="text-stone-500 text-sm font-medium">Нажмите на иконку, чтобы запланировать первое занятие.</p>
         </div>
       </div>
     );
@@ -72,13 +101,17 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
         <h3 className="font-semibold text-slate-800">Ученики</h3>
         <span className="text-xs font-bold text-slate-400">{cardsData.length}</span>
       </div>
-      <div className="flex flex-col gap-3 overflow-y-auto scrollbar-thin pr-2 pb-8" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+      <div className="flex flex-col gap-3 overflow-y-auto scrollbar-thin px-2 pt-2 pb-8 -mx-2" style={{ maxHeight: 'calc(100vh - 250px)' }}>
         {cardsData.map((data, idx) => (
           <StudentMiniCard 
             key={idx} 
             student={data.entity} 
             lessons={data.lessons} 
-            periodLabel={periodLabel} 
+            periodLabel={periodLabel}
+            onAddLesson={onAddLesson}
+            onGoToProfile={onGoToProfile}
+            onCardClick={onCardClick}
+            isSelected={data.entity.id === selectedEntityId}
           />
         ))}
       </div>

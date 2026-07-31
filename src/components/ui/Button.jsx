@@ -40,6 +40,13 @@ const variants = {
     "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory",
     "disabled:text-stone-400",
   ],
+  outline: [
+    "bg-transparent text-stone-700 border border-stone-200",
+    "hover:bg-stone-50 hover:border-stone-300",
+    "active:bg-stone-100",
+    "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2",
+    "disabled:opacity-50 disabled:bg-stone-50",
+  ],
   danger: [
     "bg-ivory text-brand-red font-bold shadow-neu-md",
     "hover:shadow-neu-lg hover:-translate-y-0.5",

@@ -11,14 +11,14 @@ import StudentTileFooter from './tile/StudentTileFooter.jsx';
 // В реальности будет браться из профиля тьютора (tutor.timezone).
 const TUTOR_TIMEZONE = "UTC+3 (Москва)";
 
-export default function StudentTile({ student, onEdit, onPayment, onHomeworkClick }) {
+export default function StudentTile({ student, studentType, showTypeBadge, onEdit, onPayment, onHomeworkClick, onOpenGuestLink, onOpenReport, onOpenLessonHistory, isHighlighted }) {
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
   const [currentProgramIndex, setCurrentProgramIndex] = useState(0);
 
   const balanceData = formatBalance(student.balance);
   const activeSubject = student.subjects?.[currentSubjectIndex] || null;
   
-  const globalStats = student.stats;
+  const globalStats = student.stats || {};
   const subjectStats = activeSubject?.stats || globalStats;
   
   // Контакты для связи
@@ -28,7 +28,7 @@ export default function StudentTile({ student, onEdit, onPayment, onHomeworkClic
   const isDifferentTimezone = student.timezone && student.timezone !== TUTOR_TIMEZONE;
 
   const avatarStyle = student.colorOklch 
-    ? { backgroundColor: `oklch(${student.colorOklch.l} ${student.colorOklch.c} ${student.colorOklch.h})`, color: 'white' }
+    ? { backgroundColor: `oklch(${student.colorOklch.l} ${student.colorOklch.c ?? 0.12} ${student.colorOklch.h})`, color: 'white' }
     : { backgroundColor: '#e7e5e4', color: '#57534e' };
 
   // Умная маршрутизация контактов
@@ -59,13 +59,25 @@ export default function StudentTile({ student, onEdit, onPayment, onHomeworkClic
   const safeProgramIndex = Math.min(currentProgramIndex, Math.max(0, activePrograms.length - 1));
 
   return (
-    <div className="group relative bg-white p-5 rounded-2xl shadow-sm ring-1 ring-slate-200 flex flex-col hover:shadow-md hover:ring-black/10 transition-all duration-300 h-full">
+    <div
+      data-student-id={student.id}
+      className={`group relative bg-white p-5 rounded-2xl shadow-sm ring-1 flex flex-col hover:shadow-md transition-all duration-300 h-full ${
+        isHighlighted
+          ? "ring-2 ring-blue-400 shadow-blue-100 shadow-md animate-highlight-pulse"
+          : "ring-slate-200 hover:ring-black/10"
+      }`}
+    >
       <StudentTileHeader 
         student={student}
         avatarStyle={avatarStyle}
         isDifferentTimezone={isDifferentTimezone}
         onContactClick={handleContactClick}
         onEdit={onEdit}
+        onOpenGuestLink={onOpenGuestLink}
+        onOpenReport={onOpenReport}
+        onOpenLessonHistory={onOpenLessonHistory}
+        studentType={studentType}
+        showTypeBadge={showTypeBadge}
       />
 
       <StudentTileFinance 

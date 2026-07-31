@@ -12,16 +12,16 @@
  * ProgramDrawer сохранён для создания новой программы.
  * Редактирование существующей — только через ProgramEditorPage.
  */
-import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Plus, Trash2, ListChecks, ChevronRight } from "lucide-react";
-import { Card, Button, Input, SideDrawer, ListInput, Tooltip } from "../components/ui/index.js";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { BookOpen, Plus } from "lucide-react";
+import { Card, Button, Input } from "../components/ui/index.js";
 import { getPrograms, addProgram, deleteProgram } from "../services/database.js";
-import { getEntityStyle, getEntityColorClasses } from "../utils/colors.js";
 import ProgramEditorPage from "../components/programs/ProgramEditorPage.jsx";
 import ProgramStructure from "../components/programs/ProgramStructure.jsx";
 import InspectorPanel from "../components/programs/InspectorPanel.jsx";
 import ExcelImportFlow from "../components/programs/ExcelImportFlow.jsx";
-import { cn } from "../utils/cn.js";
+import ProgramCard from "../components/programs/ProgramCard.jsx";
+import ProgramsFilterBar from "../components/programs/ProgramsFilterBar.jsx";
 
 
 // ─── Локальный генератор ID ─────────────────────────
@@ -30,13 +30,48 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 
 // ─── Список карточек программ ─────────────────────────────────────────────────
 function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreateNew }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("name_asc");
+
+  // Фильтрация и сортировка
+  const processedPrograms = useMemo(() => {
+    let result = [...programs];
+
+    // Поиск
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        p => (p.name || "").toLowerCase().includes(q) || (p.subject || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Сортировка
+    result.sort((a, b) => {
+      if (sortBy === "name_asc") {
+        return (a.name || "").localeCompare(b.name || "");
+      }
+      if (sortBy === "name_desc") {
+        return (b.name || "").localeCompare(a.name || "");
+      }
+      if (sortBy === "topics_desc") {
+        return (b.topics?.length || 0) - (a.topics?.length || 0);
+      }
+      if (sortBy === "topics_asc") {
+        return (a.topics?.length || 0) - (b.topics?.length || 0);
+      }
+      return 0;
+    });
+
+    return result;
+  }, [programs, searchQuery, sortBy]);
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6 sm:space-y-8 animate-fade-in">
       {/* Шапка */}
-      <header className="flex items-start justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="p-2.5 rounded-2xl text-fuchsia-600 bg-fuchsia-50">
-            <BookOpen size={22} strokeWidth={1.5} className="text-fuchsia-600" />
+          <span className="p-2.5 rounded-2xl text-[#7A5299] bg-[#7A5299]/10">
+            <BookOpen size={24} strokeWidth={1.5} />
           </span>
           <div>
             <h1 className="text-xl font-bold text-stone-900 tracking-tight">
@@ -47,101 +82,50 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
             </p>
           </div>
         </div>
-        <Button
-          variant="primary"
+        <button
           onClick={onCreateNew}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#7A5299] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A5299] active:scale-[0.98] w-full sm:w-auto"
         >
-          <Plus size={16} strokeWidth={2} />
+          <Plus size={18} strokeWidth={2} />
           Создать программу
-        </Button>
+        </button>
       </header>
+      
+      {/* Панель фильтрации и сортировки */}
+      <ProgramsFilterBar 
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+      />
 
       {/* Содержимое */}
       {isLoading ? (
         <div className="py-12 flex justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fuchsia-600" />
         </div>
-      ) : programs.length === 0 ? (
+      ) : processedPrograms.length === 0 ? (
         <Card variant="elevated" className="text-center py-12 px-6">
           <BookOpen size={48} strokeWidth={1} className="mx-auto text-fuchsia-300 mb-4" />
           <p className="text-stone-800 font-medium mb-1">
-            У вас ещё нет учебных программ.
+            {programs.length === 0 ? "У вас ещё нет учебных программ." : "По вашему запросу ничего не найдено."}
           </p>
-          <p className="text-stone-500 text-sm max-w-sm mx-auto leading-relaxed">
-            Начните с создания программы! Добавьте темы, чтобы легко планировать уроки и видеть прогресс каждого ученика.
-          </p>
+          {programs.length === 0 && (
+             <p className="text-stone-500 text-sm max-w-sm mx-auto leading-relaxed">
+               Начните с создания программы! Добавьте темы, чтобы легко планировать уроки и видеть прогресс каждого ученика.
+             </p>
+          )}
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {programs.map((prog) => {
-            const c = getEntityColorClasses();
-            return (
-              <Card
-                key={prog.id}
-                variant="elevated"
-                className={cn(
-                  "flex flex-col h-full group cursor-pointer overflow-visible",
-                  "hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300",
-                  `border-l-4 ${c.border}`,
-                )}
-                style={getEntityStyle(prog)}
-                onClick={() => onOpenEditor(prog.id)}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="min-w-0 flex-1 pr-2">
-                    <h3 className="font-bold text-stone-900 truncate">
-                      {prog.name}
-                    </h3>
-                    {prog.subject && (
-                      <p className={`text-xs font-medium ${c.text} mt-1 truncate`}>
-                        {prog.subject}
-                      </p>
-                    )}
-                  </div>
-                  {/* Hover-actions */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 flex-shrink-0">
-                    <Tooltip text="Удалить программу" position="bottom-left">
-                      <button
-                        className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(prog.id);
-                        }}
-                      >
-                        <Trash2 size={15} strokeWidth={2} />
-                      </button>
-                    </Tooltip>
-                    <Tooltip text="Открыть редактор" position="bottom-left">
-                      <div className="p-1.5 text-stone-400">
-                        <ChevronRight size={15} strokeWidth={2} />
-                      </div>
-                    </Tooltip>
-                  </div>
-                </div>
-
-                <div className="mt-auto pt-4 flex items-center gap-2 text-sm text-stone-500">
-                  <ListChecks size={16} className="text-stone-400" />
-                  <span>
-                    {(() => {
-                      const count = prog.topics?.length ?? 0;
-                      const n = Math.abs(count) % 100;
-                      const n1 = n % 10;
-                      let label = "тем";
-                      if (n <= 10 || n >= 20) {
-                        if (n1 === 1) label = "тема";
-                        else if (n1 >= 2 && n1 <= 4) label = "темы";
-                      }
-                      return (
-                        <>
-                          <strong>{count}</strong> {label}
-                        </>
-                      );
-                    })()}
-                  </span>
-                </div>
-              </Card>
-            );
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+          {processedPrograms.map((prog) => (
+            <ProgramCard 
+               key={prog.id}
+               program={prog}
+               onOpenEditor={onOpenEditor}
+               onDelete={onDelete}
+            />
+          ))}
         </div>
       )}
     </div>

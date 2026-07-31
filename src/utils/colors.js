@@ -11,11 +11,15 @@ const OKLCH_LAYERS = [
   { l: 0.89, shift: 7.5 }
 ];
 
+// Chroma 0.12 даёт насыщенный, но не кричащий пастельный тон
+const OKLCH_CHROMA = 0.12;
+
 export const OKLCH_PALETTE = [];
 for (const layer of OKLCH_LAYERS) {
   for (let i = 0; i < 12; i++) {
     OKLCH_PALETTE.push({
       l: layer.l,
+      c: OKLCH_CHROMA,
       h: (i * 30 + layer.shift) % 360
     });
   }
@@ -58,7 +62,7 @@ export function getNextDistinctColor(usedColors = []) {
     // Cycle through 3 lightness layers to maintain variety
     const candidateL = 0.86 - (i % 3) * 0.04; 
     
-    const candidate = { l: candidateL, h: candidateH };
+    const candidate = { l: candidateL, c: OKLCH_CHROMA, h: candidateH };
     const isUsed = usedColors.some(u => isSameColor(u, candidate));
     
     if (!isUsed) {
@@ -67,7 +71,7 @@ export function getNextDistinctColor(usedColors = []) {
   }
 
   // Absolute safety fallback (should never mathematically happen with floats)
-  return { l: 0.85, h: Math.floor(Math.random() * 360) };
+  return { l: 0.85, c: OKLCH_CHROMA, h: Math.floor(Math.random() * 360) };
 }
 
 export function getEntityColorClasses() {

@@ -1,11 +1,97 @@
-import React from 'react';
-import { Tooltip } from '../ui/index.js';
-import DroppableSlot from './DroppableSlot.jsx';
-import { ArrowLeft, XCircle, MoreVertical } from 'lucide-react';
-import { ymd, renderStatusIcon } from './scheduleUtils.jsx';
+import React, { useState, useMemo, useCallback } from 'react';
+import { ArrowLeft, Plus, Calendar } from 'lucide-react';
+import { ymd } from './scheduleUtils.jsx';
+import DayLessonCard from './DayLessonCard.jsx';
+import DayActionableGap from './DayActionableGap.jsx';
+import DayInspector from './DayInspector.jsx';
+
+// ── Проверяет идёт ли урок сейчас ────────────────────────────────────────────
+function isLessonNow(lesson, dateStr, todayStr) {
+  if (dateStr !== todayStr) return false;
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const [sH, sM] = lesson.startTime.split(':').map(Number);
+  const [eH, eM] = lesson.endTime.split(':').map(Number);
+  return nowMins >= sH * 60 + sM && nowMins < eH * 60 + eM;
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+function DayEmptyState({ dateStr, onCreateLesson }) {
+  return (
+    <div className="col-span-2 flex flex-col items-center justify-center py-24 px-8 text-center">
+      <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-stone-100 to-stone-50 flex items-center justify-center mb-6 shadow-sm">
+        <Calendar size={32} className="text-stone-300" />
+      </div>
+      <h3 className="text-xl font-bold text-stone-700 mb-2">Свободный день</h3>
+      <p className="text-sm text-stone-400 mb-8 max-w-[260px] leading-relaxed">
+        Нет запланированных занятий.
+      </p>
+      <button
+        onClick={() => onCreateLesson({ date: dateStr })}
+        className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-[#006584] hover:bg-[#005470] text-white text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-px"
+      >
+        <Plus size={16} strokeWidth={2.5} />
+        Запланировать урок
+      </button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Построение timeline-элементов (вертикальный стек)
+// ─────────────────────────────────────────────────────────────────────────
+//
+// Правила:
+//   • Каждый урок — строка полной ширины
+//   • Если уроки совпадают по времени (overlap) — делят строку пополам (flex row)
+//   • Gaps — тонкий разделитель-строка между блоками
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Группирует timelineItems: одновременные уроки собираются в один «ряд».
+ * Возвращает массив rows:
+ *   { type: 'lessons', items: [...] }  — один или несколько параллельных уроков
+ *   { type: 'gap', startTime, endTime } — свободное окно
+ */
+function buildRows(timelineItems) {
+  const rows = [];
+  let pending = []; // накапливаем уроки с одинаковым startTime
+
+  const flush = () => {
+    if (pending.length > 0) {
+      rows.push({ type: 'lessons', items: [...pending] });
+      pending = [];
+    }
+  };
+
+  timelineItems.forEach(item => {
+    if (item.type === 'gap') {
+      flush();
+      rows.push({ type: 'gap', startTime: item.startTime, endTime: item.endTime });
+    } else {
+      // Группируем уроки с одинаковым startTime в один ряд
+      if (
+        pending.length > 0 &&
+        pending[0].lesson.startTime !== item.lesson.startTime
+      ) {
+        flush();
+      }
+      pending.push(item);
+    }
+  });
+  flush();
+
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN
+// ═══════════════════════════════════════════════════════════════════════════
 
 export default function DayView({
   currentDate,
+  setCurrentDate,
   lessonsByDate,
   students,
   groups,
@@ -13,299 +99,183 @@ export default function DayView({
   studentsWithDebt,
   studentsWithFinDebt,
   handleOpenDrawer,
-  setPopover,
   setView,
   setNavigatedFromMonth,
   navigatedFromMonth,
   getLessonDisplayData,
-  getLessonTopic
+  getLessonTopic,
+  onFinClick,
+  onHwClick,
+  onPatchLesson,
+  onGoToProfile,
 }) {
-  const dateStr = ymd(currentDate);
-  const dayLessons = lessonsByDate[dateStr] || [];
-  const formattedDate = currentDate.toLocaleString("ru", { weekday: 'long' });
-  
-  const getPlural = (num, forms) => {
-    const n = Math.abs(num) % 100;
-    const n1 = n % 10;
-    if (n > 10 && n < 20) return forms[2];
-    if (n1 > 1 && n1 < 5) return forms[1];
-    if (n1 === 1) return forms[0];
-    return forms[2];
-  };
-  const formatMoney = (num) => new Intl.NumberFormat('ru-RU').format(num) + ' ₽';
-  
-  const revenue = dayLessons
-    .filter(l => l.status !== 'cancelled' && l.status !== 'skipped_free')
-    .reduce((sum, l) => sum + (Number(l.price) || 0), 0);
-  const lessonCount = dayLessons.length;
-  
+  const dateStr  = ymd(currentDate);
   const todayStr = ymd(new Date());
-  const isToday = dateStr === todayStr;
-  
-  const tlStartH = 8;
-  const tlEndH = 23;
-  const hours = Array.from({ length: tlEndH - tlStartH }, (_, i) => tlStartH + i);
-  const hourHeight = 120; // px
-  
-  const now = new Date();
-  const currentMins = now.getHours() * 60 + now.getMinutes();
 
+  const dayLessons = useMemo(
+    () => (lessonsByDate[dateStr] || []).sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    [lessonsByDate, dateStr]
+  );
+
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const selectedLesson = useMemo(
+    () => dayLessons.find(l => l.id === selectedLessonId) || null,
+    [dayLessons, selectedLessonId]
+  );
+
+  const handleCardClick = useCallback((lesson) => {
+    setSelectedLessonId(prev => prev === lesson.id ? null : lesson.id);
+  }, []);
+
+  const handleCloseInspector = useCallback(() => setSelectedLessonId(null), []);
+
+  const handleDateSelect = useCallback((date) => {
+    setCurrentDate(date);
+    setSelectedLessonId(null);
+  }, [setCurrentDate]);
+
+  const handleGapClick = useCallback(({ date, startTime, endTime }) => {
+    handleOpenDrawer({ date, startTime, endTime });
+  }, [handleOpenDrawer]);
+
+  // ── Timeline items ────────────────────────────────────────────────────────
+  const timelineItems = useMemo(() => {
+    const sorted = [...dayLessons];
+    const items = [];
+    const WORK_END = '22:00';
+
+    sorted.forEach((lesson, idx) => {
+      if (idx > 0) {
+        const prevEnd  = sorted[idx - 1].endTime;
+        const curStart = lesson.startTime;
+        const [pH, pM] = prevEnd.split(':').map(Number);
+        const [cH, cM] = curStart.split(':').map(Number);
+        if ((cH * 60 + cM) - (pH * 60 + pM) >= 30) {
+          items.push({ type: 'gap', startTime: prevEnd, endTime: curStart });
+        }
+      }
+      items.push({ type: 'lesson', lesson });
+    });
+
+    if (sorted.length > 0) {
+      const lastEnd = sorted[sorted.length - 1].endTime;
+      const [lH, lM] = lastEnd.split(':').map(Number);
+      const [wH, wM] = WORK_END.split(':').map(Number);
+      if ((wH * 60 + wM) - (lH * 60 + lM) >= 30) {
+        items.push({ type: 'gap', startTime: lastEnd, endTime: WORK_END });
+      }
+    }
+
+    return items;
+  }, [dayLessons]);
+
+  // Строим ряды для вертикального стека
+  const rows = useMemo(() => buildRows(timelineItems), [timelineItems]);
+
+  // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-thin pb-8 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8">
-      <div className="max-w-[1400px] mx-auto flex flex-col h-full space-y-6">
-        <div className="shrink-0 sticky top-0 backdrop-blur-md bg-white/80 z-50 border-b border-slate-100 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {navigatedFromMonth && (
-              <Tooltip text="Назад к месяцу" position="bottom">
-                <button 
-                  onClick={() => {
-                    setView("month");
-                    setNavigatedFromMonth(false);
-                  }}
-                  className="p-1.5 hover:bg-slate-50 text-slate-500 rounded-lg transition-colors"
-                >
-                  <ArrowLeft size={18} />
-                </button>
-              </Tooltip>
-            )}
-            <h3 className="text-base font-semibold text-slate-800 capitalize">
-              {formattedDate}
-            </h3>
+    <div className="flex-1 flex min-h-0 overflow-hidden gap-4 py-4">
+
+      {/* ══════════════════════════════════════════════════════════════════
+          ЛЕВАЯ КОЛОНКА — вертикальный стек в Surface-боксе
+      ══════════════════════════════════════════════════════════════════ */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+
+        {/* Кнопка назад (только если пришли из месяца) */}
+        {navigatedFromMonth && (
+          <div className="px-6 pt-3 shrink-0">
+            <button
+              onClick={() => { setView('month'); setNavigatedFromMonth(false); }}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-400 hover:text-[#006584] transition-colors"
+            >
+              <ArrowLeft size={13} />
+              К месяцу
+            </button>
           </div>
-          {lessonCount > 0 && (
-            <div className="text-slate-600 bg-white/60 px-4 py-1.5 rounded-xl text-sm font-semibold shadow-sm ring-1 ring-slate-200 flex items-center gap-2">
-              <span>{lessonCount} {getPlural(lessonCount, ["урок", "урока", "уроков"])}</span>
-              {revenue > 0 && (
-                <>
-                  <span className="text-slate-300">•</span>
-                  <span className="text-emerald-600">{formatMoney(revenue)}</span>
-                </>
-              )}
+        )}
+
+        {/* Surface-бокс */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin">
+          {dayLessons.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-stone-100 overflow-hidden">
+              <DayEmptyState dateStr={dateStr} onCreateLesson={handleOpenDrawer} />
+            </div>
+          ) : (
+            <div className="bg-white rounded-[32px] shadow-sm border border-stone-100 p-5 sm:p-6 flex flex-col gap-4">
+              {rows.map((row, idx) => {
+
+                // ── Gap-строка ──
+                if (row.type === 'gap') {
+                  return (
+                    <div key={`gap-${row.startTime}`}>
+                      <DayActionableGap
+                        dateStr={dateStr}
+                        startTime={row.startTime}
+                        endTime={row.endTime}
+                        onClick={handleGapClick}
+                      />
+                    </div>
+                  );
+                }
+
+                // ── Ряд уроков (один или несколько параллельных) ──
+                return (
+                  <div key={`row-${idx}`} className="flex rounded-xl overflow-hidden">
+                    {row.items.map((item, itemIdx) => {
+                      const lesson = item.lesson;
+                      const { title, entityStyle, hasHwDebt, hasFinDebt } = getLessonDisplayData(lesson);
+                      const topicTitle = getLessonTopic(lesson);
+                      const isCurrent  = isLessonNow(lesson, dateStr, todayStr);
+
+                      return (
+                        <div
+                          key={lesson.id}
+                          className={[
+                            'flex-1 min-w-0',
+                            itemIdx > 0 ? 'border-l border-white/40' : '',
+                          ].join(' ')}
+                        >
+                          <DayLessonCard
+                            lesson={lesson}
+                            title={title}
+                            entityStyle={entityStyle}
+                            hasHwDebt={hasHwDebt}
+                            hasFinDebt={hasFinDebt}
+                            topicTitle={topicTitle}
+                            isSelected={selectedLessonId === lesson.id}
+                            isCurrentLesson={isCurrent}
+                            onClick={handleCardClick}
+                            onHwDebtClick={onHwClick}
+                            onFinDebtClick={onFinClick}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
-        
-        <div className="flex-1 flex bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden mb-4 relative min-h-[600px] max-w-[1400px] mx-auto w-full p-2 sm:p-4">
-          {/* Y-axis timeline */}
-          <div className="w-12 sm:w-16 shrink-0 border-r border-slate-100 bg-white z-40">
-            <div className="relative" style={{ height: hours.length * hourHeight }}>
-              {hours.map(h => (
-                <div key={h} className="absolute w-full text-right pr-2 text-[10px] font-semibold text-slate-600 -translate-y-1/2" style={{ top: (h - tlStartH) * hourHeight }}>
-                  {h}:00
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Grid Body */}
-          <div className="flex-1 relative min-w-[300px]">
-            {/* Horizontal Grid Lines */}
-            <div className="absolute inset-0 pointer-events-none z-0">
-              {hours.map(h => (
-                <div key={h} className="absolute w-full border-t border-slate-100 border-dashed" style={{ top: (h - tlStartH) * hourHeight }} />
-              ))}
-            </div>
+      </div>
 
-            {/* Current Time Indicator */}
-            {isToday && currentMins >= tlStartH * 60 && currentMins <= tlEndH * 60 && (
-              <div 
-                className="absolute left-0 right-0 z-30 pointer-events-none"
-                style={{ top: ((currentMins - tlStartH * 60) / 60) * hourHeight }}
-              >
-                <div className="h-[2px] bg-indigo-500 w-full relative shadow-[0_0_8px_rgba(99,102,241,0.5)]">
-                  <div className="absolute left-0 -translate-y-1/2 w-2.5 h-2.5 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.8)]">
-                    <div className="absolute inset-0 rounded-full bg-indigo-400 animate-ping opacity-75"></div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div 
-              className="absolute inset-0 z-10"
-            >
-              {/* Background Clickable Area (to add lesson) */}
-              <div className="absolute inset-0 flex flex-col z-10">
-                {hours.map(h => (
-                  <DroppableSlot
-                    key={h}
-                    id={`day-slot-${dateStr}-${h}`}
-                    date={dateStr}
-                    className="w-full hover:bg-stone-200/40 hover:shadow-neu-sm-inset transition-all cursor-pointer"
-                    style={{ height: hourHeight }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenDrawer({ date: dateStr, startTime: `${String(h).padStart(2, '0')}:00` });
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Lessons */}
-              {(() => {
-                const sorted = [...dayLessons].map(l => {
-                  const [sH, sM] = l.startTime.split(':').map(Number);
-                  const [eH, eM] = l.endTime.split(':').map(Number);
-                  let startMins = sH * 60 + sM;
-                  let endMins = eH * 60 + eM;
-                  if (endMins - startMins < 30) {
-                    endMins = startMins + 30; // Enforce minimum visual duration
-                  }
-                  return { ...l, startMins, endMins };
-                }).sort((a, b) => a.startMins - b.startMins || (b.endMins - b.startMins) - (a.endMins - a.startMins));
-
-                let clusters = [];
-                sorted.forEach(l => {
-                  if (clusters.length === 0) {
-                    clusters.push([l]);
-                  } else {
-                    let lastCluster = clusters[clusters.length - 1];
-                    let clusterEnd = Math.max(...lastCluster.map(c => c.endMins));
-                    if (l.startMins < clusterEnd) {
-                      lastCluster.push(l);
-                    } else {
-                      clusters.push([l]);
-                    }
-                  }
-                });
-
-                const positioned = [];
-                clusters.forEach(cluster => {
-                  let columns = [];
-                  cluster.forEach(l => {
-                    let placed = false;
-                    for (let i = 0; i < columns.length; i++) {
-                      const col = columns[i];
-                      const lastInCol = col[col.length - 1];
-                      if (l.startMins >= lastInCol.endMins) {
-                        col.push(l);
-                        placed = true;
-                        break;
-                      }
-                    }
-                    if (!placed) {
-                      columns.push([l]);
-                    }
-                  });
-                  
-                  const numCols = columns.length;
-                  columns.forEach((col, colIndex) => {
-                    col.forEach(l => {
-                      positioned.push({ ...l, colIndex, numCols });
-                    });
-                  });
-                });
-
-                return positioned.map(l => {
-                  let displayStart = l.startMins;
-                  let displayEnd = l.endMins;
-                  if (displayStart < tlStartH * 60) displayStart = tlStartH * 60;
-                  if (displayEnd > tlEndH * 60) displayEnd = tlEndH * 60;
-                  
-                  const top = ((displayStart - (tlStartH * 60)) / 60) * hourHeight;
-                  const height = Math.max(60, ((displayEnd - displayStart) / 60) * hourHeight); // Ensure minimum 60px height
-                  
-                  const leftPercent = (l.colIndex / l.numCols) * 100;
-                  const widthPercent = 100 / l.numCols;
-                  
-                  const { title, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt } = getLessonDisplayData(l);
-                  const topicTitle = getLessonTopic(l);
-                  const isPast = ymd(new Date(l.date)) < ymd(new Date());
-                  const isFaded = false;
-                  
-                  return (
-                    <div 
-                      key={l.id} 
-                      className="absolute transition-all z-30 hover:z-40 px-1 py-[1px]"
-                      style={{ 
-                        top, 
-                        height,
-                        left: `${leftPercent}%`,
-                        width: `${widthPercent}%`
-                      }}
-                    >
-                      <div 
-                        className={`h-full w-full entity-light-bg rounded-xl shadow-sm ring-1 ring-slate-200 border-t-[4px] entity-border-top flex items-center justify-between px-3 py-2 cursor-pointer transition-all outline-none group hover:shadow-md hover:-translate-y-px overflow-hidden ${isFaded ? "opacity-60" : ""}`}
-                        style={entityStyle}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenDrawer(l);
-                        }}
-                      >
-                        {/* Left: Time & Info */}
-                        <div className="flex gap-3 items-center flex-1 min-w-0 h-full">
-                          
-                          <div className={`font-bold tabular-nums text-sm sm:text-base flex items-center justify-center shrink-0 pr-3 border-r-2 border-[#006584]/20 ${textColorClass} h-full`}>
-                            <span>{l.startTime} — {l.endTime}</span>
-                          </div>
-                          
-                          <div className="min-w-0 flex-1 flex flex-col justify-center">
-                            <div className="font-bold text-stone-800 text-sm sm:text-base truncate leading-tight mb-0.5">{title}</div>
-                            <div className="text-[10px] sm:text-xs text-stone-500 font-medium flex items-center gap-1.5 flex-wrap">
-                              <span className="bg-white/60 px-1.5 rounded">{l.subjectName}</span>
-                              {l.status === 'cancelled' ? (
-                                <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1 rounded-sm">Отменён</span>
-                              ) : l.status === 'skipped_free' ? (
-                                <span className="text-[9px] font-bold text-stone-600 bg-stone-200 px-1 rounded-sm">б/о</span>
-                              ) : (
-                                renderStatusIcon(l.status)
-                              )}
-                              {topicTitle && height >= 60 && (
-                                <>
-                                  <span className="text-stone-300">•</span>
-                                  <span className="truncate max-w-[120px] sm:max-w-[200px]" title={topicTitle}>{topicTitle}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Right: Actions */}
-                        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-2">
-                          {hasHwDebt && (
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenDrawer(l, "hw");
-                              }}
-                              className="flex flex-col items-center justify-center w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl font-bold text-[8px] sm:text-[9px] uppercase transition-all outline-none bg-white shadow-sm ring-1 ring-slate-200 active:bg-slate-50 text-[#B71234] hover:text-rose-600"
-                            >
-                              <span className="leading-none mb-0.5">ДЗ</span>
-                              <XCircle size={10} className="sm:hidden" strokeWidth={2.5}/>
-                              <XCircle size={12} className="hidden sm:block" strokeWidth={2.5}/>
-                            </button>
-                          )}
-                          {hasFinDebt && (
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenDrawer(l, "fin");
-                              }}
-                              className="flex flex-col items-center justify-center w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl font-bold text-[8px] sm:text-[9px] uppercase transition-all outline-none bg-white shadow-sm ring-1 ring-slate-200 active:bg-slate-50 text-[#B71234] hover:text-rose-600"
-                            >
-                              <span className="leading-none mb-0.5">₽</span>
-                              <XCircle size={10} className="sm:hidden" strokeWidth={2.5}/>
-                              <XCircle size={12} className="hidden sm:block" strokeWidth={2.5}/>
-                            </button>
-                          )}
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setPopover({ lesson: l, triggerRect: rect });
-                            }}
-                            className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-stone-400 hover:text-indigo-600 hover:bg-white/50 shadow-sm rounded-xl transition-all"
-                          >
-                            <MoreVertical size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-        </div>
+      {/* ══════════════════════════════════════════════════════════════════
+          ПРАВАЯ КОЛОНКА — Инспектор (50% экрана)
+      ══════════════════════════════════════════════════════════════════ */}
+      <div className="hidden lg:flex flex-1 min-w-0 flex-col overflow-hidden">
+        <DayInspector
+          selectedLesson={selectedLesson}
+          currentDate={currentDate}
+          lessonsByDate={lessonsByDate}
+          students={students}
+          groups={groups}
+          onDateSelect={handleDateSelect}
+          onClose={handleCloseInspector}
+          onOpenDrawer={handleOpenDrawer}
+          onPatchLesson={onPatchLesson}
+          onPaymentClick={onFinClick}
+          onGoToProfile={onGoToProfile}
+        />
       </div>
     </div>
   );

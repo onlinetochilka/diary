@@ -31,6 +31,7 @@ export default function GroupFormDrawer({
   const [formData, setFormData] = useState({
     name: "",
     subjectName: "",
+    format: "online",
     programs: [],
     paymentType: "per_lesson",
     price: "",
@@ -49,6 +50,7 @@ export default function GroupFormDrawer({
       initial = {
         name: initialData.name || "",
         subjectName: initialData.subjectName || "",
+        format: initialData.format || "online",
         programs: initialData.programs || [],
         paymentType: initialData.paymentType || "per_lesson",
         price: initialData.price?.toString() || "",
@@ -60,6 +62,7 @@ export default function GroupFormDrawer({
       initial = {
         name: "",
         subjectName: "",
+        format: "online",
         programs: [],
         paymentType: "per_lesson",
         price: "",
@@ -149,6 +152,7 @@ export default function GroupFormDrawer({
     const groupData = {
       name: formData.name,
       subjectName: formData.subjectName,
+      format: formData.format || "online",
       programs: formData.programs,
       studentIds: formData.studentIds,
       price: Number(formData.price) || 0,
@@ -227,7 +231,7 @@ export default function GroupFormDrawer({
             />
             
             <div className="grid grid-cols-2 gap-3">
-              <div>
+              <div className="space-y-3">
                 <Input
                   label="Предмет"
                   value={formData.subjectName}
@@ -243,6 +247,18 @@ export default function GroupFormDrawer({
                     <option key={sub} value={sub} />
                   ))}
                 </datalist>
+                <div>
+                  <p className="text-[11px] font-bold tracking-widest text-stone-400 uppercase mb-1.5">Формат</p>
+                  <SegmentedControl
+                    options={[
+                      { label: "Онлайн", value: "online" },
+                      { label: "Офлайн", value: "offline" },
+                      { label: "Смешанный", value: "mixed" },
+                    ]}
+                    value={formData.format}
+                    onChange={(val) => handleChange("format", val)}
+                  />
+                </div>
               </div>
               <div className="flex-1 space-y-3">
                 <p className="text-[11px] font-bold tracking-widest text-stone-400 uppercase">Назначенные программы</p>

@@ -26,49 +26,43 @@ export const NAV_ITEMS = [
     id:     "dashboard",
     label:  "Главная",
     icon:   LayoutDashboard,
-    accent: "text-stone-600 group-[.active]:text-stone-900",
-    activeBg: "bg-stone-100",
-    activeBorder: "border-stone-400",
+    activeBg: "bg-[#3B5266]/10",
+    activeText: "text-[#3B5266]",
   },
   {
     id:     "schedule",
     label:  "Расписание",
     icon:   CalendarDays,
-    accent: "group-[.active]:text-indigo-600",
-    activeBg: "bg-indigo-50",
-    activeBorder: "border-indigo-400",
+    activeBg: "bg-[#1B4F72]/10",
+    activeText: "text-[#1B4F72]",
   },
   {
     id:     "students",
     label:  "Ученики",
     icon:   Users,
-    accent: "group-[.active]:text-violet-600",
-    activeBg: "bg-violet-50",
-    activeBorder: "border-violet-400",
+    activeBg: "bg-[#7A404D]/10",
+    activeText: "text-[#7A404D]",
   },
   {
     id:     "programs",
     label:  "Программы",
     icon:   BookOpen,
-    accent: "group-[.active]:text-fuchsia-600",
-    activeBg: "bg-fuchsia-50",
-    activeBorder: "border-fuchsia-400",
+    activeBg: "bg-[#7A5299]/10",
+    activeText: "text-[#7A5299]",
   },
   {
     id:     "finance",
     label:  "Финансы",
     icon:   Wallet,
-    accent: "group-[.active]:text-emerald-600",
-    activeBg: "bg-emerald-50",
-    activeBorder: "border-emerald-400",
+    activeBg: "bg-[#426B5C]/10",
+    activeText: "text-[#426B5C]",
   },
   {
     id:     "settings",
     label:  "Настройки",
     icon:   Settings,
-    accent: "group-[.active]:text-stone-700",
-    activeBg: "bg-stone-100",
-    activeBorder: "border-stone-300",
+    activeBg: "bg-[#636B74]/10",
+    activeText: "text-[#636B74]",
   },
 ];
 
@@ -165,13 +159,13 @@ export default function Sidebar({ activePage, onNavigate }) {
                 className={cn(
                   "shrink-0 transition-colors duration-200",
                   isActive
-                    ? "text-blue-500" // vibrant blue for active icon
-                    : "text-slate-400 group-hover:text-slate-500", // slight blue tint
+                    ? item.activeText
+                    : "text-slate-400 group-hover:text-slate-500",
                 )}
               />
               <span className={cn(
                 "transition-colors duration-200",
-                isActive ? "text-blue-600 font-bold" : "text-slate-500 group-hover:text-slate-700 font-medium",
+                isActive ? `${item.activeText} font-bold` : "text-slate-500 group-hover:text-slate-700 font-medium",
               )}>
                 {item.label}
               </span>
@@ -203,7 +197,7 @@ export default function Sidebar({ activePage, onNavigate }) {
           ) : (
             <>
               <PlaySquare size={16} strokeWidth={2.5} />
-              Демо-режим
+              Запустить демо
             </>
           )}
         </button>

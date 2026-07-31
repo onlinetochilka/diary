@@ -1,6 +1,15 @@
 import React from "react";
 import { formatMoney } from "../../utils/format.js";
 
+function StatItem({ label, value }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <span className="text-xl font-black text-stone-800 tabular-nums leading-none">{value}</span>
+      <span className="text-[11px] font-medium text-stone-400 leading-none">{label}</span>
+    </div>
+  );
+}
+
 export default function ScheduleStatsRow({ lessons, students, periodLabel = "на неделе" }) {
   if (!lessons || lessons.length === 0) {
     return null;
@@ -47,23 +56,14 @@ export default function ScheduleStatsRow({ lessons, students, periodLabel = "н�
   });
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 flex-1 px-2 sm:px-4">
-      <div className="bg-white px-3 py-1.5 rounded-xl shadow-sm ring-1 ring-slate-200 flex flex-col items-center sm:items-start min-w-[90px]">
-        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Занятий</span>
-        <span className="text-base sm:text-lg font-black text-slate-800 leading-none">{totalLessons}</span>
-      </div>
-      <div className="bg-white px-3 py-1.5 rounded-xl shadow-sm ring-1 ring-slate-200 flex flex-col items-center sm:items-start min-w-[90px]">
-        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Часов</span>
-        <span className="text-base sm:text-lg font-black text-slate-800 leading-none">{Number(totalHours.toFixed(1))}</span>
-      </div>
-      <div className="bg-white px-3 py-1.5 rounded-xl shadow-sm ring-1 ring-slate-200 flex flex-col items-center sm:items-start min-w-[90px]">
-        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Учеников</span>
-        <span className="text-base sm:text-lg font-black text-slate-800 leading-none">{uniqueStudents.size}</span>
-      </div>
-      <div className="bg-white px-3 py-1.5 rounded-xl shadow-sm ring-1 ring-slate-200 flex flex-col items-center sm:items-start min-w-[110px]">
-        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Доход</span>
-        <span className="text-base sm:text-lg font-black text-slate-800 leading-none">{formatMoney(expectedRevenue)}</span>
-      </div>
+    <div className="flex items-center gap-5 px-2">
+      <StatItem label="занятий" value={totalLessons} />
+      <div className="w-px h-6 bg-stone-200 shrink-0" />
+      <StatItem label="часов" value={Number(totalHours.toFixed(1))} />
+      <div className="w-px h-6 bg-stone-200 shrink-0" />
+      <StatItem label="учеников" value={uniqueStudents.size} />
+      <div className="w-px h-6 bg-stone-200 shrink-0" />
+      <StatItem label="доход" value={formatMoney(expectedRevenue)} />
     </div>
   );
 }

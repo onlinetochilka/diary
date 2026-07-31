@@ -96,7 +96,7 @@ function NewsCardFallback() {
         "
       >
         <TelegramIcon size={16} className="transition-transform duration-200 group-hover:scale-110" />
-        Перейти в канал
+        Открыть Telegram-канал
       </a>
     </div>
   );

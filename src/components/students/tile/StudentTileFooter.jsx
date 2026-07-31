@@ -6,7 +6,7 @@ export default function StudentTileFooter({ student, globalStats }) {
       <div className="flex flex-col">
         <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider mb-0.5">Общий доход</span>
         <span className="text-[13px] font-semibold text-stone-700">
-          {student.ltv.toLocaleString('ru-RU')} ₽
+          {(student.ltv || 0).toLocaleString('ru-RU')} ₽
         </span>
       </div>
       <div className="flex flex-col items-end">

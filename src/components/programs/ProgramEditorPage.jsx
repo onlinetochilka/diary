@@ -240,10 +240,22 @@ export default function ProgramEditorPage({
   // ── Сохранение ───────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     if (!program || !isDirty) return;
+    
+    // Валидация обязательных полей
+    if (!program.name?.trim() || !program.subject?.trim()) {
+      showToast({
+        message: "Заполните обязательные поля: Название и Предмет",
+        type: "error",
+      });
+      // Если инспектор не открыт на главной странице, сбрасываем его, чтобы пользователь увидел поля
+      setSelectedItem({ type: null, id: null });
+      return;
+    }
+
     try {
       await updateProgramStructure(programId, {
-        name:     program.name,
-        subject:  program.subject,
+        name:     program.name.trim(),
+        subject:  program.subject.trim(),
         sections: program.sections,
         topics:   program.topics,
       });

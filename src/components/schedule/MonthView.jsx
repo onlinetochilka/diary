@@ -16,7 +16,12 @@ export default function MonthView({
   setCurrentDate,
   setView,
   setNavigatedFromMonth,
-  periodLessons
+  periodLessons,
+  onCreateStudent,
+  handleOpenDrawer,
+  onGoToProfile,
+  selectedEntityId,
+  onCardClick,
 }) {
   const daysInMonth = getDaysInMonth(year, currentDate.getMonth());
   const firstDay = getFirstDayOfMonth(year, currentDate.getMonth());
@@ -45,7 +50,12 @@ export default function MonthView({
           if (!day) return <div key={idx} className="min-w-0 border-r border-b border-slate-200/60 bg-slate-50/40 p-1" />;
           
           const dateStr = ymd(new Date(year, currentDate.getMonth(), day));
-          const dayLessons = lessonsByDate[dateStr] || [];
+          let dayLessons = lessonsByDate[dateStr] || [];
+          
+          if (selectedEntityId) {
+            dayLessons = dayLessons.filter(l => l.studentId === selectedEntityId || l.groupId === selectedEntityId || l.studentIds?.includes(selectedEntityId));
+          }
+
           const isToday = dateStr === todayStr;
           const isPast = dateStr < todayStr;
 
@@ -163,7 +173,20 @@ export default function MonthView({
         lessons={periodLessons} 
         students={students} 
         groups={groups} 
-        periodLabel="в этом месяце" 
+        periodLabel="в этом месяце"
+        onCreateLesson={() => handleOpenDrawer({})} 
+        onCreateStudent={onCreateStudent}
+        onAddLesson={(entity) => {
+          const isGroup = !entity.grade && entity.subjects?.[0]?.name === "Групповое занятие";
+          handleOpenDrawer(
+            isGroup
+              ? { type: "group",      groupId:   entity.id }
+              : { type: "individual", studentId: entity.id }
+          );
+        }}
+        onGoToProfile={onGoToProfile}
+        selectedEntityId={selectedEntityId}
+        onCardClick={onCardClick}
       />
     </div>
   );
