@@ -10,6 +10,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
   // Local state for tracking single homework status
   const [singleHwStatus, setSingleHwStatus] = useState("on_time");
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [payNote, setPayNote] = useState("");
   
   const isMoney = item?.type === "money";
   const title = mode === "remind" 
@@ -64,6 +65,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
           setSingleHwStatus("on_time");
         } else if (isMoney) {
           setPaymentAmount(item.amount.toString());
+          setPayNote("");
         }
       }
     }
@@ -123,17 +125,27 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
               </p>
               
               {isMoney && (
-                <div className="mt-2 flex items-center justify-center gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200 shadow-inner max-w-[240px] mx-auto">
-                  <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">Сумма:</span>
-                  <input 
-                    type="number" 
-                    className="w-28 text-center text-2xl font-black text-[#B71234] bg-transparent border-none focus:outline-none focus:ring-0 p-0 m-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    min="1"
-                    step="1"
+                <div className="mt-2 space-y-3 w-full max-w-[320px] mx-auto">
+                  <div className="flex items-center justify-center gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200 shadow-inner">
+                    <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">Сумма:</span>
+                    <input 
+                      type="number" 
+                      className="w-28 text-center text-2xl font-black text-[#B71234] bg-transparent border-none focus:outline-none focus:ring-0 p-0 m-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      min="1"
+                      step="1"
+                    />
+                    <span className="text-lg font-bold text-stone-400">₽</span>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Комментарий к оплате (необязательно)"
+                    className="w-full text-sm bg-stone-50 border border-stone-200 rounded-xl py-2.5 px-4 text-stone-700 placeholder:text-stone-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+                    value={payNote}
+                    onChange={(e) => setPayNote(e.target.value)}
+                    maxLength={120}
                   />
-                  <span className="text-lg font-bold text-stone-400">₽</span>
                 </div>
               )}
 
@@ -207,7 +219,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                 onClick={() => {
                   if (onConfirm) {
                     if (isMoney) {
-                      onConfirm(item, paymentAmount);
+                      onConfirm(item, paymentAmount, payNote.trim());
                     } else if (isMultiple) {
                       onConfirm(item, selectedLessons);
                     } else {

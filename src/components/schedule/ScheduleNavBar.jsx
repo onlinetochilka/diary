@@ -16,7 +16,7 @@
  *   onViewChange    — (view) => void
  *   onCreateLesson  — () => void
  */
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
 
 const VIEW_LABELS = { month: "Месяц", week: "Неделя", day: "День" };
 
@@ -80,7 +80,7 @@ export function ScheduleNavBar({
           onClick={onCreateLesson}
           className="ml-2 flex items-center justify-center gap-2 px-5 py-2.5 bg-[#1B4F72] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1B4F72] active:scale-[0.98]"
         >
-          <Plus size={18} strokeWidth={2} />
+          <CalendarPlus size={18} strokeWidth={1.75} />
           Новый урок
         </button>
       </div>

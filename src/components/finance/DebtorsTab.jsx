@@ -30,6 +30,7 @@ export default function DebtorsTab({ debtors, onRefresh }) {
   const [sortOrder,   setSortOrder]   = useState("asc");
   const [activeAction, setActiveAction] = useState(null);   // { studentId, type: 'pay'|'remind' }
   const [payAmount,   setPayAmount]   = useState("");
+  const [payNote,     setPayNote]     = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [copied,      setCopied]      = useState(false);
@@ -55,11 +56,12 @@ export default function DebtorsTab({ debtors, onRefresh }) {
       amount:    Number(payAmount),
       currency:  "RUB",
       paidAt:    new Date().toISOString(),
-      note:      "Оплата занятий",
+      note:      payNote.trim() || "Оплата занятий",
     });
     if (onRefresh) await onRefresh();
     setIsSubmitting(false);
     setShowSuccess(true);
+    setPayNote("");
     setTimeout(() => { setShowSuccess(false); setActiveAction(null); }, 1000);
   };
 
@@ -184,27 +186,38 @@ export default function DebtorsTab({ debtors, onRefresh }) {
                               </div>
                             ) : (
                               /* Pay form */
-                              <div className="flex flex-col sm:flex-row gap-4 items-center">
-                                <div className="relative max-w-[200px] w-full">
-                                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span className="text-stone-400 font-medium">₽</span>
+                              <div className="flex flex-col gap-3">
+                                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                                  <div className="relative max-w-[200px] w-full">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                      <span className="text-stone-400 font-medium">₽</span>
+                                    </div>
+                                    <input
+                                      type="text" inputMode="numeric"
+                                      className="w-full text-lg font-bold bg-white border border-stone-200 rounded-xl py-2 pl-8 pr-4 text-stone-900 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-sm"
+                                      value={payAmount ? String(payAmount).replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, " ") : ""}
+                                      onChange={(e) => setPayAmount(e.target.value.replace(/\D/g, ""))}
+                                      disabled={isSubmitting || showSuccess}
+                                      autoFocus
+                                    />
                                   </div>
                                   <input
-                                    type="text" inputMode="numeric"
-                                    className="w-full text-lg font-bold bg-white border border-stone-200 rounded-xl py-2 pl-8 pr-4 text-stone-900 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-sm"
-                                    value={payAmount ? String(payAmount).replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, " ") : ""}
-                                    onChange={(e) => setPayAmount(e.target.value.replace(/\D/g, ""))}
+                                    type="text"
+                                    placeholder="Комментарий (необязательно)"
+                                    className="flex-1 w-full text-sm bg-white border border-stone-200 rounded-xl py-2.5 px-4 text-stone-700 placeholder:text-stone-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-sm"
+                                    value={payNote}
+                                    onChange={(e) => setPayNote(e.target.value)}
                                     disabled={isSubmitting || showSuccess}
-                                    autoFocus
+                                    maxLength={120}
                                   />
+                                  <Button
+                                    className={`w-full sm:w-auto px-6 h-11 text-white font-medium ${showSuccess ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"} shadow-lg rounded-xl transition-all flex items-center justify-center shrink-0`}
+                                    onClick={() => handlePay(s)}
+                                    disabled={isSubmitting || showSuccess || !payAmount}
+                                  >
+                                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : showSuccess ? <Check size={18} className="animate-in zoom-in" /> : "Подтвердить оплату"}
+                                  </Button>
                                 </div>
-                                <Button
-                                  className={`w-full sm:w-auto px-6 h-11 text-white font-medium ${showSuccess ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"} shadow-lg rounded-xl transition-all flex items-center justify-center`}
-                                  onClick={() => handlePay(s)}
-                                  disabled={isSubmitting || showSuccess || !payAmount}
-                                >
-                                  {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : showSuccess ? <Check size={18} className="animate-in zoom-in" /> : "Подтвердить оплату"}
-                                </Button>
                               </div>
                             )}
                           </div>

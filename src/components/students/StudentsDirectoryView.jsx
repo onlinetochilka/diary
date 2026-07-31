@@ -6,14 +6,18 @@ import ActionItemModal from '../dashboard/ActionItemModal.jsx';
 import GroupCard from './GroupCard.jsx';
 import { useStudentsFilter } from '../../hooks/useStudentsFilter.js';
 import StudentsEmptyState from './StudentsEmptyState.jsx';
+import { addPayment } from '../../services/database.js';
 
 export default function StudentsDirectoryView({ students = [], groups = [], onEdit, onEditGroup, onCreate, onCreateGroup, highlightStudentId, onHighlightDone, onOpenGuestLink, onOpenReport, onOpenLessonHistory, onOpenGroupLessonHistory, onOpenGroupReport }) {
   // Состояние модалки ДЗ
   const [hwModal, setHwModal] = useState({ isOpen: false, item: null });
+  // Состояние модалки оплаты
+  const [payModal, setPayModal] = useState({ isOpen: false, item: null });
 
   // Логика фильтрации вынесена в кастомный хук
   const {
     filteredItems,
+    formatCounts,
     activeStatus,
     setActiveStatus,
     activeFormat,
@@ -43,9 +47,17 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
     return () => clearTimeout(timer);
   }, [highlightStudentId, students.length]);
 
-  // Обработчик "Внести оплату" (заглушка для модалки)
+  // Обработчик "Внести оплату"
   const handlePayment = (studentId) => {
-    // TODO: открыть модалку оплаты (dispatch / контекст)
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+    const debt = Math.abs(student.balance || 0);
+    const payItem = {
+      type: 'money',
+      student,
+      amount: debt > 0 ? debt : (student.subjects?.[0]?.price || 0),
+    };
+    setPayModal({ isOpen: true, item: payItem });
   };
 
   const handleHomeworkClick = (studentId, subjectId) => {
@@ -116,6 +128,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
         onStatusChange={setActiveStatus}
         activeFormat={activeFormat}
         onFormatChange={setActiveFormat}
+        formatCounts={formatCounts}
         showDebtorsOnly={showDebtorsOnly}
         onToggleDebtors={setShowDebtorsOnly}
         searchQuery={searchQuery}
@@ -181,6 +194,25 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
         item={hwModal.item}
         mode="action"
         onConfirm={handleHwConfirm}
+      />
+
+      {/* Модалка оплаты */}
+      <ActionItemModal
+        isOpen={payModal.isOpen}
+        onClose={() => setPayModal({ isOpen: false, item: null })}
+        item={payModal.item}
+        mode="action"
+        onConfirm={async (item, amount, note) => {
+          await addPayment({
+            studentId:   item.student.id,
+            studentName: item.student.name,
+            amount:      Number(amount) || 0,
+            paidAt:      new Date().toISOString(),
+            note:        note || 'Оплата занятий',
+          });
+          setPayModal({ isOpen: false, item: null });
+          window.dispatchEvent(new CustomEvent('force-refresh-data'));
+        }}
       />
     </div>
   );

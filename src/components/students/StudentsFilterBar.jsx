@@ -7,6 +7,7 @@ export default function StudentsFilterBar({
   onStatusChange,
   activeFormat,
   onFormatChange,
+  formatCounts = { all: 0, individuals: 0, groups: 0 },
   showDebtorsOnly,
   onToggleDebtors,
   searchQuery,
@@ -71,6 +72,14 @@ export default function StudentsFilterBar({
               >
                 <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
                 <span className="hidden sm:inline">{segment.label}</span>
+                <span className={cn(
+                  "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold leading-none tabular-nums transition-colors",
+                  isActive
+                    ? "bg-academic-blue/20 text-academic-blue"
+                    : "bg-stone-200 text-stone-500"
+                )}>
+                  {formatCounts[segment.id] ?? 0}
+                </span>
               </button>
             );
           })}

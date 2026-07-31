@@ -15,6 +15,48 @@ export function useStudentsFilter(initialStudents = [], initialGroups = []) {
   const [showDebtorsOnly, setShowDebtorsOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Counts per format segment (ignores activeFormat, respects status/debtors/search)
+  const formatCounts = useMemo(() => {
+    const groupStudentIds = new Set();
+    initialGroups.forEach(g => {
+      (g.studentIds || []).forEach(id => groupStudentIds.add(id));
+    });
+
+    let individualsCount = 0;
+    let groupsCount = 0;
+
+    initialStudents.forEach(student => {
+      if (activeStatus === 'archive' && !student.isArchived) return;
+      if (activeStatus === 'active' && student.isArchived) return;
+      if (showDebtorsOnly && !student._isDebtor) return;
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        if (!student.name.toLowerCase().includes(query)) return;
+      }
+      const studentType = getStudentType(student, groupStudentIds);
+      if (studentType !== 'group_only') individualsCount++;
+    });
+
+    if (activeStatus !== 'archive' && !showDebtorsOnly) {
+      initialGroups.forEach(group => {
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase();
+          if (
+            !group.name.toLowerCase().includes(query) &&
+            !(group.subjectName || '').toLowerCase().includes(query)
+          ) return;
+        }
+        groupsCount++;
+      });
+    }
+
+    return {
+      all: individualsCount + groupsCount,
+      individuals: individualsCount,
+      groups: groupsCount,
+    };
+  }, [initialStudents, initialGroups, activeStatus, showDebtorsOnly, searchQuery]);
+
   const filteredItems = useMemo(() => {
     const groupStudentIds = new Set();
     initialGroups.forEach(g => {
@@ -79,6 +121,7 @@ export function useStudentsFilter(initialStudents = [], initialGroups = []) {
 
   return {
     filteredItems,
+    formatCounts,
     activeStatus,
     setActiveStatus,
     activeFormat,

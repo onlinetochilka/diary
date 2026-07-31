@@ -109,7 +109,14 @@ export default function StudentsPage({ onNavigate, pageState }) {
   const handleStudentDelete = async (studentId) => {
     await deleteStudent(studentId);
     loadData();
-    setCurrentView("directory");
+    setCurrentView('directory');
+    setEditingStudentId(null);
+  };
+
+  const handleStudentArchive = async (studentId, archive) => {
+    await patchStudent(studentId, { isArchived: archive });
+    loadData();
+    setCurrentView('directory');
     setEditingStudentId(null);
   };
 
@@ -187,6 +194,7 @@ export default function StudentsPage({ onNavigate, pageState }) {
           onNavigate={onNavigate}
           onSubmit={handleStudentSubmit}
           onDelete={handleStudentDelete}
+          onArchive={handleStudentArchive}
           availablePrograms={programs}
         />
       )}

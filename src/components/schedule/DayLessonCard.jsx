@@ -5,6 +5,10 @@ import { CheckCircle2, BookOpen, XCircle } from 'lucide-react';
  * DayLessonCard — карточка урока в дневном расписании.
  * Стиль идентичен карточкам на Главной странице:
  *   entity-light-bg + border-l-[4px] entity-border-l + ring-1 ring-stone-200 + shadow-sm
+ *
+ * Props:
+ *   hasActiveSelection — флаг того, что хоть одна другая карточка активна.
+ *                        Используется для dimming-эффекта неактивных карточек.
  */
 export default function DayLessonCard({
   lesson,
@@ -15,6 +19,7 @@ export default function DayLessonCard({
   topicTitle,
   isSelected,
   isCurrentLesson,
+  hasActiveSelection,
   onClick,
   onHwDebtClick,
   onFinDebtClick,
@@ -38,6 +43,18 @@ export default function DayLessonCard({
     ? `${Math.floor(durationMins / 60)} ч${durationMins % 60 > 0 ? ` ${durationMins % 60} мин` : ''}`
     : `${durationMins} мин`;
 
+  // Вычисляем классы состояния
+  const stateClasses = hasActiveSelection
+    ? 'opacity-60 hover:opacity-90 hover:shadow-md hover:-translate-y-px'
+    : 'hover:shadow-md hover:-translate-y-px';
+
+  const cardStyle = isSelected
+    ? {
+        ...entityStyle,
+        boxShadow: `0 0 0 2px oklch(0.65 0.15 var(--card-h, 270)), 0 4px 12px oklch(0.65 0.10 var(--card-h, 270) / 0.25)`,
+      }
+    : entityStyle;
+
   return (
     <div
       className={[
@@ -45,12 +62,10 @@ export default function DayLessonCard({
         'border-l-[4px] shadow-sm rounded-xl',
         'flex flex-col px-4 py-3 gap-1.5',
         'cursor-pointer select-none transition-all duration-200',
-        isSelected
-          ? 'shadow-md -translate-y-px ring-[#006584]/30'
-          : 'hover:shadow-md hover:-translate-y-px',
+        isSelected ? '' : stateClasses,
         isCancelled || isSkippedFree ? 'opacity-55' : '',
       ].join(' ')}
-      style={entityStyle}
+      style={cardStyle}
       onClick={() => onClick?.(lesson)}
     >
       {/* Строка 1: Время + длительность + бейджи */}

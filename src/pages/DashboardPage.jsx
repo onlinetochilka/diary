@@ -219,7 +219,7 @@ export default function DashboardPage({ onNavigate }) {
         onClose={() => setActionModal({ isOpen: false, item: null, mode: "remind" })}
         item={actionModal.item}
         mode={actionModal.mode}
-        onConfirm={async (item, selectedLessons) => {
+        onConfirm={async (item, selectedLessons, note) => {
           if (item.type === 'hw') {
             const updates = [];
             if (item.count === 1 && item.lessons) {
@@ -240,7 +240,7 @@ export default function DashboardPage({ onNavigate }) {
               studentName: item.student.name,
               amount: item.amount,
               paidAt: new Date().toISOString(),
-              comment: "Оплата по долгу"
+              note: note || "Оплата по долгу"
             });
           }
           refresh();

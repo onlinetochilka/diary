@@ -12,7 +12,7 @@
  * оригинального StudentEditorView.jsx.
  */
 
-import { Plus, Save, Loader2, Trash2 } from 'lucide-react';
+import { Plus, Save, Loader2, Trash2, Archive, ArchiveRestore } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 import { Label, Input, Select, SegmentedToggle, SectionHeading, ParentCard } from './StudentFormAtoms.jsx';
 // Реэкспортируем атомы для обратной совместимости
@@ -415,19 +415,37 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
 
 // ── Плавающая кнопка сохранения ───────────────────────────────────────────────
 
-export function SaveBar({ onBack, onSave, isSaving, isEditMode, onDelete }) {
+export function SaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchive, isArchived }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-stone-200/50 flex justify-end items-center px-6 lg:px-12 z-50 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
       <div className="flex gap-4 w-full max-w-3xl mx-auto justify-between">
-        <div className="flex-1">
+        <div className="flex items-center gap-2">
+          {isEditMode && onArchive && (
+            <button
+              onClick={onArchive}
+              disabled={isSaving}
+              data-action="archive_student"
+              className={`px-4 py-2.5 rounded-xl font-medium transition-colors outline-none focus-visible:ring-2 flex items-center gap-2 ${
+                isArchived
+                  ? 'text-teal-700 hover:bg-teal-50 focus-visible:ring-teal-400'
+                  : 'text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400'
+              }`}
+            >
+              {isArchived ? <ArchiveRestore size={18} /> : <Archive size={18} />}
+              <span className="hidden sm:inline">
+                {isArchived ? 'Восстановить' : 'В архив'}
+              </span>
+            </button>
+          )}
           {isEditMode && onDelete && (
             <button
               onClick={onDelete}
               disabled={isSaving}
+              data-action="delete_student"
               className="px-4 py-2.5 rounded-xl font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400 flex items-center gap-2"
             >
               <Trash2 size={18} />
-              <span className="hidden sm:inline">Удалить ученика</span>
+              <span className="hidden sm:inline">Удалить</span>
             </button>
           )}
         </div>

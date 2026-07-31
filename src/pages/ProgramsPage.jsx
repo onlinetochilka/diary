@@ -13,7 +13,7 @@
  * Редактирование существующей — только через ProgramEditorPage.
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, Plus, FilePlus2 } from "lucide-react";
 import { Card, Button, Input } from "../components/ui/index.js";
 import { getPrograms, addProgram, deleteProgram } from "../services/database.js";
 import ProgramEditorPage from "../components/programs/ProgramEditorPage.jsx";
@@ -86,7 +86,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
           onClick={onCreateNew}
           className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#7A5299] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A5299] active:scale-[0.98] w-full sm:w-auto"
         >
-          <Plus size={18} strokeWidth={2} />
+          <FilePlus2 size={18} strokeWidth={1.75} />
           Создать программу
         </button>
       </header>
@@ -106,7 +106,18 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
         </div>
       ) : processedPrograms.length === 0 ? (
         <Card variant="elevated" className="text-center py-12 px-6">
-          <BookOpen size={48} strokeWidth={1} className="mx-auto text-fuchsia-300 mb-4" />
+          {programs.length === 0 ? (
+            <button
+              onClick={onCreateNew}
+              className="w-16 h-16 rounded-full flex items-center justify-center mb-5 mx-auto bg-[#7A5299]/10 text-[#7A5299] hover:scale-105 active:scale-95 shadow-sm hover:shadow-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-[#7A5299]/20"
+            >
+              <FilePlus2 size={32} strokeWidth={1.5} />
+            </button>
+          ) : (
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5 mx-auto bg-[#7A5299]/10 text-[#7A5299]">
+              <FilePlus2 size={32} strokeWidth={1.5} />
+            </div>
+          )}
           <p className="text-stone-800 font-medium mb-1">
             {programs.length === 0 ? "У вас ещё нет учебных программ." : "По вашему запросу ничего не найдено."}
           </p>

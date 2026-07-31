@@ -276,6 +276,8 @@ export default function SchedulePage({ pageState, onNavigate }) {
                 onHwClick={handleHwClick}
                 onPatchLesson={hookPatchLesson}
                 onGoToProfile={(studentId) => onNavigate && onNavigate("students", { action: 'highlight', studentId })}
+                onSaveLesson={hookSaveLesson}
+                allLessons={lessons}
               />
             )}
             {createPortal(
@@ -332,7 +334,7 @@ export default function SchedulePage({ pageState, onNavigate }) {
           onClose={closeActionModal}
           item={actionModal.item}
           mode={actionModal.mode}
-          onConfirm={async (item, selectedLessonsOrAmount) => {
+          onConfirm={async (item, selectedLessonsOrAmount, note) => {
             if (item.type === "hw") {
               const l = item.lessons[0];
               await hookQuickHomework(l, item.student.id, true);
@@ -342,7 +344,7 @@ export default function SchedulePage({ pageState, onNavigate }) {
                 studentName: item.student.name,
                 amount:      selectedLessonsOrAmount,
                 paidAt:      new Date().toISOString(),
-                comment:     "Оплата с расписания",
+                note:        note || "Оплата с расписания",
               });
               if (pageState?.refreshData) pageState.refreshData();
               window.dispatchEvent(new CustomEvent("force-refresh-data"));

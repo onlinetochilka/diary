@@ -108,6 +108,8 @@ export default function DayView({
   onHwClick,
   onPatchLesson,
   onGoToProfile,
+  onSaveLesson,
+  allLessons,
 }) {
   const dateStr  = ymd(currentDate);
   const todayStr = ymd(new Date());
@@ -123,7 +125,11 @@ export default function DayView({
     [dayLessons, selectedLessonId]
   );
 
+  // Создание нового урока внутри Инспектора
+  const [createInitial, setCreateInitial] = useState(null);
+
   const handleCardClick = useCallback((lesson) => {
+    setCreateInitial(null); // сбрасываем create-режим
     setSelectedLessonId(prev => prev === lesson.id ? null : lesson.id);
   }, []);
 
@@ -132,11 +138,14 @@ export default function DayView({
   const handleDateSelect = useCallback((date) => {
     setCurrentDate(date);
     setSelectedLessonId(null);
+    setCreateInitial(null);
   }, [setCurrentDate]);
 
+  // Gap-клик — открываем форму создания в Инспекторе (без шторки)
   const handleGapClick = useCallback(({ date, startTime, endTime }) => {
-    handleOpenDrawer({ date, startTime, endTime });
-  }, [handleOpenDrawer]);
+    setSelectedLessonId(null);
+    setCreateInitial({ date, startTime, endTime });
+  }, []);
 
   // ── Timeline items ────────────────────────────────────────────────────────
   const timelineItems = useMemo(() => {
@@ -194,18 +203,33 @@ export default function DayView({
           </div>
         )}
 
-        {/* Surface-бокс */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
-          {dayLessons.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-stone-100 overflow-hidden">
-              <DayEmptyState dateStr={dateStr} onCreateLesson={handleOpenDrawer} />
-            </div>
-          ) : (
-            <div className="bg-white rounded-[32px] shadow-sm border border-stone-100 p-5 sm:p-6 flex flex-col gap-4">
+        {/* Surface-бокс — паттерн с Главной страницы */}
+        {dayLessons.length === 0 ? (
+          <div className="bg-white rounded-[28px] shadow-sm border border-stone-100 overflow-hidden">
+            <DayEmptyState
+              dateStr={dateStr}
+              onCreateLesson={() => {
+                setSelectedLessonId(null);
+                setCreateInitial({ date: dateStr, startTime: '10:00', endTime: '11:00' });
+              }}
+            />
+          </div>
+        ) : (
+          <section className="flex-1 min-h-0 flex flex-col bg-white p-5 sm:p-6 rounded-[28px] shadow-sm border border-stone-100 relative overflow-visible">
+            {/* Скроллируемый список */}
+            <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto hide-scrollbar pb-6 px-1 pt-1">
               {rows.map((row, idx) => {
 
                 // ── Gap-строка ──
                 if (row.type === 'gap') {
+                  // Это окно активное, если пользователь нажал на нёго
+                  const gapIsActive = !!createInitial
+                    && createInitial.startTime === row.startTime
+                    && createInitial.endTime === row.endTime;
+
+                  // Считаем любое активное состояние (выбран урок ИЛИ выбрано окно)
+                  const anyActive = selectedLessonId !== null || createInitial !== null;
+
                   return (
                     <div key={`gap-${row.startTime}`}>
                       <DayActionableGap
@@ -213,6 +237,8 @@ export default function DayView({
                         startTime={row.startTime}
                         endTime={row.endTime}
                         onClick={handleGapClick}
+                        isActive={gapIsActive}
+                        hasActiveSelection={anyActive}
                       />
                     </div>
                   );
@@ -220,21 +246,20 @@ export default function DayView({
 
                 // ── Ряд уроков (один или несколько параллельных) ──
                 return (
-                  <div key={`row-${idx}`} className="flex rounded-xl overflow-hidden">
+                  <div key={`row-${idx}`} className="flex gap-2">
                     {row.items.map((item, itemIdx) => {
                       const lesson = item.lesson;
                       const { title, entityStyle, hasHwDebt, hasFinDebt } = getLessonDisplayData(lesson);
                       const topicTitle = getLessonTopic(lesson);
                       const isCurrent  = isLessonNow(lesson, dateStr, todayStr);
 
+                      // Димминг: любое активное состояние, кроме этой карточки
+                      const cardHasActiveSelection =
+                        (selectedLessonId !== null && selectedLessonId !== lesson.id)
+                        || (createInitial !== null && selectedLessonId !== lesson.id);
+
                       return (
-                        <div
-                          key={lesson.id}
-                          className={[
-                            'flex-1 min-w-0',
-                            itemIdx > 0 ? 'border-l border-white/40' : '',
-                          ].join(' ')}
-                        >
+                        <div key={lesson.id} className="flex-1 min-w-0">
                           <DayLessonCard
                             lesson={lesson}
                             title={title}
@@ -244,6 +269,7 @@ export default function DayView({
                             topicTitle={topicTitle}
                             isSelected={selectedLessonId === lesson.id}
                             isCurrentLesson={isCurrent}
+                            hasActiveSelection={cardHasActiveSelection}
                             onClick={handleCardClick}
                             onHwDebtClick={onHwClick}
                             onFinDebtClick={onFinClick}
@@ -255,9 +281,12 @@ export default function DayView({
                 );
               })}
             </div>
-          )}
-        </div>
+            {/* Тень снизу — маскирует край скролла */}
+            <div className="absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-[28px] z-10" />
+          </section>
+        )}
       </div>
+
 
       {/* ══════════════════════════════════════════════════════════════════
           ПРАВАЯ КОЛОНКА — Инспектор (50% экрана)
@@ -269,9 +298,12 @@ export default function DayView({
           lessonsByDate={lessonsByDate}
           students={students}
           groups={groups}
+          allLessons={allLessons}
+          createInitial={createInitial}
+          onClearCreate={() => setCreateInitial(null)}
           onDateSelect={handleDateSelect}
           onClose={handleCloseInspector}
-          onOpenDrawer={handleOpenDrawer}
+          onSaveLesson={onSaveLesson}
           onPatchLesson={onPatchLesson}
           onPaymentClick={onFinClick}
           onGoToProfile={onGoToProfile}

@@ -14,7 +14,7 @@ export default function StudentsEmptyState({
   let message = "Добавьте первого ученика, чтобы начать вести расписание и учет финансов.";
   let action = null;
   let Icon = UserPlus;
-  let iconTheme = "bg-blue-100 text-blue-600";
+  let iconTheme = "bg-[#7A404D]/10 text-[#7A404D]";
   let isClickableIcon = true;
 
   if (searchQuery.trim()) {
@@ -68,7 +68,7 @@ export default function StudentsEmptyState({
   return (
     <div className="flex flex-col items-center justify-center py-24 px-4 text-center bg-white rounded-[28px] shadow-sm border border-stone-200 animate-fade-in w-full">
       {isClickableIcon && onCreate ? (
-        <button onClick={onCreate} className="outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 rounded-full">
+        <button onClick={onCreate} className="outline-none focus-visible:ring-4 focus-visible:ring-[#7A404D]/20 rounded-full">
           {iconElement}
         </button>
       ) : (

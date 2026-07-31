@@ -17,7 +17,7 @@ import {
   SaveBar,
 } from './StudentFormSections.jsx';
 
-export default function StudentEditorView({ studentId, initialData, onBack, onNavigate, onSubmit, onDelete, availablePrograms = [] }) {
+export default function StudentEditorView({ studentId, initialData, onBack, onNavigate, onSubmit, onDelete, onArchive, availablePrograms = [] }) {
   const {
     formData,
     isSaving,
@@ -42,6 +42,15 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
   const handleDelete = () => {
     if (!window.confirm('Удалить ученика? Это действие нельзя отменить.')) return;
     onDelete?.(studentId);
+  };
+
+  const handleArchive = () => {
+    const isCurrentlyArchived = initialData?.isArchived;
+    const message = isCurrentlyArchived
+      ? 'Восстановить ученика из архива?'
+      : 'Перенести ученика в архив? Его можно будет восстановить в любой момент.';
+    if (!window.confirm(message)) return;
+    onArchive?.(studentId, !isCurrentlyArchived);
   };
 
   return (
@@ -93,6 +102,8 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
         isSaving={isSaving}
         isEditMode={!!studentId}
         onDelete={!!studentId ? handleDelete : undefined}
+        onArchive={!!studentId && onArchive ? handleArchive : undefined}
+        isArchived={!!initialData?.isArchived}
       />
     </div>
   );
