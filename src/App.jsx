@@ -14,6 +14,7 @@ import {
 import { initAnalytics } from "./utils/analytics.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
 import { ToastProvider } from "./components/ui/index.js";
+import { TooltipProvider } from "./components/ui/Tooltip.jsx";
 
 import GuestPortalView from "./pages/GuestPortalView.jsx";
 
@@ -72,9 +73,11 @@ function RootApp() {
 export default function App() {
   return (
     <AuthProvider>
-      <ToastProvider>
-        <RootApp />
-      </ToastProvider>
+      <TooltipProvider>
+        <ToastProvider>
+          <RootApp />
+        </ToastProvider>
+      </TooltipProvider>
     </AuthProvider>
   );
 }

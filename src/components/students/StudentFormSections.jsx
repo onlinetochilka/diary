@@ -17,6 +17,7 @@ import { cn } from '../../utils/cn.js';
 import { Label, Input, Select, SegmentedToggle, SectionHeading, ParentCard } from './StudentFormAtoms.jsx';
 // Реэкспортируем атомы для обратной совместимости
 export { Label, Input, Select, SegmentedToggle } from './StudentFormAtoms.jsx';
+import { Tooltip } from '../ui/index.js';
 
 
 // ── Секция 1: Личные данные ───────────────────────────────────────────────────
@@ -130,14 +131,15 @@ export function SubjectsSection({
           return (
             <div key={subject.id || index} className="bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-200 flex flex-col gap-6 relative group">
               {formData.subjects.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveSubject(index)}
-                  className="absolute top-4 right-4 p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                  title="Удалить предмет"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <Tooltip text="Удалить предмет" position="top" wrapperClassName="absolute top-4 right-4 z-10">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSubject(index)}
+                    className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </Tooltip>
               )}
 
               {/* Учебный процесс */}
@@ -333,30 +335,53 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                   </Select>
                 </div>
                 <div className="w-full md:w-2/3 flex gap-2">
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
                     <Label>Куда писать</Label>
-                    <Input
-                      placeholder="Телефон или Telegram"
-                      value={channel.value}
-                      onChange={e => {
+                    <div className="flex items-center">
+                      <Input
+                        placeholder="Телефон или Telegram"
+                        value={channel.value}
+                        onChange={e => {
+                          const newChannels = [...(formData.contacts.studentChannels || [])];
+                          newChannels[idx] = { ...newChannels[idx], value: e.target.value };
+                          handleContactChange('studentChannels', newChannels);
+                        }}
+                        className="rounded-r-none"
+                      />
+                      <Tooltip text={channel.isPrimary ? "Основной канал связи" : "Сделать основным"} position="top" wrapperClassName="shrink-0 h-[42px] z-10 flex">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newChannels = (formData.contacts.studentChannels || []).map((ch, i) => ({
+                              ...ch,
+                              isPrimary: i === idx
+                            }));
+                            handleContactChange('studentChannels', newChannels);
+                          }}
+                          className={cn(
+                            "px-3 border border-l-0 border-slate-200 h-full flex items-center justify-center rounded-r-xl transition-colors",
+                            channel.isPrimary ? "bg-[#7A404D]/10 text-[#7A404D] border-[#7A404D]/20" : "bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600"
+                          )}
+                        >
+                          {/* If no channel is marked primary, fallback to first in consumer code. So explicit true is visually indicated. */}
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill={channel.isPrimary ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  <Tooltip text="Удалить канал" position="top" wrapperClassName="shrink-0 self-end mb-[2px] z-10">
+                    <button
+                      type="button"
+                      onClick={() => {
                         const newChannels = [...(formData.contacts.studentChannels || [])];
-                        newChannels[idx] = { ...newChannels[idx], value: e.target.value };
+                        newChannels.splice(idx, 1);
                         handleContactChange('studentChannels', newChannels);
                       }}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newChannels = [...(formData.contacts.studentChannels || [])];
-                      newChannels.splice(idx, 1);
-                      handleContactChange('studentChannels', newChannels);
-                    }}
-                    className="shrink-0 p-3 mb-[2px] text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors self-end"
-                    title="Удалить канал"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                      className="p-3 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
             ))}

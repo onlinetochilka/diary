@@ -1,8 +1,9 @@
+import { cn } from '../../utils/cn.js';
 import { useState, useEffect } from "react";
-import { Loader2, User, AlignLeft, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, User, AlignLeft, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { SideDrawer, Button, Input, Select, SegmentedControl, Card } from "../ui/index.js";
 
-export default function LessonDrawer({
+export default function LessonInspector({
   isOpen,
   onClose,
   onSubmit,
@@ -223,16 +224,15 @@ export default function LessonDrawer({
   );
 
   return (
-    <SideDrawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData?.id ? "Правка урока" : "Новый урок"}
-      width="max-w-md sm:max-w-xl"
-      isDirty={isDirty}
-      onDelete={handleDelete}
-      deleteLabel="Урок удалён"
-      footer={drawerFooter}
-    >
+    <div className="flex flex-col h-full bg-white relative shadow-sm rounded-[28px] overflow-hidden border border-stone-100">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100/80 bg-white shrink-0">
+        <h3 className="font-semibold text-lg text-stone-800">{initialData?.id ? "Правка урока" : "Новый урок"}</h3>
+        <button onClick={onClose} type="button" className="p-2 hover:bg-stone-50 text-stone-400 hover:text-stone-600 rounded-full transition-colors">
+          <X size={20} />
+        </button>
+      </div>
+      <div className="flex-1 min-h-0 relative overflow-hidden">
+      <div className="h-full overflow-y-auto px-6 py-5 pb-16 bg-stone-50/30 hide-scrollbar">
       <form id="lesson-form" onSubmit={handleSubmit}>
         <div className="mb-6">
             <SegmentedControl
@@ -269,19 +269,17 @@ export default function LessonDrawer({
                 return null;
               })()}
 
-              <Card variant="elevated" className="space-y-4">
-                <SegmentedControl
-                  options={[
-                    { label: "Индивидуальный", value: "individual" },
-                    { label: "Групповой", value: "group" },
-                  ]}
-                  value={formData.type}
-                  onChange={(val) => handleChange("type", val)}
-                />
+              <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4 shadow-sm">
+                <div className="flex gap-2 p-1 bg-stone-100/50 rounded-xl">
+                  <button type="button" onClick={() => handleChange("type", "individual")} className={cn("flex-1 py-1.5 text-xs font-bold rounded-lg transition-all", formData.type === 'individual' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Индивидуальный</button>
+                  <button type="button" onClick={() => handleChange("type", "group")} className={cn("flex-1 py-1.5 text-xs font-bold rounded-lg transition-all", formData.type === 'group' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Групповой</button>
+                </div>
 
                 {formData.type === "individual" ? (
-                  <Select
-                    label="Ученик"
+                  <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Ученик</p>
+                  <select
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
                     value={formData.studentId}
                     onChange={(e) => handleChange("studentId", e.target.value)}
                     required
@@ -289,10 +287,13 @@ export default function LessonDrawer({
                   >
                     <option value="" disabled>Выберите ученика</option>
                     {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </Select>
+                  </select>
+                </div>
                 ) : (
-                  <Select
-                    label="Группа"
+                  <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Группа</p>
+                  <select
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
                     value={formData.groupId}
                     onChange={(e) => handleChange("groupId", e.target.value)}
                     required
@@ -300,19 +301,25 @@ export default function LessonDrawer({
                   >
                     <option value="" disabled>Выберите группу</option>
                     {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  </Select>
+                  </select>
+                </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="Предмет"
+                  <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Предмет</p>
+                  <input
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
                     value={formData.subjectName}
                     onChange={(e) => handleChange("subjectName", e.target.value)}
                     required
                     disabled={isSubmitting}
                   />
-                  <Select
-                    label="Статус"
+                </div>
+                  <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Статус</p>
+                  <select
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
                     value={formData.status}
                     onChange={(e) => handleChange("status", e.target.value)}
                     disabled={isSubmitting}
@@ -322,30 +329,37 @@ export default function LessonDrawer({
                     <option value="cancelled">Отменён</option>
                     <option value="skipped_paid">Оплаченный пропуск</option>
                     <option value="skipped_free">Неоплаченный пропуск</option>
-                  </Select>
+                  </select>
+                </div>
                 </div>
                 {subjectFormat === "mixed" && (
-                  <Select
-                    label="Формат урока"
+                  <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Формат урока</p>
+                  <select
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
                     value={formData.format}
                     onChange={(e) => handleChange("format", e.target.value)}
                     disabled={isSubmitting}
                   >
                     <option value="online">Онлайн</option>
                     <option value="offline">Офлайн</option>
-                  </Select>
+                  </select>
+                </div>
                 )}
-              </Card>
+              </div>
 
-              <Card variant="elevated" className="space-y-4">
-                <Input
-                  label="Дата"
-                  type="date"
+              <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4 shadow-sm">
+                <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Дата</p>
+                  <input
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    type="date"
                   value={formData.date}
                   onChange={(e) => handleChange("date", e.target.value)}
                   required
                   disabled={isSubmitting}
-                />
+                  />
+                </div>
                 {!initialData?.id && (
                   <div className="space-y-3 pt-1 border-t border-stone-100/50">
                     <label className="flex items-center gap-3 cursor-pointer">
@@ -364,38 +378,45 @@ export default function LessonDrawer({
                     </label>
                     {formData.isRecurring && (
                       <div className="pl-12">
-                        <Input
-                          label="До какой даты?"
-                          type="date"
+                        <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">До какой даты?</p>
+                  <input
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    type="date"
                           value={formData.repeatUntil}
                           onChange={(e) => handleChange("repeatUntil", e.target.value)}
                           required={formData.isRecurring}
                           disabled={isSubmitting}
-                        />
+                  />
+                </div>
                       </div>
                     )}
                   </div>
                 )}
                 <div className="pt-2">
                   <div className="grid grid-cols-2 gap-3">
-                    <Input
-                      label="Начало"
-                      type="time"
+                    <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Начало</p>
+                  <input
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    type="time"
                       value={formData.startTime}
                       onChange={(e) => handleChange("startTime", e.target.value)}
-                      error={!!errors.time}
                       required
                       disabled={isSubmitting}
-                    />
-                    <Input
-                      label="Конец"
-                      type="time"
+                  />
+                </div>
+                    <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Конец</p>
+                  <input
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    type="time"
                       value={formData.endTime}
                       onChange={(e) => handleChange("endTime", e.target.value)}
-                      error={!!errors.time}
                       required
                       disabled={isSubmitting}
-                    />
+                  />
+                </div>
                   </div>
                   {errors.time && (
                     <p role="alert" className="text-[11px] text-red-600 font-medium flex items-center gap-1 px-1 mt-2">
@@ -406,12 +427,14 @@ export default function LessonDrawer({
                     </p>
                   )}
                 </div>
-              </Card>
+              </div>
 
-              <Card variant="elevated" className="space-y-4">
-                <Select
-                  label="Программа (из назначенных)"
-                  value={formData.programId}
+              <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4 shadow-sm">
+                <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Программа (из назначенных)</p>
+                  <select
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    value={formData.programId}
                   onChange={(e) => {
                     handleChange("programId", e.target.value);
                     handleChange("topicId", ""); // reset topic
@@ -431,42 +454,46 @@ export default function LessonDrawer({
                   {activePrograms.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
-                </Select>
+                  </select>
+                </div>
 
-                <Select
-                  label="Тема урока"
-                  value={formData.topicId}
-                  onChange={(e) => handleChange("topicId", e.target.value)}
-                  disabled={isSubmitting}
-                >
-                  <option value="" disabled>
-                    {!formData.programId 
-                      ? "Сначала выберите программу" 
-                      : activeTopics.length === 0 
-                        ? "В программе нет тем" 
-                        : "Не выбрана"
-                    }
-                  </option>
-                  {activeTopics.map(t => (
-                    <option key={t.id} value={t.id}>
-                      {t.isCompleted ? "✓ " : ""}{t.title}
+                <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Тема урока</p>
+                  <select
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    value={formData.topicId}
+                    onChange={(e) => handleChange("topicId", e.target.value)}
+                    disabled={isSubmitting}
+                  >
+                    <option value="" disabled>
+                      {!formData.programId 
+                        ? "Сначала выберите программу" 
+                        : activeTopics.length === 0 
+                          ? "В программе нет тем" 
+                          : "Не выбрана"
+                      }
                     </option>
-                  ))}
-                </Select>
+                    {activeTopics.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.isCompleted ? "✓ " : ""}{t.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {formData.status === "conducted" && formData.topicId && (
                   <p className="text-[11px] font-medium text-emerald-700 bg-emerald-50/80 p-2.5 rounded-xl flex items-center gap-2 border border-emerald-100/80">
                     <CheckCircle2 size={14} className="text-emerald-500" />
                     При сохранении тема будет отмечена как пройденная
                   </p>
                 )}
-              </Card>
+              </div>
 
             </div>
           )}
 
           {activeTab === "hw" && (
             <div className="space-y-4">
-              <Card variant="elevated" className="space-y-4">
+              <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4 shadow-sm">
                 <div>
                   <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
                     Домашнее задание
@@ -614,12 +641,12 @@ export default function LessonDrawer({
                   </div>
 
                 )}
-              </Card>
+              </div>
             </div>
           )}
 
           {activeTab === "notes" && (
-            <Card variant="elevated">
+            <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4 shadow-sm">
               <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
                 Приватные заметки
               </label>
@@ -630,10 +657,16 @@ export default function LessonDrawer({
                 className="w-full min-h-[250px] p-3 text-sm text-stone-800 bg-stone-50 rounded-xl border border-stone-200/60 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition-all outline-none resize-y"
                 disabled={isSubmitting}
               />
-            </Card>
+            </div>
           )}
 
       </form>
-    </SideDrawer>
+      </div>
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-stone-50/80 to-transparent pointer-events-none z-10" />
+      </div>
+      <div className="p-5 border-t border-stone-100/80 bg-white shrink-0">
+        {drawerFooter(onClose)}
+      </div>
+    </div>
   );
 }

@@ -10,7 +10,6 @@ export const LessonCard = ({
   compact = false, 
   layout = "horizontal", 
   onMoreClick, 
-  isCopyMode = false,
   topic,
   onHwClick,
   onFinClick
@@ -45,7 +44,7 @@ export const LessonCard = ({
       hasHwDebt={hasHwDebt}
       listeners={listeners}
       attributes={attributes}
-      style={{ opacity: (isDragging && !isCopyMode) ? 0 : 1, height: layout === "vertical" ? "100%" : "auto" }}
+      style={{ opacity: isDragging ? 0 : 1, height: layout === "vertical" ? "100%" : "auto" }}
     />
   );
 };

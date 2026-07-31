@@ -1,15 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { CalendarDays, Plus } from "lucide-react";
-import { DndContext, DragOverlay, pointerWithin } from "@dnd-kit/core";
 
 import { useSchedule } from "../hooks/useSchedule.js";
 import { useScheduleModals } from "../hooks/useScheduleModals.js";
 import { useScheduleNavigation } from "../hooks/useScheduleNavigation.js";
 import { useScheduleLessonData } from "../hooks/useScheduleLessonData.js";
-import { useScheduleDragAndDrop } from "../hooks/useScheduleDragAndDrop.js";
 
-import LessonDrawer from "../components/schedule/LessonDrawer.jsx";
+import LessonInspector from "../components/schedule/LessonInspector.jsx";
+import ScheduleSidebar from "../components/schedule/ScheduleSidebar.jsx";
 import ActionItemModal from "../components/dashboard/ActionItemModal.jsx";
 import ScheduleStatsRow from "../components/schedule/ScheduleStatsRow.jsx";
 import { ScheduleNavBar } from "../components/schedule/ScheduleNavBar.jsx";
@@ -17,7 +15,6 @@ import { StatusPopover } from "../components/schedule/StatusPopover.jsx";
 import MonthView from "../components/schedule/MonthView.jsx";
 import WeekView from "../components/schedule/WeekView.jsx";
 import DayView from "../components/schedule/DayView.jsx";
-import { LessonCardOverlay } from "../components/schedule/LessonCardOverlay.jsx";
 
 import { addPayment } from "../services/database.js";
 
@@ -65,9 +62,38 @@ export default function SchedulePage({ pageState, onNavigate }) {
 
   const [hwDebtOnly, setHwDebtOnly] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState(null);
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [createInitial, setCreateInitial] = useState(null);
+  const [selectedDateStr, setSelectedDateStr] = useState(null);
+
+  const rightPanelMode = createInitial ? 'create' : selectedLessonId ? 'inspector' : 'students';
+  const selectedLesson = lessons.find(l => l.id === selectedLessonId) || null;
+
+  const handleOpenDrawer = (initialData = null) => {
+    if (initialData?.id) {
+      setSelectedLessonId(initialData.id);
+      setCreateInitial(null);
+      setSelectedEntityId(null);
+    } else {
+      setSelectedLessonId(null);
+      setCreateInitial(initialData || {});
+      setSelectedEntityId(null);
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setSelectedLessonId(null);
+    setCreateInitial(null);
+  };
 
   const handleCardClick = (student) => {
-    setSelectedEntityId(prev => prev === student.id ? null : student.id);
+    if (student.type) {
+      setSelectedLessonId(prev => prev === student.id ? null : student.id);
+      setCreateInitial(null);
+    } else {
+      setSelectedEntityId(prev => prev === student.id ? null : student.id);
+      handleCloseDrawer();
+    }
   };
 
   // ── Навигация по периодам ───────────────────────────────────────────────
@@ -99,11 +125,6 @@ export default function SchedulePage({ pageState, onNavigate }) {
 
   // ── Модалки ────────────────────────────────────────────────────────────
   const {
-    isDrawerOpen,
-    editingLesson,
-    drawerInitialTab,
-    handleOpenDrawer,
-    handleCloseDrawer,
     popover,
     setPopover,
     actionModal,
@@ -111,19 +132,7 @@ export default function SchedulePage({ pageState, onNavigate }) {
     closeActionModal,
   } = useScheduleModals();
 
-  // ── Drag & Drop ────────────────────────────────────────────────────────
-  const {
-    sensors,
-    activeDragLesson,
-    dragTimeDelta,
-    dragWidth,
-    dragHeight,
-    isCopyMode,
-    handleDragStart,
-    handleDragMove,
-    handleDragEnd,
-  } = useScheduleDragAndDrop({ view, hookCopyLesson, handleSaveLesson: hookSaveLesson });
-
+  
   // ── Intent: открыть drawer при переходе с другого экрана ───────────────
   useEffect(() => {
     const intent = localStorage.getItem("intent_schedule_entity");
@@ -196,22 +205,14 @@ export default function SchedulePage({ pageState, onNavigate }) {
           onPrev={prevPeriod}
           onNext={nextPeriod}
           onToday={goToday}
-          onViewChange={handleViewChange}
+          onViewChange={(v) => { setSelectedDateStr(null); handleViewChange(v); }}
           onCreateLesson={() => handleOpenDrawer()}
         />
 
         {/* Область с видами */}
-        <div className="max-w-[1400px] mx-auto w-full flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl p-0 sm:p-2 px-2 sm:px-0">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={pointerWithin}
-            onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
-            onDragEnd={handleDragEnd}
-            onDragCancel={() => {
-              handleDragEnd({ active: null, over: null, delta: { x: 0, y: 0 } });
-            }}
-          >
+        <div className="max-w-[1400px] mx-auto w-full flex-1 min-h-0 flex overflow-hidden rounded-2xl p-0 sm:p-2 px-2 sm:px-0 gap-4 sm:gap-6">
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          
             {view === "month" && (
               <MonthView
                 currentDate={currentDate}
@@ -231,6 +232,9 @@ export default function SchedulePage({ pageState, onNavigate }) {
                 onGoToProfile={(student) => onNavigate && onNavigate("students", { action: 'highlight', studentId: student.id })}
                 selectedEntityId={selectedEntityId}
                 onCardClick={handleCardClick}
+                selectedDateStr={selectedDateStr}
+                onDateClick={(dateStr) => setSelectedDateStr(prev => prev === dateStr ? null : dateStr)}
+                onDateDoubleClick={(date) => { setCurrentDate(date); setView("day"); setNavigatedFromMonth(true); setSelectedDateStr(null); }}
               />
             )}
             {view === "week" && (
@@ -245,7 +249,6 @@ export default function SchedulePage({ pageState, onNavigate }) {
                 periodLessons={periodLessons}
                 handleOpenDrawer={handleOpenDrawer}
                 setPopover={setPopover}
-                isCopyMode={isCopyMode}
                 getLessonDisplayData={getLessonDisplayData}
                 getLessonTopic={getLessonTopic}
                 onFinClick={handleFinClick}
@@ -254,6 +257,8 @@ export default function SchedulePage({ pageState, onNavigate }) {
                 onGoToProfile={(student) => onNavigate && onNavigate("students", { action: 'highlight', studentId: student.id })}
                 selectedEntityId={selectedEntityId}
                 onCardClick={handleCardClick}
+                onDateClick={(dateStr) => setSelectedDateStr(prev => prev === dateStr ? null : dateStr)}
+                onDateDoubleClick={(date) => { setCurrentDate(date); setView("day"); setSelectedDateStr(null); }}
               />
             )}
             {view === "day" && (
@@ -267,6 +272,10 @@ export default function SchedulePage({ pageState, onNavigate }) {
                 studentsWithDebt={studentsWithDebt}
                 studentsWithFinDebt={studentsWithFinDebt}
                 handleOpenDrawer={handleOpenDrawer}
+                selectedLessonId={selectedLessonId}
+                setSelectedLessonId={setSelectedLessonId}
+                createInitial={createInitial}
+                setCreateInitial={setCreateInitial}
                 setView={setView}
                 setNavigatedFromMonth={setNavigatedFromMonth}
                 navigatedFromMonth={navigatedFromMonth}
@@ -280,38 +289,47 @@ export default function SchedulePage({ pageState, onNavigate }) {
                 allLessons={lessons}
               />
             )}
-            {createPortal(
-              <DragOverlay dropAnimation={null}>
-                {activeDragLesson ? (
-                  <LessonCardOverlay
-                    lesson={activeDragLesson}
-                    displayData={getLessonDisplayData(activeDragLesson)}
-                    topic={getLessonTopic(activeDragLesson)}
-                    compact={view === "month"}
-                    dragTimeDelta={dragTimeDelta}
-                    width={dragWidth}
-                    height={dragHeight}
-                    isCopyMode={isCopyMode}
-                  />
-                ) : null}
-              </DragOverlay>,
-              document.body
-            )}
-          </DndContext>
+            
         </div>
 
-        {/* Drawer урока */}
-        <LessonDrawer
-          isOpen={isDrawerOpen}
-          onClose={handleCloseDrawer}
-          onSubmit={handleSaveLesson}
-          onDelete={handleDeleteLesson}
-          initialData={editingLesson}
-          initialTab={drawerInitialTab}
-          students={students}
-          groups={groups}
-          lessons={lessons}
-        />
+          {/* Правая панель (Dynamic Context Panel) */}
+          <div className={`${view === 'day' ? 'hidden' : 'hidden xl:flex flex-[0_0_320px] xl:flex-[0_0_380px]'} flex-col min-w-0 overflow-hidden relative`}>
+            {rightPanelMode === 'students' ? (
+              <ScheduleSidebar
+                lessons={selectedDateStr ? periodLessons.filter(l => l.date === selectedDateStr) : periodLessons}
+                students={students}
+                groups={groups}
+                periodLabel={view === "month" ? "в этом месяце" : view === "week" ? "на этой неделе" : "сегодня"}
+                onCreateLesson={() => handleOpenDrawer(selectedDateStr ? { date: selectedDateStr } : {})}
+                onCreateStudent={() => onNavigate && onNavigate("students", { action: 'create' })}
+                onAddLesson={(entity) => {
+                  const isGroup = !entity.grade && entity.subjects?.[0]?.name === "Групповое занятие";
+                  handleOpenDrawer(
+                    isGroup
+                      ? { type: "group",      groupId:   entity.id, date: selectedDateStr }
+                      : { type: "individual", studentId: entity.id, date: selectedDateStr }
+                  );
+                }}
+                onGoToProfile={(student) => onNavigate && onNavigate("students", { action: 'highlight', studentId: student.id })}
+                selectedEntityId={selectedEntityId}
+                onCardClick={handleCardClick}
+                isTimelineMode={view === "month" && !!selectedDateStr}
+                selectedDateStr={selectedDateStr}
+              />
+            ) : (
+              <LessonInspector
+                isOpen={true}
+                onClose={handleCloseDrawer}
+                onSubmit={handleSaveLesson}
+                onDelete={selectedLessonId ? handleDeleteLesson : undefined}
+                initialData={rightPanelMode === 'inspector' ? selectedLesson : createInitial}
+                students={students}
+                groups={groups}
+                lessons={lessons}
+              />
+            )}
+          </div>
+        </div>
 
         {/* Попап статуса */}
         <StatusPopover
@@ -320,13 +338,7 @@ export default function SchedulePage({ pageState, onNavigate }) {
           onQuickStatus={hookQuickStatus}
         />
 
-        {/* Подсказка drag-and-drop */}
-        {view === "week" && (
-          <div className="text-center text-[11px] text-stone-400 mt-2 flex items-center justify-center gap-3">
-            <span>💡 <strong>Подсказка:</strong> Карточки можно перетаскивать мышкой.</span>
-            <span>Если урок нужно скопировать — дополнительно зажмите <strong>Ctrl</strong> (или <strong>Alt</strong>) на клавиатуре.</span>
-          </div>
-        )}
+        
 
         {/* ActionItemModal (оплата / ДЗ) */}
         <ActionItemModal

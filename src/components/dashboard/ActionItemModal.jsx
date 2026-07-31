@@ -11,6 +11,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
   const [singleHwStatus, setSingleHwStatus] = useState("on_time");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [payNote, setPayNote] = useState("");
+  const [isEditingAmount, setIsEditingAmount] = useState(false);
   
   const isMoney = item?.type === "money";
   const title = mode === "remind" 
@@ -66,6 +67,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
         } else if (isMoney) {
           setPaymentAmount(item.amount.toString());
           setPayNote("");
+          setIsEditingAmount(false);
         }
       }
     }
@@ -126,18 +128,30 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
               
               {isMoney && (
                 <div className="mt-2 space-y-3 w-full max-w-[320px] mx-auto">
-                  <div className="flex items-center justify-center gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200 shadow-inner">
-                    <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">Сумма:</span>
-                    <input 
-                      type="number" 
-                      className="w-28 text-center text-2xl font-black text-[#B71234] bg-transparent border-none focus:outline-none focus:ring-0 p-0 m-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      min="1"
-                      step="1"
-                    />
-                    <span className="text-lg font-bold text-stone-400">₽</span>
-                  </div>
+                  {!isEditingAmount ? (
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <span className="text-3xl font-black text-[#B71234]">{paymentAmount || item.amount} ₽</span>
+                      <button 
+                        onClick={() => setIsEditingAmount(true)}
+                        className="text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
+                      >
+                        Изменить сумму
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200 shadow-inner">
+                      <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">Сумма:</span>
+                      <input 
+                        type="number" 
+                        className="w-28 text-center text-2xl font-black text-[#B71234] bg-transparent border-none focus:outline-none focus:ring-0 p-0 m-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        min="1"
+                        step="1"
+                      />
+                      <span className="text-lg font-bold text-stone-400">₽</span>
+                    </div>
+                  )}
                   <input
                     type="text"
                     placeholder="Комментарий к оплате (необязательно)"
@@ -216,6 +230,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
               </Button>
               <Button
                 variant="primary"
+                disabled={isMoney && (!paymentAmount || isNaN(parseInt(paymentAmount, 10)) || parseInt(paymentAmount, 10) <= 0)}
                 onClick={() => {
                   if (onConfirm) {
                     if (isMoney) {

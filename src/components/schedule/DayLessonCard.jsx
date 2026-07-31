@@ -1,5 +1,6 @@
 import React from 'react';
-import { CheckCircle2, BookOpen, XCircle } from 'lucide-react';
+import { CheckCircle2, BookOpen, XCircle, Users } from 'lucide-react';
+import { Tooltip } from '../ui/index.js';
 
 /**
  * DayLessonCard — карточка урока в дневном расписании.
@@ -23,6 +24,7 @@ export default function DayLessonCard({
   onClick,
   onHwDebtClick,
   onFinDebtClick,
+  onTimeChange,
 }) {
   const { status, startTime, endTime, homework, subjectName } = lesson;
 
@@ -71,12 +73,27 @@ export default function DayLessonCard({
       {/* Строка 1: Время + длительность + бейджи */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          {/* Время — белый чип как на Главной */}
-          <span
-            className="text-[11px] font-semibold bg-white/80 text-stone-700 px-2 py-0.5 rounded-md tabular-nums"
+          {/* Время — поля ввода */}
+          <div
+            className="flex items-center gap-1 text-[11px] font-semibold bg-white/80 text-stone-700 px-1.5 py-0.5 rounded-md tabular-nums"
+            onClick={(e) => e.stopPropagation()}
           >
-            {startTime} — {endTime}
-          </span>
+            <input 
+              type="time" 
+              value={startTime}
+              onChange={(e) => onTimeChange && onTimeChange(lesson, { startTime: e.target.value, endTime })}
+              className="bg-transparent outline-none w-[36px] text-center cursor-text"
+              style={{ padding: 0 }}
+            />
+            <span className="text-stone-400 opacity-50">–</span>
+            <input 
+              type="time" 
+              value={endTime}
+              onChange={(e) => onTimeChange && onTimeChange(lesson, { startTime, endTime: e.target.value })}
+              className="bg-transparent outline-none w-[36px] text-center cursor-text"
+              style={{ padding: 0 }}
+            />
+          </div>
           {/* Длительность */}
           <span
             className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
@@ -140,8 +157,9 @@ export default function DayLessonCard({
       </div>
 
       {/* Строка 2: Имя — как на Главной (text-sm font-semibold) */}
-      <div className="font-semibold text-stone-900 truncate leading-snug text-sm pl-0.5">
-        {title}
+      <div className="font-semibold text-stone-900 truncate leading-snug text-sm pl-0.5 flex items-center gap-1.5">
+        {lesson.type === 'group' && <Users size={14} className="text-[#006584] shrink-0" />}
+        <span className="truncate">{title}</span>
       </div>
 
       {/* Строка 3: Предмет · Тема */}
@@ -156,20 +174,18 @@ export default function DayLessonCard({
 
       {/* Строка 4: ДЗ */}
       {hasHwText && (
-        <div
-          className="flex items-start gap-1.5 text-[11px] leading-snug pl-0.5"
-          style={{ color: `oklch(0.55 0.06 var(--card-h, 200))` }}
-          title={hwText}
-        >
-          <BookOpen size={11} strokeWidth={2} className="mt-px shrink-0" />
-          <span className="line-clamp-1">{hwText}</span>
-        </div>
+        <Tooltip text={hwText} position="top" wrapperClassName="flex w-full justify-start">
+          <div
+            className="flex items-start gap-1.5 text-[11px] leading-snug pl-0.5 w-full"
+            style={{ color: `oklch(0.55 0.06 var(--card-h, 200))` }}
+          >
+            <BookOpen size={11} strokeWidth={2} className="mt-px shrink-0" />
+            <span className="line-clamp-1">{hwText}</span>
+          </div>
+        </Tooltip>
       )}
 
-      {/* Пульс-кольцо для текущего урока */}
-      {isCurrentLesson && (
-        <span className="absolute inset-0 rounded-xl pointer-events-none ring-2 ring-[#006584]/15 animate-pulse" />
-      )}
+      {/* Пульс-кольцо для текущего урока удалено по просьбе пользователя */}
     </div>
   );
 }

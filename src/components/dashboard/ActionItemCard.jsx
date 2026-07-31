@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, Bell, Copy, Send, MessageCircle, Mail } from "lucide-react";
+import { Check, Bell, Copy, Send, MessageCircle, Mail, CheckCircle2 } from "lucide-react";
 import { Tooltip } from "../ui";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
@@ -17,6 +17,8 @@ export default function ActionItemCard({ item, onMarkDone }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isReminded, setIsReminded] = useState(false);
+  const [showHwMenu, setShowHwMenu] = useState(false);
   
   const isMoney = item.type === 'money';
 
@@ -36,7 +38,13 @@ export default function ActionItemCard({ item, onMarkDone }) {
     if (!text.trim()) return;
     navigator.clipboard.writeText(text);
     setCopied(true);
+    setIsReminded(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleAction = (e) => {
+    e.stopPropagation();
+    setIsReminded(true);
   };
 
   const encoded = encodeURIComponent(text);
@@ -50,7 +58,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
 
   return (
     <div 
-      className="entity-light-bg ring-1 ring-slate-200 border-l-[4px] entity-border-l shadow-sm rounded-[20px] flex flex-col transition-all duration-300 hover:shadow-md card-hover-lift group"
+      className={`entity-light-bg ring-1 ring-slate-200 border-l-[4px] entity-border-l shadow-sm rounded-[20px] flex flex-col transition-all duration-300 hover:shadow-md card-hover-lift group relative ${showHwMenu ? 'z-50' : 'hover:z-40 focus-within:z-40'}`}
       style={style}
     >
       {/* Top row (always visible) */}
@@ -62,18 +70,49 @@ export default function ActionItemCard({ item, onMarkDone }) {
               <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-md ${isMoney ? 'bg-red-50 text-red-700 ring-1 ring-red-100' : 'bg-white/80 text-violet-700 ring-1 ring-violet-100/50'}`}>
                 {isMoney ? getMoneyText(item.count, item.amount) : getHwText(item.count)}
               </span>
+              {isReminded && (
+                <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md ring-1 ring-emerald-100">
+                  <CheckCircle2 size={12} strokeWidth={3} />
+                  Напоминание отправлено
+                </span>
+              )}
             </div>
           </div>
         </div>
         <div className="flex gap-2">
-          <Tooltip text={isMoney ? "Отметить оплату" : "Отметить ДЗ"} position="bottom-right">
-            <button 
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all bg-white border border-stone-200 shadow-sm hover:bg-stone-50 active:scale-95 group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584]" 
-              onClick={(e) => { e.stopPropagation(); onMarkDone(item); }}
-            >
-              <Check size={16} strokeWidth={3} className={isMoney ? "text-emerald-500" : "text-blue-500"} />
-            </button>
-          </Tooltip>
+          <div className="relative">
+            <Tooltip text={isMoney ? "Отметить оплату" : "Отметить ДЗ"} position="bottom-right">
+              <button 
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all bg-white border border-stone-200 shadow-sm hover:bg-stone-50 active:scale-95 group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584]" 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  if (!isMoney && item.count === 1) {
+                    setShowHwMenu(!showHwMenu);
+                  } else {
+                    onMarkDone(item); 
+                  }
+                }}
+              >
+                <Check size={16} strokeWidth={3} className={isMoney ? "text-emerald-500" : "text-blue-500"} />
+              </button>
+            </Tooltip>
+            {showHwMenu && (
+              <div className="absolute top-full right-0 mt-2 w-36 bg-white border border-stone-200 shadow-lg rounded-xl z-50 overflow-hidden flex flex-col">
+                <button 
+                  className="w-full text-left px-4 py-2.5 text-sm text-emerald-600 hover:bg-stone-50 font-medium transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setShowHwMenu(false); onMarkDone(item, "on_time"); }}
+                >
+                  Вовремя
+                </button>
+                <button 
+                  className="w-full text-left px-4 py-2.5 text-sm text-amber-600 hover:bg-stone-50 font-medium border-t border-stone-100 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setShowHwMenu(false); onMarkDone(item, "late"); }}
+                >
+                  С опозданием
+                </button>
+              </div>
+            )}
+          </div>
           <Tooltip text={isExpanded ? "Свернуть" : "Написать"} position="bottom-right">
             <button 
               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isExpanded ? 'bg-stone-100 border-stone-200 text-stone-700' : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50 hover:text-stone-700 active:scale-95'}`}
@@ -106,7 +145,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnClass}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={handleAction}
                 >
                   <Mail size={16} />
                 </a>
@@ -117,7 +156,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnClass}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={handleAction}
                 >
                   <MessageCircle size={16} />
                 </a>
@@ -128,7 +167,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnClass}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={handleAction}
                 >
                   <Send size={16} />
                 </a>

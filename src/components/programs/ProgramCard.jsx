@@ -3,6 +3,7 @@ import { Pencil, Users, TrendingUp, Layers, BookOpen } from 'lucide-react';
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import { cn } from "../../utils/cn.js";
 import { getPlural } from "../../utils/plural.js";
+import { Tooltip } from "../../components/ui/index.js";
 
 export default function ProgramCard({ program, onOpenEditor }) {
   const c = getEntityColorClasses();
@@ -62,20 +63,21 @@ export default function ProgramCard({ program, onOpenEditor }) {
 
         {/* Hover-actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenEditor(program.id);
-            }}
-            title="Редактировать программу"
-            className={cn(
-              "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
-              "focus-visible:ring-2 focus-visible:ring-fuchsia-600",
-              "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-            )}
-          >
-            <Pencil size={16} strokeWidth={2} />
-          </button>
+          <Tooltip text="Редактировать программу" position="top">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenEditor(program.id);
+              }}
+              className={cn(
+                "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                "focus-visible:ring-2 focus-visible:ring-fuchsia-600",
+                "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+              )}
+            >
+              <Pencil size={16} strokeWidth={2} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 

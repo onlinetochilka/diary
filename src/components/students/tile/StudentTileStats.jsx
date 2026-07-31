@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, BookOpen } from 'lucide-react';
 import { getPlural } from '../../../utils/plural.js';
+import { Tooltip } from '../../ui/index.js';
 
 export default function StudentTileStats({
   studentId,
@@ -34,14 +35,15 @@ export default function StudentTileStats({
             <span className="text-xs font-medium text-stone-500">ДЗ</span>
           </div>
           {subjectStats.pendingHomeworks > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onHomeworkClick) onHomeworkClick(studentId, activeSubjectId);
-              }}
-              title={`Долг по ДЗ: ${subjectStats.pendingHomeworks}`}
-              className="w-3.5 h-3.5 bg-[#006584] rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-academic-blue"
-            />
+            <Tooltip text={`Долг по ДЗ: ${subjectStats.pendingHomeworks}`} position="top">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onHomeworkClick) onHomeworkClick(studentId, activeSubjectId);
+                }}
+                className="w-3.5 h-3.5 bg-[#006584] rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-academic-blue"
+              />
+            </Tooltip>
           )}
         </div>
         <div className="flex items-baseline gap-1.5">

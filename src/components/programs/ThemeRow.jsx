@@ -15,6 +15,7 @@ import { GripVertical, CheckCircle2, Circle } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "../../utils/cn.js";
+import { Tooltip } from "../../components/ui/index.js";
 
 /**
  * @param {object}   props
@@ -96,34 +97,36 @@ export default function ThemeRow({
       </span>
 
       {/* ── Название темы ────────────────────────────────────────── */}
-      <span
-        className={cn(
-          // line-clamp-2: обрезает после 2 строк, не ломает ширину колонки
-          "flex-1 min-w-0 text-sm leading-snug line-clamp-2",
-          theme.isCompleted
-            ? "text-stone-400 line-through"
-            : "text-stone-800",
-        )}
-        title={theme.title} // полный текст в tooltip браузера
-      >
-        {theme.title}
-      </span>
+      <Tooltip text={theme.title} wrapperClassName="flex-1 min-w-0">
+        <span
+          className={cn(
+            // line-clamp-2: обрезает после 2 строк, не ломает ширину колонки
+            "block w-full text-sm leading-snug line-clamp-2",
+            theme.isCompleted
+              ? "text-stone-400 line-through"
+              : "text-stone-800",
+          )}
+        >
+          {theme.title}
+        </span>
+      </Tooltip>
 
       {/* ── Правая зона: статус ДЗ + чекбокс завершения ─────────── */}
       <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
         {/* Бейдж банка ДЗ */}
         {hwCount > 0 && (
-          <span
-            title={`${hwCount} задани${hwCount === 1 ? "е" : hwCount < 5 ? "я" : "й"} в банке`}
-            className={cn(
-              "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
-              "bg-[#1B4F72]/10 text-[#1B4F72]",
-              "opacity-0 group-hover/row:opacity-100",
-              "transition-opacity duration-150",
-            )}
-          >
-            {hwCount}
-          </span>
+          <Tooltip text={`${hwCount} задани${hwCount === 1 ? "е" : hwCount < 5 ? "я" : "й"} в банке`}>
+            <span
+              className={cn(
+                "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+                "bg-[#1B4F72]/10 text-[#1B4F72]",
+                "opacity-0 group-hover/row:opacity-100",
+                "transition-opacity duration-150",
+              )}
+            >
+              {hwCount}
+            </span>
+          </Tooltip>
         )}
 
         {/* Кнопка завершения */}

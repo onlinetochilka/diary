@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { getPlural } from "../utils/plural.js";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
 import { Card, Button, Tooltip } from "../components/ui/index.js";
@@ -19,14 +19,22 @@ import { useDashboardData } from "../hooks/useDashboardData.js";
 
 export default function DashboardPage({ onNavigate }) {
   const {
-    loading, todayLessons, actionItems, stats,
-    metricsConfig, setMetricsConfig, refresh,
+    loading, todayLessons = [], actionItems = [], stats = {},
+    metricsConfig = [], setMetricsConfig, refresh,
   } = useDashboardData();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [actionModal, setActionModal]       = useState({ isOpen: false, item: null, mode: "remind" });
+  const [isProcessing, setIsProcessing]     = useState(false);
 
-  const now = new Date();
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    // Защита от "вечной полуночи": обновляем дату, если вкладка долго открыта
+    const interval = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
   const monthNamesPrep = ["январе", "феврале", "марте", "апреле", "мае", "июне", "июле", "августе", "сентябре", "октябре", "ноябре", "декабре"];
   const dayNames = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
@@ -37,25 +45,25 @@ export default function DashboardPage({ onNavigate }) {
   const formatMoney = (num) => typeof num === "number" ? `${Math.round(num).toLocaleString("ru-RU")} ₽` : num;
 
   const METRICS_DISPLAY = {
-    todayCount: { label: getPlural(stats.todayCount, ["Урок сегодня", "Урока сегодня", "Уроков сегодня"]), value: stats.todayCount, color: "bg-gradient-to-br from-blue-500 to-indigo-500", nav: "schedule" },
-    lessonsWeek: { label: getPlural(stats.lessonsWeek, ["Урок", "Урока", "Уроков"]) + " на этой неделе", value: stats.lessonsWeek, color: "bg-gradient-to-br from-indigo-400 to-purple-500", nav: "schedule" },
-    lessonsLeftWeek: { label: "Осталось " + getPlural(stats.lessonsLeftWeek, ["урок", "урока", "уроков"]) + " на этой неделе", value: stats.lessonsLeftWeek, color: "bg-gradient-to-br from-cyan-500 to-blue-500", nav: "schedule" },
-    lessonsMonth: { label: getPlural(stats.lessonsMonth, ["Урок", "Урока", "Уроков"]) + " в этом месяце", value: stats.lessonsMonth, color: "bg-gradient-to-br from-indigo-400 to-purple-500", nav: "schedule" },
-    lessonsLeftMonth: { label: "Уроков до конца месяца", value: stats.lessonsLeftMonth, color: "bg-gradient-to-br from-cyan-500 to-blue-500", nav: "schedule" },
+    todayCount: { label: getPlural(stats.todayCount || 0, ["Урок сегодня", "Урока сегодня", "Уроков сегодня"]), value: stats.todayCount || 0, color: "bg-gradient-to-br from-blue-500 to-indigo-500", nav: "schedule" },
+    lessonsWeek: { label: getPlural(stats.lessonsWeek || 0, ["Урок", "Урока", "Уроков"]) + " на этой неделе", value: stats.lessonsWeek || 0, color: "bg-gradient-to-br from-indigo-400 to-purple-500", nav: "schedule" },
+    lessonsLeftWeek: { label: "Осталось " + getPlural(stats.lessonsLeftWeek || 0, ["урок", "урока", "уроков"]) + " на этой неделе", value: stats.lessonsLeftWeek || 0, color: "bg-gradient-to-br from-cyan-500 to-blue-500", nav: "schedule" },
+    lessonsMonth: { label: getPlural(stats.lessonsMonth || 0, ["Урок", "Урока", "Уроков"]) + " в этом месяце", value: stats.lessonsMonth || 0, color: "bg-gradient-to-br from-indigo-400 to-purple-500", nav: "schedule" },
+    lessonsLeftMonth: { label: "Уроков до конца месяца", value: stats.lessonsLeftMonth || 0, color: "bg-gradient-to-br from-cyan-500 to-blue-500", nav: "schedule" },
     freeSlotsWeek: { label: "Свободные окна на неделе", value: stats.freeSlotsWeek || 0, color: "bg-gradient-to-br from-emerald-400 to-teal-500", nav: "schedule" },
-    hoursWorkedThisMonth: { label: "Отработано часов за месяц", value: formatNum(stats.hoursWorkedThisMonth), color: "bg-gradient-to-br from-sky-400 to-cyan-500", nav: "schedule" },
-    hoursLeftWeek: { label: "Часов до конца недели", value: formatNum(stats.hoursLeftWeek), color: "bg-gradient-to-br from-teal-400 to-emerald-500", nav: "schedule" },
-    hoursLeftMonth: { label: "Часов до конца месяца", value: formatNum(stats.hoursLeftMonth), color: "bg-gradient-to-br from-teal-400 to-emerald-500", nav: "schedule" },
-    cancelledMonth: { label: getPlural(stats.cancelledMonth, ["Отмена", "Отмены", "Отмен"]) + " за месяц", value: stats.cancelledMonth, color: "bg-gradient-to-br from-rose-400 to-red-500", nav: "schedule" },
+    hoursWorkedThisMonth: { label: "Отработано часов за месяц", value: formatNum(stats.hoursWorkedThisMonth || 0), color: "bg-gradient-to-br from-sky-400 to-cyan-500", nav: "schedule" },
+    hoursLeftWeek: { label: "Часов до конца недели", value: formatNum(stats.hoursLeftWeek || 0), color: "bg-gradient-to-br from-teal-400 to-emerald-500", nav: "schedule" },
+    hoursLeftMonth: { label: "Часов до конца месяца", value: formatNum(stats.hoursLeftMonth || 0), color: "bg-gradient-to-br from-teal-400 to-emerald-500", nav: "schedule" },
+    cancelledMonth: { label: getPlural(stats.cancelledMonth || 0, ["Отмена", "Отмены", "Отмен"]) + " за месяц", value: stats.cancelledMonth || 0, color: "bg-gradient-to-br from-rose-400 to-red-500", nav: "schedule" },
     rescheduledMonth: { label: "Переносов за месяц", value: stats.rescheduledMonth || 0, color: "bg-gradient-to-br from-orange-400 to-amber-500", nav: "schedule" },
-    incomeMonth: { label: `Доход в ${monthNamesPrep[now.getMonth()]}`, value: formatMoney(stats.incomeMonth), color: "bg-gradient-to-br from-emerald-500 to-teal-400", nav: "finance" },
-    expectedIncomeMonth: { label: "Ожидаемый доход за месяц", value: formatMoney(stats.expectedIncomeMonth), color: "bg-gradient-to-br from-teal-400 to-emerald-500", nav: "schedule" },
-    totalDebt: { label: "Задолженность", value: formatMoney(stats.totalDebt), color: "bg-gradient-to-br from-red-500 to-rose-600", nav: "finance" },
-    totalAdvances: { label: "Авансы", value: formatMoney(stats.totalAdvances), color: "bg-gradient-to-br from-emerald-400 to-cyan-500", nav: "finance" },
-    averageReceipt: { label: "Средний чек", value: formatMoney(stats.averageReceipt), color: "bg-gradient-to-br from-amber-400 to-orange-500", nav: "finance" },
+    incomeMonth: { label: `Доход в ${monthNamesPrep[now.getMonth()]}`, value: formatMoney(stats.incomeMonth || 0), color: "bg-gradient-to-br from-emerald-500 to-teal-400", nav: "finance" },
+    expectedIncomeMonth: { label: "Ожидаемый доход за месяц", value: formatMoney(stats.expectedIncomeMonth || 0), color: "bg-gradient-to-br from-teal-400 to-emerald-500", nav: "schedule" },
+    totalDebt: { label: "Задолженность", value: formatMoney(stats.totalDebt || 0), color: "bg-gradient-to-br from-red-500 to-rose-600", nav: "finance" },
+    totalAdvances: { label: "Авансы", value: formatMoney(stats.totalAdvances || 0), color: "bg-gradient-to-br from-emerald-400 to-cyan-500", nav: "finance" },
+    averageReceipt: { label: "Средний чек", value: formatMoney(stats.averageReceipt || 0), color: "bg-gradient-to-br from-amber-400 to-orange-500", nav: "finance" },
     unpaidLessons: { label: "Неоплаченные занятия", value: `${stats.unpaidLessons || 0} шт`, color: "bg-gradient-to-br from-rose-500 to-pink-600", nav: "finance" },
-    activeStudentsCount: { label: getPlural(stats.activeStudentsCount, ["Активный ученик", "Активных ученика", "Активных учеников"]), value: stats.activeStudentsCount, color: "bg-gradient-to-br from-violet-400 to-purple-500", nav: "students" },
-    newStudentsMonth: { label: getPlural(stats.newStudentsMonth, ["Новый ученик", "Новых ученика", "Новых учеников"]), value: stats.newStudentsMonth, color: "bg-gradient-to-br from-fuchsia-400 to-pink-500", nav: "students" }
+    activeStudentsCount: { label: getPlural(stats.activeStudentsCount || 0, ["Активный ученик", "Активных ученика", "Активных учеников"]), value: stats.activeStudentsCount || 0, color: "bg-gradient-to-br from-violet-400 to-purple-500", nav: "students" },
+    newStudentsMonth: { label: getPlural(stats.newStudentsMonth || 0, ["Новый ученик", "Новых ученика", "Новых учеников"]), value: stats.newStudentsMonth || 0, color: "bg-gradient-to-br from-fuchsia-400 to-pink-500", nav: "students" }
   };
 
   const handleSaveMetrics = async (newMetrics) => {
@@ -191,7 +199,26 @@ export default function DashboardPage({ onNavigate }) {
                   <ActionItemCard
                     key={item.id}
                     item={item}
-                    onMarkDone={(item) => setActionModal({ isOpen: true, item, mode: "mark_done" })}
+                    onMarkDone={async (item, hwStatus) => {
+                      if (hwStatus && item.type === 'hw' && item.count === 1 && item.lessons) {
+                        if (isProcessing) return;
+                        setIsProcessing(true);
+                        try {
+                          const l = item.lessons[0];
+                          await updateLesson(l.id, { 
+                            hwDoneBy: [...(l.hwDoneBy || []), item.student.id],
+                            hwStatus: { ...(l.hwStatus || {}), [item.student.id]: hwStatus }
+                          });
+                          await refresh();
+                        } catch(e) {
+                          console.error(e);
+                        } finally {
+                          setIsProcessing(false);
+                        }
+                      } else {
+                        setActionModal({ isOpen: true, item, mode: "mark_done" });
+                      }
+                    }}
                   />
                 ))}
               </div>
@@ -219,31 +246,50 @@ export default function DashboardPage({ onNavigate }) {
         onClose={() => setActionModal({ isOpen: false, item: null, mode: "remind" })}
         item={actionModal.item}
         mode={actionModal.mode}
+        isProcessing={isProcessing}
         onConfirm={async (item, selectedLessons, note) => {
-          if (item.type === 'hw') {
-            const updates = [];
-            if (item.count === 1 && item.lessons) {
-              const l = item.lessons[0];
-              updates.push(updateLesson(l.id, { hwDoneBy: [...(l.hwDoneBy || []), item.student.id] }));
-            } else if (item.lessons && selectedLessons) {
-              Object.entries(selectedLessons).forEach(([lId, isSelected]) => {
-                if (isSelected) {
-                  const l = item.lessons.find(x => x.id === lId);
-                  if (l) updates.push(updateLesson(l.id, { hwDoneBy: [...(l.hwDoneBy || []), item.student.id] }));
-                }
+          if (isProcessing) return;
+          setIsProcessing(true);
+          try {
+            if (item.type === 'hw') {
+              const updates = [];
+              if (item.count === 1 && item.lessons) {
+                const l = item.lessons[0];
+                const status = selectedLessons || "on_time";
+                updates.push(updateLesson(l.id, { 
+                  hwDoneBy: [...(l.hwDoneBy || []), item.student.id],
+                  hwStatus: { ...(l.hwStatus || {}), [item.student.id]: status }
+                }));
+              } else if (item.lessons && selectedLessons) {
+                Object.entries(selectedLessons).forEach(([lId, status]) => {
+                  if (status) {
+                    const l = item.lessons.find(x => x.id === lId);
+                    if (l) updates.push(updateLesson(l.id, { 
+                      hwDoneBy: [...(l.hwDoneBy || []), item.student.id],
+                      hwStatus: { ...(l.hwStatus || {}), [item.student.id]: status }
+                    }));
+                  }
+                });
+              }
+              await Promise.all(updates);
+            } else if (item.type === 'money') {
+              const parsedAmount = parseInt(selectedLessons, 10);
+              const validAmount = (!isNaN(parsedAmount) && parsedAmount > 0) ? parsedAmount : item.amount;
+              await addPayment({
+                studentId: item.student.id,
+                studentName: item.student.name,
+                amount: validAmount,
+                paidAt: new Date().toISOString(),
+                note: note || "Оплата по долгу"
               });
             }
-            await Promise.all(updates);
-          } else if (item.type === 'money') {
-            await addPayment({
-              studentId: item.student.id,
-              studentName: item.student.name,
-              amount: item.amount,
-              paidAt: new Date().toISOString(),
-              note: note || "Оплата по долгу"
-            });
+            await refresh();
+            setActionModal({ isOpen: false, item: null, mode: "remind" });
+          } catch (e) {
+            console.error(e);
+          } finally {
+            setIsProcessing(false);
           }
-          refresh();
         }}
       />
 

@@ -60,12 +60,24 @@ export function useSchedule() {
   // Optimistic copy: shows the copy immediately, then replaces temp id with real one
   const handleCopyLesson = async (lessonData) => {
     const tempId = `temp_copy_${Date.now()}`;
-    const optimisticCopy = { ...lessonData, id: tempId, status: 'planned' };
+    
+    // Clean up past specific states
+    const cleanData = {
+      ...lessonData,
+      status: 'planned',
+      hwDoneBy: [],
+      hwStatuses: {},
+      presentStudentIds: [],
+      reschedules: []
+    };
+
+    const optimisticCopy = { ...cleanData, id: tempId };
+    
     // Add to local state immediately — card appears without delay
     setLessons(prev => [...prev, optimisticCopy]);
     try {
-      const { id: _srcId, _tempId, ...dataToSave } = lessonData;
-      const realId = await addLesson({ ...dataToSave, status: 'planned' });
+      const { id: _srcId, _tempId, ...dataToSave } = cleanData;
+      const realId = await addLesson(dataToSave);
       // Replace temp entry with real id
       setLessons(prev => prev.map(l => l.id === tempId ? { ...l, id: realId } : l));
     } catch (err) {

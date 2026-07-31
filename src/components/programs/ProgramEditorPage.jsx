@@ -29,6 +29,7 @@ import {
   updateProgramStructure,
 } from "../../services/database.js";
 import { useToast } from "../ui/Toast.jsx";
+import { Tooltip } from "../ui/index.js";
 
 // ─── Skeleton пока программа загружается ─────────────────────────────────────
 function EditorSkeleton() {
@@ -322,37 +323,39 @@ export default function ProgramEditorPage({
           </button>
 
           {/* Иконка + название (кликабельно, открывает настройки программы) */}
-          <button
-            type="button"
-            onClick={() => setSelectedItem(null)}
-            className={cn(
-              "flex items-center gap-2 min-w-0 flex-1 text-left",
-              "hover:bg-stone-50 px-2 py-1 -ml-2 rounded-lg transition-colors cursor-pointer",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
-            )}
-            title="Открыть настройки программы"
-          >
-            <BookOpen
-              size={16}
-              strokeWidth={2}
-              className="text-[#1B4F72] flex-shrink-0"
-            />
-            {isLoading ? (
-              <div className="h-4 w-48 rounded bg-stone-200 animate-pulse" />
-            ) : (
-              <h1 className="text-sm font-semibold text-stone-900 truncate">
-                {program?.name ?? "Программа"}
-              </h1>
-            )}
-            {/* Индикатор несохранённых изменений */}
-            {isDirty && (
-              <span
-                title="Есть несохранённые изменения"
-                aria-label="Несохранённые изменения"
-                className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"
+          <Tooltip text="Открыть настройки программы" wrapperClassName="flex-1 min-w-0 flex">
+            <button
+              type="button"
+              onClick={() => setSelectedItem(null)}
+              className={cn(
+                "flex items-center gap-2 min-w-0 w-full text-left",
+                "hover:bg-stone-50 px-2 py-1 -ml-2 rounded-lg transition-colors cursor-pointer",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
+              )}
+            >
+              <BookOpen
+                size={16}
+                strokeWidth={2}
+                className="text-[#1B4F72] flex-shrink-0"
               />
-            )}
-          </button>
+              {isLoading ? (
+                <div className="h-4 w-48 rounded bg-stone-200 animate-pulse" />
+              ) : (
+                <h1 className="text-sm font-semibold text-stone-900 truncate">
+                  {program?.name ?? "Программа"}
+                </h1>
+              )}
+              {/* Индикатор несохранённых изменений */}
+              {isDirty && (
+                <Tooltip text="Есть несохранённые изменения">
+                  <span
+                    aria-label="Несохранённые изменения"
+                    className="block w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"
+                  />
+                </Tooltip>
+              )}
+            </button>
+          </Tooltip>
 
           {/* Правые действия */}
           <div className="flex items-center gap-2 ml-auto">

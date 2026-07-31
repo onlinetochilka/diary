@@ -3,6 +3,7 @@ import { Pencil, CheckCircle2, BookOpen, ChevronLeft, ChevronRight, Clock, FileT
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import { cn } from "../../utils/cn.js";
 import { getPlural } from "../../utils/plural.js";
+import { Tooltip } from "../ui/index.js";
 
 const GroupCard = memo(({
   group,
@@ -47,14 +48,14 @@ const GroupCard = memo(({
                 {studentsInGroup.slice(0, 3).map((s, i) => {
                   const c = getEntityColorClasses();
                   return (
-                    <div 
-                      key={s.id} 
-                      className={`inline-block h-11 w-11 rounded-full ring-2 ring-[#FBFBFA] ${c.bg} flex items-center justify-center relative z-10`}
-                      style={{ ...getEntityStyle(s), zIndex: 10 - i }}
-                      title={s.name}
-                    >
-                      <span className={`text-sm font-bold ${c.text}`}>{s.name.charAt(0)}</span>
-                    </div>
+                    <Tooltip key={s.id} text={s.name} position="top" wrapperClassName="inline-block relative z-10" style={{ zIndex: 10 - i }}>
+                      <div 
+                        className={`inline-block h-11 w-11 rounded-full ring-2 ring-[#FBFBFA] ${c.bg} flex items-center justify-center relative`}
+                        style={{ ...getEntityStyle(s) }}
+                      >
+                        <span className={`text-sm font-bold ${c.text}`}>{s.name.charAt(0)}</span>
+                      </div>
+                    </Tooltip>
                   );
                 })}
                 {studentsInGroup.length > 3 && (
@@ -70,10 +71,12 @@ const GroupCard = memo(({
             )}
           </div>
           
-          <div className="min-w-0 flex-1 ml-1">
-            <h3 className="text-[17px] font-semibold text-stone-900 truncate tracking-tight" title={group.name}>
-              {group.name}
-            </h3>
+          <div className="min-w-0 flex-1 ml-1 flex flex-col">
+            <Tooltip text={group.name} position="top" wrapperClassName="min-w-0 flex w-full justify-start text-left">
+              <h3 className="text-[17px] font-semibold text-stone-900 truncate tracking-tight w-full">
+                {group.name}
+              </h3>
+            </Tooltip>
             <div className="flex items-center gap-1.5 text-[13px] text-stone-500 truncate mt-0.5">
               <span className="font-medium text-teal-600">{group.subjectName}</span>
             </div>
@@ -85,42 +88,45 @@ const GroupCard = memo(({
             Группа
           </div>
           <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => { e.stopPropagation(); onOpenLessonHistory?.(group); }}
-              title="История занятий"
-              className={cn(
-                "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
-                "focus-visible:ring-2 focus-visible:ring-academic-blue",
-                "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-              )}
-            >
-              <Clock size={16} strokeWidth={2} />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onOpenReport?.(group); }}
-              title="Собрать отчёт"
-              className={cn(
-                "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
-                "focus-visible:ring-2 focus-visible:ring-academic-blue",
-                "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-              )}
-            >
-              <FileText size={16} strokeWidth={2} />
-            </button>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenDrawer(group);
-              }}
-              title="Редактировать группу"
-              className={cn(
-                "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
-                "focus-visible:ring-2 focus-visible:ring-academic-blue",
-                "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-              )}
-            >
-              <Pencil size={16} strokeWidth={2} />
-            </button>
+            <Tooltip text="История занятий" position="top">
+              <button
+                onClick={(e) => { e.stopPropagation(); onOpenLessonHistory?.(group); }}
+                className={cn(
+                  "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                  "focus-visible:ring-2 focus-visible:ring-academic-blue",
+                  "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                )}
+              >
+                <Clock size={16} strokeWidth={2} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Собрать отчёт" position="top">
+              <button
+                onClick={(e) => { e.stopPropagation(); onOpenReport?.(group); }}
+                className={cn(
+                  "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                  "focus-visible:ring-2 focus-visible:ring-academic-blue",
+                  "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                )}
+              >
+                <FileText size={16} strokeWidth={2} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Редактировать группу" position="top">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDrawer(group);
+                }}
+                className={cn(
+                  "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                  "focus-visible:ring-2 focus-visible:ring-academic-blue",
+                  "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                )}
+              >
+                <Pencil size={16} strokeWidth={2} />
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>

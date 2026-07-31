@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import StudentMiniCard from "./StudentMiniCard.jsx";
 
-export default function ScheduleSidebar({ lessons, students, groups, periodLabel = "на неделе", onCreateLesson, onCreateStudent, onAddLesson, onGoToProfile, selectedEntityId, onCardClick }) {
+export default function ScheduleSidebar({ lessons, students, groups, periodLabel = "на неделе", onCreateLesson, onCreateStudent, onAddLesson, onGoToProfile, selectedEntityId, onCardClick, isTimelineMode, selectedDateStr }) {
   const cardsData = useMemo(() => {
     if (!lessons || lessons.length === 0) return [];
     
@@ -59,8 +59,8 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
 
   if (!hasAnyStudents) {
     return (
-      <div className="hidden xl:flex flex-col w-80 shrink-0">
-        <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white rounded-[28px] shadow-sm border border-stone-200 animate-fade-in w-full">
+      <div className="flex flex-col h-full bg-white relative shadow-sm rounded-[28px] overflow-hidden border border-stone-100">
+        <div className="flex flex-1 flex-col items-center justify-center py-16 px-4 text-center animate-fade-in w-full">
           <button 
             onClick={onCreateStudent}
             className="outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 rounded-full"
@@ -78,8 +78,8 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
 
   if (cardsData.length === 0) {
     return (
-      <div className="hidden xl:flex flex-col w-80 shrink-0">
-        <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white rounded-[28px] shadow-sm border border-stone-200 animate-fade-in w-full">
+      <div className="flex flex-col h-full bg-white relative shadow-sm rounded-[28px] overflow-hidden border border-stone-100">
+        <div className="flex flex-1 flex-col items-center justify-center py-16 px-4 text-center animate-fade-in w-full">
           <button 
             onClick={onCreateLesson} 
             className="outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 rounded-full"
@@ -96,24 +96,55 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
   }
 
   return (
-    <div className="hidden xl:flex flex-col w-80 shrink-0">
-      <div className="flex justify-between items-center mb-4 px-1">
-        <h3 className="font-semibold text-slate-800">Ученики</h3>
-        <span className="text-xs font-bold text-slate-400">{cardsData.length}</span>
+    <div className="flex flex-col h-full bg-white relative shadow-sm rounded-[28px] overflow-hidden border border-stone-100">
+      <div className="flex justify-between items-center px-6 py-5 border-b border-stone-100/80 bg-white shrink-0">
+        <h3 className="font-semibold text-lg text-stone-800">
+          {isTimelineMode ? "Расписание на день" : "Ученики"}
+        </h3>
+        <span className="text-xs font-bold text-stone-400">
+          {isTimelineMode ? lessons.length : cardsData.length}
+        </span>
       </div>
-      <div className="flex flex-col gap-3 overflow-y-auto scrollbar-thin px-2 pt-2 pb-8 -mx-2" style={{ maxHeight: 'calc(100vh - 250px)' }}>
-        {cardsData.map((data, idx) => (
-          <StudentMiniCard 
-            key={idx} 
-            student={data.entity} 
-            lessons={data.lessons} 
-            periodLabel={periodLabel}
-            onAddLesson={onAddLesson}
-            onGoToProfile={onGoToProfile}
-            onCardClick={onCardClick}
-            isSelected={data.entity.id === selectedEntityId}
-          />
-        ))}
+      <div className="flex-1 min-h-0 relative overflow-hidden">
+        <div className="h-full overflow-y-auto px-6 pt-5 pb-16 bg-stone-50/30 hide-scrollbar flex flex-col gap-3">
+          {isTimelineMode ? (
+            <div className="flex flex-col gap-2">
+              {[...lessons].sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '')).map((lesson) => {
+                const entity = lesson.type === 'individual' ? students.find(s => s.id === lesson.studentId) : groups.find(g => g.id === lesson.groupId);
+                const title = entity ? entity.name : 'Неизвестно';
+                const colorStr = entity?.colorOklch ? `oklch(${entity.colorOklch.l} ${entity.colorOklch.c ?? 0.12} ${entity.colorOklch.h})` : '#e7e5e4';
+                return (
+                  <button 
+                    key={lesson.id}
+                    onClick={() => onCardClick({ id: lesson.id, type: 'lesson' })}
+                    className="flex flex-col p-3 bg-white border border-stone-200 rounded-xl hover:border-[#006584]/30 hover:shadow-sm transition-all text-left"
+                    style={{ borderLeft: `4px solid ${colorStr}` }}
+                  >
+                    <div className="text-xs font-bold text-stone-500 mb-1">{lesson.startTime} - {lesson.endTime}</div>
+                    <div className="text-sm font-semibold text-stone-800">{title}</div>
+                    {lesson.subjectName && <div className="text-[11px] text-stone-400 mt-0.5">{lesson.subjectName}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            cardsData.map((data, idx) => (
+              <StudentMiniCard 
+                key={idx} 
+                student={data.entity} 
+                lessons={data.lessons} 
+                periodLabel={periodLabel}
+                onAddLesson={onAddLesson}
+                onGoToProfile={onGoToProfile}
+                onCardClick={onCardClick}
+                isSelected={data.entity.id === selectedEntityId}
+              />
+            ))
+          )}
+        </div>
+        {cardsData.length > 3 && (
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none z-10" />
+        )}
       </div>
     </div>
   );

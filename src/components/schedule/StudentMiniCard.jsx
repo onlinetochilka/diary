@@ -1,46 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { formatMoney } from "../../utils/format.js";
 import { Video, MapPin, Plus, ArrowRight } from "lucide-react";
 import { getEntityStyle } from "../../utils/colors.js";
 import { getPlural } from "../../utils/plural.js";
-
-import { createPortal } from "react-dom";
-
-// Тултип через Portal в document.body — не обрезается никаким overflow/transform
-function FixedTooltip({ text, children }) {
-  const [pos, setPos] = useState(null);
-  const wrapRef = useRef(null);
-
-  const show = () => {
-    if (!wrapRef.current) return;
-    const r = wrapRef.current.getBoundingClientRect();
-    setPos({ x: r.left + r.width / 2, y: r.top - 6 });
-  };
-
-  const hide = () => setPos(null);
-
-  return (
-    <div ref={wrapRef} className="relative" onMouseEnter={show} onMouseLeave={hide}>
-      {children}
-      {pos && createPortal(
-        <div
-          className="pointer-events-none z-[9999]"
-          style={{
-            position: 'fixed',
-            left: pos.x,
-            top: pos.y,
-            transform: 'translate(-50%, -100%)',
-          }}
-        >
-          <div className="bg-zinc-900/90 backdrop-blur-md border border-white/10 text-zinc-50 text-[11px] font-medium tracking-wide px-2.5 py-1 rounded-md shadow-lg whitespace-nowrap animate-fade-in">
-            {text}
-          </div>
-        </div>,
-        document.body
-      )}
-    </div>
-  );
-}
+import Tooltip from "../ui/Tooltip.jsx";
 
 export default function StudentMiniCard({ 
   student, 
@@ -107,24 +70,24 @@ export default function StudentMiniCard({
         }}
       >
         {onAddLesson && (
-          <FixedTooltip text="Добавить урок">
+          <Tooltip text="Добавить урок" position="top">
             <button
               onClick={(e) => { e.stopPropagation(); onAddLesson(student); }}
               className="w-6 h-6 rounded-md bg-slate-100 hover:bg-blue-100 hover:text-blue-600 text-slate-500 flex items-center justify-center transition-colors duration-100"
             >
               <Plus size={13} strokeWidth={2.5} />
             </button>
-          </FixedTooltip>
+          </Tooltip>
         )}
         {onGoToProfile && (
-          <FixedTooltip text="К ученику">
+          <Tooltip text="К ученику" position="top">
             <button
               onClick={(e) => { e.stopPropagation(); onGoToProfile(student); }}
               className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 hover:text-slate-700 text-slate-500 flex items-center justify-center transition-colors duration-100"
             >
               <ArrowRight size={13} strokeWidth={2.5} />
             </button>
-          </FixedTooltip>
+          </Tooltip>
         )}
       </div>
 

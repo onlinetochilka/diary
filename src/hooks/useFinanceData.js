@@ -44,6 +44,14 @@ export function useFinanceData() {
     setRefreshKey(k => k + 1);
   }, []);
 
+  // Fix #6: Listen for the cross-page 'force-refresh-data' event that Schedule page
+  // fires after accepting a payment, so Finance page picks up fresh data automatically.
+  useEffect(() => {
+    const handleForceRefresh = () => setRefreshKey(k => k + 1);
+    window.addEventListener('force-refresh-data', handleForceRefresh);
+    return () => window.removeEventListener('force-refresh-data', handleForceRefresh);
+  }, []);
+
   // ── Временные границы ───────────────────────────────────────────────────────
   const { now, currentMonthStart, nextMonthStart, lastMonthStart, lastMonthEnd } =
     useMemo(() => {

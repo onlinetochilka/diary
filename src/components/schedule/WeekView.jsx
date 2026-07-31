@@ -1,7 +1,6 @@
 import React from 'react';
 import { Tooltip } from '../ui/index.js';
 import DroppableSlot from './DroppableSlot.jsx';
-import ScheduleSidebar from './ScheduleSidebar.jsx';
 import { LessonCard } from './LessonCard.jsx';
 import { ymd, renderStatusIcon } from './scheduleUtils.jsx';
 
@@ -16,7 +15,6 @@ export default function WeekView({
   periodLessons,
   handleOpenDrawer,
   setPopover,
-  isCopyMode,
   getLessonDisplayData,
   getLessonTopic,
   onFinClick,
@@ -25,6 +23,8 @@ export default function WeekView({
   onGoToProfile,
   selectedEntityId,
   onCardClick,
+  onDateClick,
+  onDateDoubleClick,
 }) {
   const d = new Date(currentDate);
   const dayOfWeek = d.getDay() === 0 ? 6 : d.getDay() - 1;
@@ -45,8 +45,7 @@ export default function WeekView({
   const hourHeight = 64; // px
 
   return (
-    <div className="flex gap-4 sm:gap-6 w-full flex-1 min-h-0">
-      <div className="flex-1 min-w-0 flex flex-col bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden p-2 sm:p-4">
+    <div className="flex-1 min-w-0 flex flex-col bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden p-2 sm:p-4">
         {/* Headers */}
         <div className="flex shrink-0 border-b border-slate-100 bg-white z-50 pr-[16px] pb-2 mb-2">
         <div className="w-10 sm:w-12 shrink-0 border-r border-slate-100"></div>
@@ -84,7 +83,12 @@ export default function WeekView({
             const unmarkedCount = isPast ? dayLessons.filter(l => l.status === "planned").length : 0;
 
             return (
-              <div key={dateStr} className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 sm:py-3 border-r border-slate-100 last:border-r-0 relative ${isToday ? "bg-indigo-50/50 rounded-xl z-10" : "bg-transparent hover:bg-slate-50/50 rounded-xl"} transition-all mx-0.5`}>
+              <div 
+                key={dateStr} 
+                className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 sm:py-3 border-r border-slate-100 last:border-r-0 relative ${isToday ? "bg-indigo-50/50 rounded-xl z-10" : "bg-transparent hover:bg-slate-50/50 rounded-xl cursor-pointer"} transition-all mx-0.5`}
+                onClick={() => onDateClick?.(dateStr)}
+                onDoubleClick={() => onDateDoubleClick?.(new Date(dateStr))}
+              >
                 <div className="absolute top-1 left-1 flex flex-col gap-1">
                   {!isPast && hasHwDebtors && (
                     <Tooltip text="Не сдано ДЗ" position="bottom-left">
@@ -259,7 +263,6 @@ export default function WeekView({
                             topic={getLessonTopic(l)}
                             layout={widthPercent < 50 ? "compact" : "vertical"}
                             compact={widthPercent <= 50}
-                            isCopyMode={isCopyMode}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenDrawer(l);
@@ -282,26 +285,24 @@ export default function WeekView({
           })}
         </div>
       </div>
+
+      {/* Подсказка о перетаскивании */}
+      <div className="shrink-0 flex items-center justify-center gap-2 py-2 opacity-50 hover:opacity-70 transition-opacity">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
+          <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+          <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+          <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+          <path d="M6 14a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v4a6 6 0 0 0 6 6h2 2a6 6 0 0 0 5-2.68" />
+          <path d="M18 11v-1a2 2 0 0 1 2-2v0a2 2 0 0 1 2 2v4a8 8 0 0 1-8 8h-2" />
+        </svg>
+        <span className="text-[11px] text-slate-400 font-medium select-none">
+          Карточки можно перетаскивать, чтобы изменить время
+        </span>
+        <span className="text-[11px] text-slate-300 select-none">·</span>
+        <span className="text-[11px] text-slate-400 font-medium select-none">
+          Ctrl / Alt — скопировать
+        </span>
       </div>
-      <ScheduleSidebar 
-        lessons={periodLessons} 
-        students={students} 
-        groups={groups} 
-        periodLabel="на этой неделе" 
-        onCreateLesson={() => handleOpenDrawer({})}
-        onCreateStudent={onCreateStudent}
-        onAddLesson={(entity) => {
-          const isGroup = !entity.grade && entity.subjects?.[0]?.name === "Групповое занятие";
-          handleOpenDrawer(
-            isGroup
-              ? { type: "group",      groupId:   entity.id }
-              : { type: "individual", studentId: entity.id }
-          );
-        }}
-        onGoToProfile={onGoToProfile}
-        selectedEntityId={selectedEntityId}
-        onCardClick={onCardClick}
-      />
-    </div>
+      </div>
   );
 }

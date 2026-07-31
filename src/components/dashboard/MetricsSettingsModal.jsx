@@ -49,33 +49,27 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
 
   const toggleMetric = (id) => {
     setSelected(prev => {
-      if (prev.includes(id)) {
-        // Replace with null to keep the slot vacant
-        return prev.map(m => m === id ? null : m);
+      const active = prev.filter(Boolean);
+      if (active.includes(id)) {
+        return active.filter(m => m !== id);
       }
       
-      const activeCount = prev.filter(Boolean).length;
-      if (activeCount >= 4) return prev; // max 4
-      
-      const firstNullIdx = prev.indexOf(null);
-      if (firstNullIdx !== -1) {
-        const next = [...prev];
-        next[firstNullIdx] = id;
-        return next;
+      if (active.length >= 4) {
+        return [...active.slice(1), id];
       }
       
-      return [...prev, id];
+      return [...active, id];
     });
   };
 
   const activeSelected = selected.filter(Boolean);
   
   const handleSave = () => {
-    if (activeSelected.length === 4) onSave(selected);
+    if (activeSelected.length > 0) onSave(selected);
   };
 
-  const isDirty = activeSelected.length === 4 &&
-    JSON.stringify([...activeSelected].sort()) !== JSON.stringify([...(initialMetrics || [])].sort());
+  const isDirty = activeSelected.length > 0 &&
+    JSON.stringify([...activeSelected].sort()) !== JSON.stringify([...(initialMetrics || [])].filter(Boolean).sort());
 
   /* ── Footer ─────────────────────────────────────────────── */
   const drawerFooter = (requestClose) => (
@@ -86,7 +80,7 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
       <Button
         variant="filled"
         onClick={handleSave}
-        disabled={activeSelected.length !== 4}
+        disabled={activeSelected.length === 0}
         className="min-w-[120px]"
       >
         Сохранить
@@ -105,7 +99,7 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
     >
       <div className="space-y-4">
         <p className="text-sm text-stone-500">
-          Выберите ровно 4 метрики для отображения на главной странице.{" "}
+          Выберите до 4 метрик для отображения на главной странице.{" "}
           Выбрано:{" "}
           <span className={activeSelected.length === 4 ? "text-emerald-600 font-bold" : "font-bold text-stone-700"}>
             {activeSelected.length}/4
@@ -120,18 +114,14 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
               {group.items.map(item => {
                 const isSelected = selected.includes(item.id);
-                const isDisabled = !isSelected && activeSelected.length >= 4;
                 return (
                   <div
                     key={item.id}
-                    className={`flex items-center gap-3 p-1.5 -ml-1.5 rounded-lg transition-colors ${
-                      isDisabled ? "opacity-50" : "hover:bg-stone-50"
-                    }`}
+                    className={`flex items-center gap-3 p-1.5 -ml-1.5 rounded-lg transition-colors hover:bg-stone-50`}
                   >
                     <Checkbox
                       checked={isSelected}
                       onChange={() => toggleMetric(item.id)}
-                      disabled={isDisabled}
                       label={item.label}
                     />
                   </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ArrowLeft, Plus, Calendar } from 'lucide-react';
 import { ymd } from './scheduleUtils.jsx';
 import DayLessonCard from './DayLessonCard.jsx';
@@ -110,6 +110,10 @@ export default function DayView({
   onGoToProfile,
   onSaveLesson,
   allLessons,
+  selectedLessonId,
+  setSelectedLessonId,
+  createInitial,
+  setCreateInitial,
 }) {
   const dateStr  = ymd(currentDate);
   const todayStr = ymd(new Date());
@@ -119,14 +123,10 @@ export default function DayView({
     [lessonsByDate, dateStr]
   );
 
-  const [selectedLessonId, setSelectedLessonId] = useState(null);
   const selectedLesson = useMemo(
     () => dayLessons.find(l => l.id === selectedLessonId) || null,
     [dayLessons, selectedLessonId]
   );
-
-  // Создание нового урока внутри Инспектора
-  const [createInitial, setCreateInitial] = useState(null);
 
   const handleCardClick = useCallback((lesson) => {
     setCreateInitial(null); // сбрасываем create-режим
@@ -140,6 +140,12 @@ export default function DayView({
     setSelectedLessonId(null);
     setCreateInitial(null);
   }, [setCurrentDate]);
+
+  // Сброс выделения при смене дня (например, извне через DatePicker в шапке)
+  useEffect(() => {
+    setSelectedLessonId(null);
+    setCreateInitial(null);
+  }, [dateStr]);
 
   // Gap-клик — открываем форму создания в Инспекторе (без шторки)
   const handleGapClick = useCallback(({ date, startTime, endTime }) => {
@@ -215,9 +221,9 @@ export default function DayView({
             />
           </div>
         ) : (
-          <section className="flex-1 min-h-0 flex flex-col bg-white p-5 sm:p-6 rounded-[28px] shadow-sm border border-stone-100 relative overflow-visible">
+          <section className="flex-1 min-h-0 flex flex-col bg-white p-5 sm:p-6 rounded-[28px] shadow-sm border border-stone-100 relative overflow-hidden">
             {/* Скроллируемый список */}
-            <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto hide-scrollbar pb-6 px-1 pt-1">
+            <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto hide-scrollbar pb-16 px-1 pt-1">
               {rows.map((row, idx) => {
 
                 // ── Gap-строка ──

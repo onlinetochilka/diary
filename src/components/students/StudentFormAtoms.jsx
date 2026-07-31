@@ -14,6 +14,7 @@
 
 import { Trash2, Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
+import { Tooltip } from '../ui/index.js';
 
 export const Label = ({ children, required }) => (
   <label className="block text-sm font-medium text-stone-700 mb-1.5">
@@ -114,18 +115,19 @@ export function ParentCard({ idx, parent, formData, handleContactChange }) {
 
   return (
     <div className="p-5 bg-stone-50 rounded-2xl ring-1 ring-slate-200 relative group">
-      <button
-        type="button"
-        onClick={() => {
-          const newParents = [...formData.contacts.parents];
-          newParents.splice(idx, 1);
-          handleContactChange('parents', newParents);
-        }}
-        className="absolute top-3 right-3 p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-        title="Удалить контакт"
-      >
-        <Trash2 size={16} />
-      </button>
+      <Tooltip text="Удалить контакт" position="top" wrapperClassName="absolute top-3 right-3 opacity-0 group-hover:opacity-100 z-10">
+        <button
+          type="button"
+          onClick={() => {
+            const newParents = [...formData.contacts.parents];
+            newParents.splice(idx, 1);
+            handleContactChange('parents', newParents);
+          }}
+          className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <Trash2 size={16} />
+        </button>
+      </Tooltip>
       <input
         type="text"
         value={parent.role || ''}

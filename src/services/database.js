@@ -79,6 +79,36 @@ function docToObject(docSnap) {
  * isReverting = false -> subtract price from balance (student took lesson)
  * isReverting = true -> add price back to balance (lesson was un-conducted or deleted)
  */
+async function applyLessonIncomeChange(oldData, newData) {
+  if (!newData) return;
+  const isIndividual = newData.type === 'individual';
+  const isGroup = newData.type === 'group';
+
+  const updateStudentBalance = async (stId, amtDelta) => {
+    if (amtDelta === 0) return;
+    const stRef = doc(col.students(), stId);
+    const stSnap = await getDoc(stRef);
+    if (stSnap.exists()) {
+      await updateDoc(stRef, { balance: (stSnap.data().balance || 0) + amtDelta });
+    }
+  };
+
+  if (isIndividual && newData.studentId) {
+    const oldAmt = Number(oldData?.paymentAmount) || 0;
+    const newAmt = Number(newData.paymentAmount) || 0;
+    await updateStudentBalance(newData.studentId, newAmt - oldAmt);
+  } else if (isGroup) {
+    const oldPayments = oldData?.studentPayments || {};
+    const newPayments = newData?.studentPayments || {};
+    const allStudents = new Set([...Object.keys(oldPayments), ...Object.keys(newPayments)]);
+    for (const stId of allStudents) {
+      const oldAmt = Number(oldPayments[stId]?.amount) || 0;
+      const newAmt = Number(newPayments[stId]?.amount) || 0;
+      await updateStudentBalance(stId, newAmt - oldAmt);
+    }
+  }
+}
+
 async function applyLessonBalanceChange(lessonData, isReverting = false) {
   const price = lessonData.price || 0;
   if (price === 0) return;
@@ -93,16 +123,25 @@ async function applyLessonBalanceChange(lessonData, isReverting = false) {
       await updateDoc(stRef, { balance: (stSnap.data().balance || 0) + amountToApply });
     }
   } else if (lessonData.type === "group" && lessonData.groupId) {
-    const grRef = doc(col.groups(), lessonData.groupId);
-    const grSnap = await getDoc(grRef);
-    if (grSnap.exists()) {
-      const studentIds = grSnap.data().studentIds || [];
-      for (const stId of studentIds) {
-        const stRef = doc(col.students(), stId);
-        const stSnap = await getDoc(stRef);
-        if (stSnap.exists()) {
-          await updateDoc(stRef, { balance: (stSnap.data().balance || 0) + amountToApply });
-        }
+    // Fix #5: Prefer the group membership snapshot captured at lesson creation time.
+    // This ensures balance changes always affect the students who were actually in the
+    // group when the lesson was created, not whoever happens to be in the group now.
+    let studentIds = Array.isArray(lessonData.groupStudentIds) && lessonData.groupStudentIds.length > 0
+      ? lessonData.groupStudentIds
+      : null;
+
+    if (!studentIds) {
+      // Fallback: no snapshot stored — read current group membership
+      const grRef = doc(col.groups(), lessonData.groupId);
+      const grSnap = await getDoc(grRef);
+      studentIds = grSnap.exists() ? (grSnap.data().studentIds || []) : [];
+    }
+
+    for (const stId of studentIds) {
+      const stRef = doc(col.students(), stId);
+      const stSnap = await getDoc(stRef);
+      if (stSnap.exists()) {
+        await updateDoc(stRef, { balance: (stSnap.data().balance || 0) + amountToApply });
       }
     }
   }
@@ -792,7 +831,18 @@ export async function addLesson(data) {
     delete baseData.isRecurring;
     delete baseData.repeatUntil;
 
-    while (currentDate <= endDate) {
+    // Fix #5: Snapshot current group membership into the lesson so that future
+    // balance changes always target the students who were in the group at creation.
+    if (baseData.type === 'group' && baseData.groupId && !baseData.groupStudentIds) {
+      const grSnap = await getDoc(doc(col.groups(), baseData.groupId));
+      if (grSnap.exists()) {
+        baseData.groupStudentIds = grSnap.data().studentIds || [];
+      }
+    }
+
+    let iterations = 0;
+    while (currentDate <= endDate && iterations < 52) {
+      iterations++;
       const dateStr = currentDate.toISOString().split('T')[0];
       const lessonDataToSave = {
         ...baseData,
@@ -810,6 +860,8 @@ export async function addLesson(data) {
         await applyLessonBalanceChange(lessonDataToSave, false);
       }
       
+      await applyLessonIncomeChange(null, lessonDataToSave);
+      
       // add 7 days
       currentDate.setDate(currentDate.getDate() + 7);
     }
@@ -818,6 +870,15 @@ export async function addLesson(data) {
     const baseData = { ...data };
     delete baseData.isRecurring;
     delete baseData.repeatUntil;
+
+    // Fix #5: Snapshot current group membership into the lesson so that future
+    // balance changes always target the students who were in the group at creation.
+    if (baseData.type === 'group' && baseData.groupId && !baseData.groupStudentIds) {
+      const grSnap = await getDoc(doc(col.groups(), baseData.groupId));
+      if (grSnap.exists()) {
+        baseData.groupStudentIds = grSnap.data().studentIds || [];
+      }
+    }
     
     const lessonDataToSave = {
       ...baseData,
@@ -831,6 +892,8 @@ export async function addLesson(data) {
     if (lessonDataToSave.status === "conducted" || lessonDataToSave.status === "skipped_paid") {
       await applyLessonBalanceChange(lessonDataToSave, false);
     }
+    
+    await applyLessonIncomeChange(null, lessonDataToSave);
     
     return ref.id;
   }
@@ -877,6 +940,10 @@ export async function updateLesson(id, data) {
   if (data.hwDoneBy !== undefined) {
     await recalcHwDebtCount(id, { ...oldData, ...data });
   }
+
+  if (oldData) {
+    await applyLessonIncomeChange(oldData, { ...oldData, ...data });
+  }
 }
 
 /**
@@ -892,7 +959,7 @@ export async function patchLesson(id, partial) {
   invalidateCache('lessons');
 
   // Read old data only if we need balance or hwDebtCount side-effects
-  const needsOldData = partial.status !== undefined || partial.hwDoneBy !== undefined;
+  const needsOldData = partial.status !== undefined || partial.hwDoneBy !== undefined || partial.paymentAmount !== undefined || partial.studentPayments !== undefined;
   let oldData = null;
   if (needsOldData) {
     const oldSnap = await getDoc(doc(col.lessons(), id));
@@ -918,6 +985,11 @@ export async function patchLesson(id, partial) {
   // hwDebtCount recalc when hwDoneBy changes
   if (partial.hwDoneBy !== undefined && oldData) {
     await recalcHwDebtCount(id, { ...oldData, ...partial });
+  }
+
+  // Income side-effect when paymentAmount or studentPayments change
+  if (oldData && (partial.paymentAmount !== undefined || partial.studentPayments !== undefined)) {
+    await applyLessonIncomeChange(oldData, { ...oldData, ...partial });
   }
 }
 
@@ -1039,10 +1111,16 @@ export async function addPayment(data) {
   });
   
   if (data.studentId && data.amount) {
+    const amount = Number(data.amount);
     const stRef = doc(col.students(), data.studentId);
     const stSnap = await getDoc(stRef);
     if (stSnap.exists()) {
-      await updateDoc(stRef, { balance: (stSnap.data().balance || 0) + Number(data.amount) });
+      const stData = stSnap.data();
+      await updateDoc(stRef, {
+        balance: (stData.balance || 0) + amount,
+        // Fix #4: Keep LTV (Lifetime Value) in sync — increment by every confirmed payment.
+        ltv: (stData.ltv || 0) + amount,
+      });
     }
   }
   
@@ -1057,6 +1135,32 @@ export async function addPayment(data) {
  */
 export async function updatePayment(id, data) {
   invalidateCache('payments');
+  invalidateCache('students');
+
+  // Fix #2: When the payment amount changes, compute the delta and apply it to the
+  // student's balance so the ledger stays consistent.
+  if (data.amount !== undefined) {
+    const oldSnap = await getDoc(doc(col.payments(), id));
+    if (oldSnap.exists()) {
+      const oldData = oldSnap.data();
+      const oldAmount = Number(oldData.amount) || 0;
+      const newAmount = Number(data.amount) || 0;
+      const delta = newAmount - oldAmount;
+      if (delta !== 0 && oldData.studentId) {
+        const stRef = doc(col.students(), oldData.studentId);
+        const stSnap = await getDoc(stRef);
+        if (stSnap.exists()) {
+          const stData = stSnap.data();
+          await updateDoc(stRef, {
+            balance: (stData.balance || 0) + delta,
+            // Keep LTV consistent with balance edits.
+            ltv: Math.max(0, (stData.ltv || 0) + delta),
+          });
+        }
+      }
+    }
+  }
+
   await updateDoc(doc(col.payments(), id), {
     ...data,
     updatedAt: serverTimestamp(),
@@ -1065,11 +1169,33 @@ export async function updatePayment(id, data) {
 
 /**
  * Delete a payment record.
+ * Reverts the student's balance by the payment amount so the ledger stays correct.
  * @param {string} id
  * @returns {Promise<void>}
  */
 export async function deletePayment(id) {
   invalidateCache('payments');
+  invalidateCache('students');
+
+  // Fix #1: Read the payment before deleting so we can roll back the student's balance.
+  const paySnap = await getDoc(doc(col.payments(), id));
+  if (paySnap.exists()) {
+    const payData = paySnap.data();
+    const amount = Number(payData.amount) || 0;
+    if (amount !== 0 && payData.studentId) {
+      const stRef = doc(col.students(), payData.studentId);
+      const stSnap = await getDoc(stRef);
+      if (stSnap.exists()) {
+        const stData = stSnap.data();
+        await updateDoc(stRef, {
+          balance: (stData.balance || 0) - amount,
+          // Roll back LTV as well — the payment is being erased from history.
+          ltv: Math.max(0, (stData.ltv || 0) - amount),
+        });
+      }
+    }
+  }
+
   await deleteDoc(doc(col.payments(), id));
 }
 

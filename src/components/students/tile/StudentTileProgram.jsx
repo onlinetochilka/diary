@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { calcProgramProgress } from '../../../services/studentsAdapter.js';
+import { Tooltip } from '../../ui/index.js';
 
 export default function StudentTileProgram({
   student,
@@ -20,17 +21,18 @@ export default function StudentTileProgram({
               {activeSubject.name}
             </span>
             {student.subjects && student.subjects.length > 1 && (
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentSubjectIndex((prev) => (prev + 1) % student.subjects.length);
-                  setCurrentProgramIndex(0);
-                }}
-                title="Следующий предмет"
-                className="text-[10px] font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 hover:text-stone-700 transition-colors px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 cursor-pointer"
-              >
-                {currentSubjectIndex + 1} ИЗ {student.subjects.length}
-              </button>
+              <Tooltip text="Следующий предмет" position="top">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentSubjectIndex((prev) => (prev + 1) % student.subjects.length);
+                    setCurrentProgramIndex(0);
+                  }}
+                  className="text-[10px] font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 hover:text-stone-700 transition-colors px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 cursor-pointer"
+                >
+                  {currentSubjectIndex + 1} ИЗ {student.subjects.length}
+                </button>
+              </Tooltip>
             )}
           </div>
           

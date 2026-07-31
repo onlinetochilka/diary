@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useSensors, useSensor, PointerSensor } from '@dnd-kit/core';
 import { ymd } from '../components/schedule/scheduleUtils.jsx';
 
-export function useScheduleDragAndDrop({ view, hookCopyLesson, handleSaveLesson }) {
+export function useScheduleDragAndDrop({ view, hookCopyLesson, handleSaveLesson, lessons = [] }) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -118,6 +118,25 @@ export function useScheduleDragAndDrop({ view, hookCopyLesson, handleSaveLesson 
         startTime: newStartTime, 
         endTime: newEndTime 
       };
+
+      // Overlap check
+      const startObj = new Date(`1970-01-01T${newStartTime}:00Z`);
+      const endObj = new Date(`1970-01-01T${newEndTime}:00Z`);
+      
+      const isOverlapping = lessons.some(l => {
+        if (l.id === lesson.id && !isCopyModeRef.current) return false;
+        if (l.date !== updatedData.date) return false;
+        
+        const lStart = new Date(`1970-01-01T${l.startTime}:00Z`);
+        const lEnd = new Date(`1970-01-01T${l.endTime}:00Z`);
+        
+        return startObj < lEnd && endObj > lStart;
+      });
+
+      if (isOverlapping) {
+        const proceed = window.confirm("Внимание: На это время уже запланирован другой урок. Вы уверены, что хотите перенести/скопировать урок сюда?");
+        if (!proceed) return;
+      }
 
       if (isCopyModeRef.current) {
         // Optimistic copy: card appears immediately on the new slot

@@ -51,7 +51,7 @@ export default function DayActionableGap({ dateStr, startTime, endTime, onClick,
       {/* Текст */}
       <div className="flex items-center gap-2 min-w-0">
         <span className={`text-xs font-medium transition-colors duration-150 ${isActive || hovered ? 'text-[#006584]' : 'text-stone-300'}`}>
-          Свободно {durationLabel}
+          Перерыв {durationLabel}
         </span>
         <span className={`text-[10px] tabular-nums transition-colors duration-150 ${isActive || hovered ? 'text-[#006584]/60' : 'text-stone-200'}`}>
           {startTime} — {endTime}
@@ -61,7 +61,7 @@ export default function DayActionableGap({ dateStr, startTime, endTime, onClick,
       {/* Правый хинт при hover или active */}
       {(hovered || isActive) && (
         <span className="ml-auto text-[10px] text-[#006584]/50 font-medium shrink-0">
-          Запланировать →
+          Добавить урок →
         </span>
       )}
     </button>

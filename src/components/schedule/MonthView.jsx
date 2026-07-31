@@ -22,6 +22,9 @@ export default function MonthView({
   onGoToProfile,
   selectedEntityId,
   onCardClick,
+  selectedDateStr,
+  onDateClick,
+  onDateDoubleClick,
 }) {
   const daysInMonth = getDaysInMonth(year, currentDate.getMonth());
   const firstDay = getFirstDayOfMonth(year, currentDate.getMonth());
@@ -92,12 +95,9 @@ export default function MonthView({
               key={idx} 
               id={`month-slot-${dateStr}`} 
               date={dateStr}
-              className={`group/day min-w-0 border-r border-b border-slate-200/60 p-2 flex flex-col min-h-0 cursor-pointer ${isToday ? "bg-[#F4F7FB] z-10" : "bg-transparent hover:bg-slate-50/50"} relative transition-all duration-300`}
-              onClick={() => {
-                setCurrentDate(new Date(year, currentDate.getMonth(), day));
-                setView("day");
-                setNavigatedFromMonth(true);
-              }}
+              className={`group/day min-w-0 border-r border-b border-slate-200/60 p-2 flex flex-col min-h-0 cursor-pointer ${isToday ? "bg-[#F4F7FB] z-10" : "bg-transparent hover:bg-slate-50/50"} relative transition-all duration-300 ${selectedDateStr === dateStr ? 'ring-2 ring-inset ring-indigo-400 bg-indigo-50/50' : ''}`}
+              onClick={() => onDateClick?.(dateStr)}
+              onDoubleClick={() => onDateDoubleClick?.(new Date(year, currentDate.getMonth(), day))}
             >
               <div className="flex-1 flex flex-col h-full">
                 {/* Top Header */}
@@ -168,26 +168,18 @@ export default function MonthView({
           );
         })}
       </div>
+
+        {/* Подсказка про двойной клик */}
+        <div className="shrink-0 flex items-center justify-center gap-2 pt-3 pb-1 opacity-50 hover:opacity-70 transition-opacity">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
+            <rect x="5" y="2" width="14" height="20" rx="7" />
+            <path d="M12 6v4" />
+          </svg>
+          <span className="text-[11px] text-slate-400 font-medium select-none">
+            Двойной клик по дате — открыть день
+          </span>
+        </div>
       </div>
-      <ScheduleSidebar 
-        lessons={periodLessons} 
-        students={students} 
-        groups={groups} 
-        periodLabel="в этом месяце"
-        onCreateLesson={() => handleOpenDrawer({})} 
-        onCreateStudent={onCreateStudent}
-        onAddLesson={(entity) => {
-          const isGroup = !entity.grade && entity.subjects?.[0]?.name === "Групповое занятие";
-          handleOpenDrawer(
-            isGroup
-              ? { type: "group",      groupId:   entity.id }
-              : { type: "individual", studentId: entity.id }
-          );
-        }}
-        onGoToProfile={onGoToProfile}
-        selectedEntityId={selectedEntityId}
-        onCardClick={onCardClick}
-      />
     </div>
   );
 }
