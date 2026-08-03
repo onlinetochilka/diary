@@ -14,7 +14,12 @@
 import PocketBase from "pocketbase";
 
 const pb = new PocketBase(
-  import.meta.env.VITE_POCKETBASE_URL || "https://api.tochilka.app"
+  // In local dev: use Vite proxy (/api-pb → https://api.tochilka.app)
+  // so the browser doesn't have to reach the API server directly.
+  // In production (Vercel): use the environment variable or the default URL.
+  import.meta.env.DEV
+    ? "/api-pb"
+    : (import.meta.env.VITE_POCKETBASE_URL || "https://api.tochilka.app")
 );
 
 // Disable auto-cancellation so concurrent requests from different
