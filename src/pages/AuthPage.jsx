@@ -45,20 +45,21 @@ export default function AuthPage() {
       }, 1500);
     } catch (err) {
       console.error("[AuthPage] login error:", err?.status, err?.message, JSON.stringify(err?.data));
-      const msg = err?.response?.message || err?.message || "";
-      const data = err?.response?.data || err?.data || {};
+      const msg = err?.message || err?.response?.message || "";
+      // PocketBase SDK v0.27: field validation errors are in err.data.data (not err.data)
+      const fieldErrors = err?.data?.data || err?.response?.data || {};
 
-      if (msg.includes("Invalid") || msg.includes("invalid") || msg.includes("authenticate")) {
-        setError("Неверный email или пароль. Попробуем еще раз?");
-      } else if (err?.status === 400 && !data.email && !data.password) {
-        setError("Неверный email или пароль. Попробуем еще раз?");
-      } else if (data.email?.code === "validation_invalid_email" || data.email?.code === "validation_not_unique") {
-        setError("Этот email уже занят. Попробуйте войти.");
-      } else if (data.password?.code === "validation_length_out_of_range") {
-        setError("Пароль слишком простой. Минимум 8 символов.");
+      if (msg.includes("Invalid") || msg.includes("invalid") || msg.includes("authenticate") || msg.includes("Failed to authenticate")) {
+        setError("Неверный email или пароль. Попробуем ещё раз?");
+      } else if (fieldErrors.email?.code === "validation_not_unique") {
+        setError("Этот email уже зарегистрирован. Войдите в существующий аккаунт.");
+      } else if (fieldErrors.email?.code === "validation_invalid_email") {
+        setError("Некорректный формат email.");
+      } else if (fieldErrors.password?.code === "validation_length_out_of_range") {
+        setError("Пароль слишком короткий — минимум 8 символов.");
       } else if (err?.status === 429) {
         setError("Слишком много попыток. Подождите пару минут.");
-      } else if (err?.status === 0 || err?.message?.includes("fetch") || err?.message?.includes("network")) {
+      } else if (err?.status === 0 || msg.includes("fetch") || msg.includes("Failed to fetch")) {
         setError("Нет соединения с сервером. Проверьте интернет.");
       } else {
         setError(`Ошибка ${err?.status || ""}: ${msg || "Проверьте интернет-соединение"}`);

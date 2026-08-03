@@ -51,12 +51,28 @@ export function useDashboardData() {
 
   useEffect(() => {
     async function fetchData() {
-      const [allLessons, students, payments, userConfig] = await Promise.all([
-        getLessons(),
-        getStudents(),
-        getPayments(),
-        getUserConfig(),
-      ]);
+      let allLessons = [], students = [], payments = [], userConfig = null;
+      try {
+        const results = await Promise.allSettled([
+          getLessons(),
+          getStudents(),
+          getPayments(),
+          getUserConfig(),
+        ]);
+        allLessons  = results[0].status === "fulfilled" ? results[0].value : [];
+        students    = results[1].status === "fulfilled" ? results[1].value : [];
+        payments    = results[2].status === "fulfilled" ? results[2].value : [];
+        userConfig  = results[3].status === "fulfilled" ? results[3].value : null;
+
+        if (results.some(r => r.status === "rejected")) {
+          const errs = results.filter(r => r.status === "rejected").map(r => r.reason?.message || "unknown");
+          console.warn("[Dashboard] Some data failed to load:", errs);
+        }
+      } catch (err) {
+        console.error("[Dashboard] fetchData error:", err);
+        setLoading(false);
+        return;
+      }
 
       if (userConfig?.dashboardMetrics) {
         setMetricsConfig(userConfig.dashboardMetrics);
