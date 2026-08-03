@@ -16,8 +16,7 @@ import {
   PlaySquare,
   LogOut
 } from "lucide-react";
-import { auth } from "../../services/firebase.js";
-import { signInAnonymously, signOut } from "firebase/auth";
+import pb from "../../services/pocketbase.js";
 import { generateDemoData, clearAllTutorData } from "../../utils/demoData.js";
 import { useState } from "react";
 
@@ -73,7 +72,7 @@ export const NAV_ITEMS = [
  */
 export default function Sidebar({ activePage, onNavigate }) {
   const [isLoading, setIsLoading] = useState(false);
-  const isAnonymous = auth.currentUser?.isAnonymous;
+  const isAnonymous = pb.authStore.record?.email?.startsWith("demo_");
 
   const handleToggleDemo = async () => {
     if (isLoading) return;
@@ -81,24 +80,36 @@ export default function Sidebar({ activePage, onNavigate }) {
 
     try {
       if (isAnonymous) {
-        // Exit demo: delete all fake data, then sign out
-        await clearAllTutorData(auth.currentUser.uid);
-        await signOut(auth);
+        // Exit demo: sign out immediately (don't wait for data cleanup)
+        const tutorId = pb.authStore.record?.id;
+        pb.authStore.clear();
         window.location.reload();
+        // Cleanup runs after reload (fire and forget — user is already gone)
+        if (tutorId) {
+          clearAllTutorData(tutorId).catch((err) => {
+            console.warn("Demo data cleanup failed (non-critical):", err);
+          });
+        }
       } else {
         // Enter demo: confirm, sign out, sign in anonymously, generate data
         if (!window.confirm("Это выведет вас из текущего аккаунта и запустит изолированный демо-режим. Продолжить?")) {
           setIsLoading(false);
           return;
         }
-        await signOut(auth);
-        const cred = await signInAnonymously(auth);
-        await generateDemoData(cred.user.uid);
+        pb.authStore.clear();
+        const demoId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        const demoEmail = `demo_${demoId}@tochilka.app`;
+        const demoPassword = `Demo_${Math.random().toString(36).slice(-10)}!1`;
+        await pb.collection("users").create({ email: demoEmail, password: demoPassword, passwordConfirm: demoPassword, name: "Демо-репетитор" });
+        await pb.collection("users").authWithPassword(demoEmail, demoPassword);
+        generateDemoData(pb.authStore.record?.id).catch((err) => {
+          console.warn("Demo data generation failed:", err);
+        });
         window.location.reload();
       }
     } catch (err) {
-      console.error(err);
-      alert("Произошла ошибка при переключении режима.");
+      console.error("[Sidebar] demo toggle error:", err?.status, err?.message);
+      alert(`Произошла ошибка: ${err?.message || "неизвестная"}`);
       setIsLoading(false);
     }
   };
