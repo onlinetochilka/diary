@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../services/firebase.js";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import pb from "../services/pocketbase.js";
 
 const AuthContext = createContext();
 
@@ -9,27 +8,56 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    // Clear invalid/corrupted tokens on init
+    if (!pb.authStore.isValid && pb.authStore.token) {
+      pb.authStore.clear();
+    }
+    return pb.authStore.isValid ? pb.authStore.record : null;
+  });
   const [isLoading, setIsLoading] = useState(true);
+
+  // Force refresh — reads directly from pb.authStore and triggers re-render
+  const refreshUser = useCallback(() => {
+    const current = pb.authStore.isValid ? pb.authStore.record : null;
+    setUser(current);
+  }, []);
+
+  const logout = useCallback(() => {
+    pb.authStore.clear();
+    setUser(null);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined" && (window.location.search.includes("mock_user=true") || localStorage.getItem("mock_user"))) {
-      setUser({ uid: "mock-uid", email: "mock@tutor.ru" });
+      setUser({ id: "mock-uid", uid: "mock-uid", email: "mock@tutor.ru" });
       setIsLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setIsLoading(false);
+    // Re-check validity after hydration
+    // NOTE: do NOT call pb.authStore.clear() here — in React StrictMode this runs
+    // twice (mount → unmount → mount) and would wipe a freshly obtained token.
+    if (pb.authStore.isValid) {
+      setUser(pb.authStore.record);
+    } else {
+      setUser(null);
+    }
+    setIsLoading(false);
+
+    // Subscribe to ALL auth state changes (login, logout, token refresh)
+    const unsubscribe = pb.authStore.onChange((_token, record) => {
+      setUser(record ?? null);
     });
 
     return unsubscribe;
-  }, [auth]);
+  }, []);
 
   const value = {
     user,
-    isLoading
+    isLoading,
+    refreshUser,
+    logout,
   };
 
   return (

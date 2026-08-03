@@ -1,11 +1,12 @@
-import React, { useState } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from "firebase/auth";
-import { auth } from "../services/firebase.js";
+import React, { useState, useRef } from "react";
+import pb from "../services/pocketbase.js";
+import { useAuth } from "../contexts/AuthContext.jsx";
 import { generateDemoData } from "../utils/demoData.js";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Input, Button } from "../components/ui/index.js";
 
 export default function AuthPage() {
+  const { refreshUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,22 +26,42 @@ export default function AuthPage() {
     
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        await pb.collection("users").authWithPassword(email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        // Register: create user, then authenticate
+        await pb.collection("users").create({
+          email,
+          password,
+          passwordConfirm: password,
+        });
+        await pb.collection("users").authWithPassword(email, password);
       }
+      // refreshUser triggers a re-render — AuthPage will unmount, no need to setIsLoading(false)
+      refreshUser();
+      // Fallback: if React doesn't re-render within 1.5s (e.g. StrictMode race), force a reload.
+      // After reload PocketBase will restore the session from localStorage automatically.
+      setTimeout(() => {
+        if (pb.authStore.isValid) window.location.reload();
+      }, 1500);
     } catch (err) {
-      console.error(err);
-      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
+      console.error("[AuthPage] login error:", err?.status, err?.message, JSON.stringify(err?.data));
+      const msg = err?.response?.message || err?.message || "";
+      const data = err?.response?.data || err?.data || {};
+
+      if (msg.includes("Invalid") || msg.includes("invalid") || msg.includes("authenticate")) {
         setError("Неверный email или пароль. Попробуем еще раз?");
-      } else if (err.code === "auth/email-already-in-use") {
+      } else if (err?.status === 400 && !data.email && !data.password) {
+        setError("Неверный email или пароль. Попробуем еще раз?");
+      } else if (data.email?.code === "validation_invalid_email" || data.email?.code === "validation_not_unique") {
         setError("Этот email уже занят. Попробуйте войти.");
-      } else if (err.code === "auth/weak-password") {
-        setError("Пароль слишком простой. Минимум 6 символов.");
-      } else if (err.code === "auth/too-many-requests") {
+      } else if (data.password?.code === "validation_length_out_of_range") {
+        setError("Пароль слишком простой. Минимум 8 символов.");
+      } else if (err?.status === 429) {
         setError("Слишком много попыток. Подождите пару минут.");
+      } else if (err?.status === 0 || err?.message?.includes("fetch") || err?.message?.includes("network")) {
+        setError("Нет соединения с сервером. Проверьте интернет.");
       } else {
-        setError("Что-то пошло не так. Проверьте интернет-соединение.");
+        setError(`Ошибка ${err?.status || ""}: ${msg || "Проверьте интернет-соединение"}`);
       }
       setIsLoading(false);
     }
@@ -50,13 +71,44 @@ export default function AuthPage() {
     setIsLoading(true);
     setError("");
     try {
-      const cred = await signInAnonymously(auth);
-      // Let's generate demo data for this new anonymous user
-      await generateDemoData(cred.user.uid);
-      // They will be automatically redirected by the auth observer in App.jsx
+      // Create a unique temporary demo user
+      const demoId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      const demoEmail = `demo_${demoId}@tochilka.app`;
+      const demoPassword = `Demo_${Math.random().toString(36).slice(-10)}!1`;
+
+      await pb.collection("users").create({
+        email: demoEmail,
+        password: demoPassword,
+        passwordConfirm: demoPassword,
+        name: "Демо-репетитор",
+      });
+
+      await pb.collection("users").authWithPassword(demoEmail, demoPassword);
+
+      // Enter the app immediately — don't wait for demo data
+      refreshUser();
+      // Fallback: if React doesn't re-render within 1.5s, force a reload
+      setTimeout(() => {
+        if (pb.authStore.isValid) window.location.reload();
+      }, 1500);
+
+      // Generate demo data in the background (non-blocking)
+      const tutorId = pb.authStore.record?.id;
+      if (tutorId) {
+        generateDemoData(tutorId).catch((err) => {
+          console.warn("Demo data generation failed (non-critical):", err);
+        });
+      }
     } catch (err) {
-      console.error(err);
-      setError("Не удалось запустить демо-режим. Попробуйте позже.");
+      console.error("[AuthPage] Demo login error:", err?.status, err?.message, JSON.stringify(err?.data));
+      const msg = err?.message || "";
+      if (err?.status === 0 || msg.includes("fetch") || msg.includes("network") || msg.includes("Failed to fetch")) {
+        setError("Нет соединения с сервером. Проверьте интернет.");
+      } else if (err?.status === 429) {
+        setError("Слишком много попыток. Подождите пару минут.");
+      } else {
+        setError(`Не удалось запустить демо-режим (${err?.status || "?"}: ${msg || "неизвестная ошибка"}). Попробуйте позже.`);
+      }
       setIsLoading(false);
     }
   };
