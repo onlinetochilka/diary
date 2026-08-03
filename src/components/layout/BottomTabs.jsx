@@ -8,6 +8,9 @@
  */
 import { cn } from "../../utils/cn.js";
 import { NAV_ITEMS } from "./Sidebar.jsx";
+import pb from "../../services/pocketbase.js";
+import { clearAllTutorData } from "../../utils/demoData.js";
+import { useState } from "react";
 
 const activeColors = {
   dashboard: "bg-stone-500",
@@ -33,6 +36,25 @@ const activeIconColors = {
  * @param {(page: string) => void} props.onNavigate
  */
 export default function BottomTabs({ activePage, onNavigate }) {
+  const [isExiting, setIsExiting] = useState(false);
+  const isAnonymous = pb.authStore.record?.email?.startsWith("demo_");
+
+  const handleExitDemo = async () => {
+    if (isExiting) return;
+    setIsExiting(true);
+    try {
+      const tutorId = pb.authStore.record?.id;
+      pb.authStore.clear();
+      window.location.reload();
+      if (tutorId) {
+        clearAllTutorData(tutorId).catch(() => {});
+      }
+    } catch (err) {
+      console.error("Exit demo error:", err);
+      setIsExiting(false);
+    }
+  };
+
   return (
     <nav
       aria-label="Мобильная навигация"
@@ -44,12 +66,29 @@ export default function BottomTabs({ activePage, onNavigate }) {
         // Glass background
         "bg-white/85 backdrop-blur-md",
         "border-t border-stone-200",
-        // Flex row
-        "flex items-stretch justify-around",
+        // Flex column to include demo banner above tabs
+        "flex flex-col",
         // iOS safe area
         "pb-safe",
       )}
     >
+      {/* Demo mode banner — visible only when in demo */}
+      {isAnonymous && (
+        <div className="flex items-center justify-between px-4 py-1.5 bg-amber-50 border-b border-amber-100">
+          <span className="text-xs font-medium text-amber-700">🎭 Демо-режим</span>
+          <button
+            type="button"
+            onClick={handleExitDemo}
+            disabled={isExiting}
+            className="text-xs font-semibold text-rose-600 hover:text-rose-800 active:scale-95 transition-all px-2 py-0.5 rounded-md hover:bg-rose-50"
+          >
+            {isExiting ? "Выходим..." : "Выйти из демо"}
+          </button>
+        </div>
+      )}
+
+      {/* Nav items row */}
+      <div className="flex items-stretch justify-around">
       {NAV_ITEMS.map((item) => {
         const isActive = activePage === item.id;
         const Icon     = item.icon;
@@ -100,6 +139,7 @@ export default function BottomTabs({ activePage, onNavigate }) {
           </button>
         );
       })}
+      </div>
     </nav>
   );
 }
