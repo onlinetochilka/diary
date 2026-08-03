@@ -67,6 +67,8 @@ export default function AuthPage() {
     }
   };
 
+  const [demoStatus, setDemoStatus] = useState("");
+
   const handleDemoLogin = async () => {
     setIsLoading(true);
     setError("");
@@ -76,6 +78,7 @@ export default function AuthPage() {
       const demoEmail = `demo_${demoId}@tochilka.app`;
       const demoPassword = `Demo_${Math.random().toString(36).slice(-10)}!1`;
 
+      setDemoStatus("Создаём аккаунт...");
       await pb.collection("users").create({
         email: demoEmail,
         password: demoPassword,
@@ -85,20 +88,22 @@ export default function AuthPage() {
 
       await pb.collection("users").authWithPassword(demoEmail, demoPassword);
 
-      // Enter the app immediately — don't wait for demo data
-      refreshUser();
-      // Fallback: if React doesn't re-render within 1.5s, force a reload
-      setTimeout(() => {
-        if (pb.authStore.isValid) window.location.reload();
-      }, 1500);
-
-      // Generate demo data in the background (non-blocking)
+      // Generate demo data BEFORE entering the app — user sees loading screen
       const tutorId = pb.authStore.record?.id;
       if (tutorId) {
-        generateDemoData(tutorId).catch((err) => {
-          console.warn("Demo data generation failed (non-critical):", err);
-        });
+        setDemoStatus("Генерируем демо-данные...");
+        await generateDemoData(tutorId);
       }
+
+      setDemoStatus("Готово! Открываем дашборд...");
+      // Small delay so user sees the success message, then reload into the app
+      setTimeout(() => {
+        refreshUser();
+        setTimeout(() => {
+          if (pb.authStore.isValid) window.location.reload();
+        }, 1000);
+      }, 500);
+
     } catch (err) {
       console.error("[AuthPage] Demo login error:", err?.status, err?.message, JSON.stringify(err?.data));
       const msg = err?.message || "";
@@ -217,7 +222,14 @@ export default function AuthPage() {
               onClick={handleDemoLogin}
               className="w-full h-12 bg-white hover:bg-stone-50 text-stone-700 rounded-xl border border-stone-200 shadow-sm"
             >
-              Попробовать демо-версию
+              {isLoading && demoStatus ? (
+                <>
+                  <Loader2 size={16} className="animate-spin mr-2 shrink-0" />
+                  <span className="truncate">{demoStatus}</span>
+                </>
+              ) : (
+                "Попробовать демо-версию"
+              )}
             </Button>
           </form>
         </div>
