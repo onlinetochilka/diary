@@ -1,48 +1,45 @@
 /**
- * database.js — Adapter Layer
+ * database.js — Adapter Layer (PocketBase)
  * ─────────────────────────────────────────────────────────────────────────────
- * ALL Firestore access goes through this file.
- * UI components never import from firebase/* directly.
+ * ALL database access goes through this file.
+ * UI components never import from pocketbase directly.
  *
  * Collections:
- *   users     — tutor user profiles
- *   students  — student records
- *   lessons   — individual lesson sessions
- *   payments  — payment records
+ *   users       — tutor user profiles (PocketBase Auth collection)
+ *   students    — student records
+ *   groups      — group records
+ *   programs    — program/curriculum records
+ *   lessons     — individual lesson sessions
+ *   payments    — payment records
+ *   user_config — per-user configuration
  *
  * Pattern: each method returns a Promise that resolves to plain JS objects.
- * Firestore DocumentSnapshot / QuerySnapshot internals are never leaked.
+ * PocketBase record internals are never leaked to UI components.
  */
 
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  setDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  serverTimestamp,
-  increment,
-} from "firebase/firestore";
-import { db, auth } from "./firebase.js";
+import pb from "./pocketbase.js";
 import { getNextDistinctColor } from "../utils/colors.js";
 
-// ── Collection References ─────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────
 
-const col = {
-  users:    () => collection(db, "users"),
-  students: () => collection(db, "students"),
-  groups:   () => collection(db, "groups"),
-  programs: () => collection(db, "programs"),
-  lessons:  () => collection(db, "lessons"),
-  payments: () => collection(db, "payments"),
-};
+/** Get the currently authenticated user's ID */
+function getCurrentUserId() {
+  return pb.authStore.record?.id;
+}
+
+/**
+ * Safely fetch a single record, returning null if not found.
+ * PocketBase throws on 404, unlike Firestore's exists() check.
+ */
+async function safeGetOne(collectionName, id) {
+  if (!id) return null;
+  try {
+    return await pb.collection(collectionName).getOne(id);
+  } catch (err) {
+    if (err?.status === 404) return null;
+    throw err;
+  }
+}
 
 // ── In-Memory Cache ───────────────────────────────────────────────────────
 const cache = {
@@ -62,35 +59,24 @@ function invalidateCache(collectionName) {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+// ── Balance Helpers ───────────────────────────────────────────────────────
 
-/** Convert a Firestore QuerySnapshot to an array of plain objects */
-function snapshotToArray(snapshot) {
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-
-/** Convert a single DocumentSnapshot to a plain object, or null if missing */
-function docToObject(docSnap) {
-  if (!docSnap.exists()) return null;
-  return { id: docSnap.id, ...docSnap.data() };
-}
-
-/** 
- * Ledger Helper: Applies balance changes when a lesson is conducted or reverted.
- * isReverting = false -> subtract price from balance (student took lesson)
- * isReverting = true -> add price back to balance (lesson was un-conducted or deleted)
+/**
+ * Ledger Helper: Applies balance changes when a lesson's inline payment changes.
+ * Compares old vs new paymentAmount/studentPayments and adjusts student balance.
  */
 async function applyLessonIncomeChange(oldData, newData) {
   if (!newData) return;
-  const isIndividual = newData.type === 'individual';
-  const isGroup = newData.type === 'group';
+  const isIndividual = newData.type === "individual";
+  const isGroup = newData.type === "group";
 
   const updateStudentBalance = async (stId, amtDelta) => {
     if (amtDelta === 0) return;
-    const stRef = doc(col.students(), stId);
-    const stSnap = await getDoc(stRef);
-    if (stSnap.exists()) {
-      await updateDoc(stRef, { balance: increment(amtDelta) });
+    const student = await safeGetOne("students", stId);
+    if (student) {
+      await pb.collection("students").update(stId, {
+        balance: (student.balance || 0) + amtDelta,
+      });
     }
   };
 
@@ -101,7 +87,10 @@ async function applyLessonIncomeChange(oldData, newData) {
   } else if (isGroup) {
     const oldPayments = oldData?.studentPayments || {};
     const newPayments = newData?.studentPayments || {};
-    const allStudents = new Set([...Object.keys(oldPayments), ...Object.keys(newPayments)]);
+    const allStudents = new Set([
+      ...Object.keys(oldPayments),
+      ...Object.keys(newPayments),
+    ]);
     for (const stId of allStudents) {
       const oldAmt = Number(oldPayments[stId]?.amount) || 0;
       const newAmt = Number(newPayments[stId]?.amount) || 0;
@@ -110,44 +99,49 @@ async function applyLessonIncomeChange(oldData, newData) {
   }
 }
 
+/**
+ * Applies balance changes when a lesson is conducted or reverted.
+ * isReverting = false -> subtract price from balance (student took lesson)
+ * isReverting = true  -> add price back to balance (lesson was un-conducted)
+ */
 async function applyLessonBalanceChange(lessonData, isReverting = false) {
   const price = lessonData.price || 0;
   if (price === 0) return;
-  
-  const multiplier = isReverting ? 1 : -1; 
+
+  const multiplier = isReverting ? 1 : -1;
   const amountToApply = price * multiplier;
 
   if (lessonData.type === "individual" && lessonData.studentId) {
-    const stRef = doc(col.students(), lessonData.studentId);
-    const stSnap = await getDoc(stRef);
-    if (stSnap.exists()) {
-      await updateDoc(stRef, { balance: increment(amountToApply) });
+    const student = await safeGetOne("students", lessonData.studentId);
+    if (student) {
+      await pb.collection("students").update(lessonData.studentId, {
+        balance: (student.balance || 0) + amountToApply,
+      });
     }
   } else if (lessonData.type === "group" && lessonData.groupId) {
     // Fix #5: Prefer the group membership snapshot captured at lesson creation time.
-    // This ensures balance changes always affect the students who were actually in the
-    // group when the lesson was created, not whoever happens to be in the group now.
-    let studentIds = Array.isArray(lessonData.groupStudentIds) && lessonData.groupStudentIds.length > 0
-      ? lessonData.groupStudentIds
-      : null;
+    let studentIds =
+      Array.isArray(lessonData.groupStudentIds) &&
+      lessonData.groupStudentIds.length > 0
+        ? lessonData.groupStudentIds
+        : null;
 
     if (!studentIds) {
       // Fallback: no snapshot stored — read current group membership
-      const grRef = doc(col.groups(), lessonData.groupId);
-      const grSnap = await getDoc(grRef);
-      studentIds = grSnap.exists() ? (grSnap.data().studentIds || []) : [];
+      const group = await safeGetOne("groups", lessonData.groupId);
+      studentIds = group ? group.studentIds || [] : [];
     }
 
     for (const stId of studentIds) {
-      const stRef = doc(col.students(), stId);
-      const stSnap = await getDoc(stRef);
-      if (stSnap.exists()) {
-        await updateDoc(stRef, { balance: increment(amountToApply) });
+      const student = await safeGetOne("students", stId);
+      if (student) {
+        await pb.collection("students").update(stId, {
+          balance: (student.balance || 0) + amountToApply,
+        });
       }
     }
   }
 }
-
 
 /**
  * Retrieves all assigned OKLCH colors across students, groups, and programs.
@@ -156,12 +150,18 @@ async function getAllUsedColors(uid) {
   const [st, gr, pr] = await Promise.all([
     getStudents(uid),
     getGroups(uid),
-    getPrograms(uid)
+    getPrograms(uid),
   ]);
   const colors = [];
-  st.forEach(s => { if (s.colorOklch) colors.push(s.colorOklch); });
-  gr.forEach(g => { if (g.colorOklch) colors.push(g.colorOklch); });
-  pr.forEach(p => { if (p.colorOklch) colors.push(p.colorOklch); });
+  st.forEach((s) => {
+    if (s.colorOklch) colors.push(s.colorOklch);
+  });
+  gr.forEach((g) => {
+    if (g.colorOklch) colors.push(g.colorOklch);
+  });
+  pr.forEach((p) => {
+    if (p.colorOklch) colors.push(p.colorOklch);
+  });
   return colors;
 }
 
@@ -175,21 +175,17 @@ async function getAllUsedColors(uid) {
  * @returns {Promise<object|null>}
  */
 export async function getUser(uid) {
-  const snap = await getDoc(doc(col.users(), uid));
-  return docToObject(snap);
+  return await safeGetOne("users", uid);
 }
 
 /**
- * Create or overwrite a user profile.
+ * Update a user profile.
  * @param {string} uid
  * @param {object} data
  * @returns {Promise<void>}
  */
 export async function setUser(uid, data) {
-  await updateDoc(doc(col.users(), uid), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  await pb.collection("users").update(uid, data);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -203,14 +199,17 @@ export async function setUser(uid, data) {
  */
 export async function getStudents(tutorId) {
   if (cache.students) return cache.students;
-  const uid = tutorId || auth.currentUser?.uid;
-  let q = col.students();
+  const uid = tutorId || getCurrentUserId();
+  let res;
   if (uid) {
-    q = query(col.students(), where("tutorId", "==", uid));
+    res = await pb.collection("students").getFullList({
+      filter: `tutorId = "${uid}"`,
+      sort: "name",
+    });
+  } else {
+    res = await pb.collection("students").getFullList({ sort: "name" });
   }
-  const snap = await getDocs(q);
-  const res = snapshotToArray(snap);
-  
+
   // Migration: deduplicate colorOklch across students
   const usedColors = [];
   const updates = [];
@@ -218,18 +217,25 @@ export async function getStudents(tutorId) {
     let oklch = st.colorOklch;
     let isConflict = !oklch || st.colorVersion !== 2;
     if (!isConflict) {
-      isConflict = usedColors.some(u => Math.abs(u.h - oklch.h) < 0.001 && Math.abs(u.l - oklch.l) < 0.001);
+      isConflict = usedColors.some(
+        (u) =>
+          Math.abs(u.h - oklch.h) < 0.001 && Math.abs(u.l - oklch.l) < 0.001
+      );
     }
     if (isConflict) {
       oklch = getNextDistinctColor(usedColors);
       st.colorOklch = oklch;
       st.colorVersion = 2;
-      updates.push(updateDoc(doc(col.students(), st.id), { colorOklch: oklch, colorVersion: 2 }));
+      updates.push(
+        pb
+          .collection("students")
+          .update(st.id, { colorOklch: oklch, colorVersion: 2 })
+      );
     }
     usedColors.push(oklch);
   });
   if (updates.length > 0) Promise.all(updates).catch(console.error);
-  
+
   cache.students = res;
   return res;
 }
@@ -240,14 +246,13 @@ export async function getStudents(tutorId) {
  * @returns {Promise<object|null>}
  */
 export async function getStudent(id) {
-  const snap = await getDoc(doc(col.students(), id));
-  return docToObject(snap);
+  return await safeGetOne("students", id);
 }
 
 /**
  * Add a new student.
  * @param {object} data — { name, subject, tutorId, ... }
- * @returns {Promise<string>} new document ID
+ * @returns {Promise<string>} new record ID
  */
 export async function addStudent(data) {
   if (!data.colorOklch) {
@@ -255,14 +260,10 @@ export async function addStudent(data) {
     data.colorOklch = getNextDistinctColor(usedColors);
     delete data.colorHue;
   }
-  
-  invalidateCache('students');
-  const ref = await addDoc(col.students(), {
-    ...data,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return ref.id;
+
+  invalidateCache("students");
+  const record = await pb.collection("students").create(data);
+  return record.id;
 }
 
 /**
@@ -272,11 +273,8 @@ export async function addStudent(data) {
  * @returns {Promise<void>}
  */
 export async function updateStudent(id, data) {
-  invalidateCache('students');
-  await updateDoc(doc(col.students(), id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  invalidateCache("students");
+  await pb.collection("students").update(id, data);
 }
 
 /**
@@ -285,8 +283,8 @@ export async function updateStudent(id, data) {
  * @returns {Promise<void>}
  */
 export async function deleteStudent(id) {
-  invalidateCache('students');
-  await deleteDoc(doc(col.students(), id));
+  invalidateCache("students");
+  await pb.collection("students").delete(id);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -295,13 +293,16 @@ export async function deleteStudent(id) {
 
 export async function getGroups(tutorId) {
   if (cache.groups) return cache.groups;
-  const uid = tutorId || auth.currentUser?.uid;
-  let q = col.groups();
+  const uid = tutorId || getCurrentUserId();
+  let res;
   if (uid) {
-    q = query(col.groups(), where("tutorId", "==", uid));
+    res = await pb.collection("groups").getFullList({
+      filter: `tutorId = "${uid}"`,
+      sort: "name",
+    });
+  } else {
+    res = await pb.collection("groups").getFullList({ sort: "name" });
   }
-  const snap = await getDocs(q);
-  const res = snapshotToArray(snap);
 
   // Migration: deduplicate colorOklch across groups
   const usedColors = [];
@@ -310,13 +311,20 @@ export async function getGroups(tutorId) {
     let oklch = gr.colorOklch;
     let isConflict = !oklch || gr.colorVersion !== 2;
     if (!isConflict) {
-      isConflict = usedColors.some(u => Math.abs(u.h - oklch.h) < 0.001 && Math.abs(u.l - oklch.l) < 0.001);
+      isConflict = usedColors.some(
+        (u) =>
+          Math.abs(u.h - oklch.h) < 0.001 && Math.abs(u.l - oklch.l) < 0.001
+      );
     }
     if (isConflict) {
       oklch = getNextDistinctColor(usedColors);
       gr.colorOklch = oklch;
       gr.colorVersion = 2;
-      updates.push(updateDoc(doc(col.groups(), gr.id), { colorOklch: oklch, colorVersion: 2 }));
+      updates.push(
+        pb
+          .collection("groups")
+          .update(gr.id, { colorOklch: oklch, colorVersion: 2 })
+      );
     }
     usedColors.push(oklch);
   });
@@ -327,8 +335,7 @@ export async function getGroups(tutorId) {
 }
 
 export async function getGroup(id) {
-  const snap = await getDoc(doc(col.groups(), id));
-  return docToObject(snap);
+  return await safeGetOne("groups", id);
 }
 
 export async function addGroup(data) {
@@ -338,26 +345,19 @@ export async function addGroup(data) {
     delete data.colorHue;
   }
 
-  invalidateCache('groups');
-  const ref = await addDoc(col.groups(), {
-    ...data,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return ref.id;
+  invalidateCache("groups");
+  const record = await pb.collection("groups").create(data);
+  return record.id;
 }
 
 export async function updateGroup(id, data) {
-  invalidateCache('groups');
-  await updateDoc(doc(col.groups(), id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  invalidateCache("groups");
+  await pb.collection("groups").update(id, data);
 }
 
 export async function deleteGroup(id) {
-  invalidateCache('groups');
-  await deleteDoc(doc(col.groups(), id));
+  invalidateCache("groups");
+  await pb.collection("groups").delete(id);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -365,26 +365,33 @@ export async function deleteGroup(id) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export async function getPrograms(tutorId) {
-  const uid = tutorId || auth.currentUser?.uid;
+  const uid = tutorId || getCurrentUserId();
   if (cache.programs) return cache.programs;
-  let q = col.programs();
+  let res;
   if (uid) {
-    q = query(col.programs(), where("tutorId", "==", uid));
+    res = await pb.collection("programs").getFullList({
+      filter: `tutorId = "${uid}"`,
+      sort: "name",
+    });
+  } else {
+    res = await pb.collection("programs").getFullList({ sort: "name" });
   }
-  const snap = await getDocs(q);
-  const res = snapshotToArray(snap);
 
   // Migration: cleanup accidentally injected demo programs for existing users
   if (!cache.demoProgramsCleanupDone) {
     cache.demoProgramsCleanupDone = true;
-    const demoPrograms = res.filter(p => 
-      p.name === "Английский (Грамматика B2)" || p.name === "Русский язык ЕГЭ 2026"
+    const demoPrograms = res.filter(
+      (p) =>
+        p.name === "Английский (Грамматика B2)" ||
+        p.name === "Русский язык ЕГЭ 2026"
     );
-    
+
     if (demoPrograms.length > 0) {
-      const deletePromises = demoPrograms.map(p => deleteDoc(doc(col.programs(), p.id)));
+      const deletePromises = demoPrograms.map((p) =>
+        pb.collection("programs").delete(p.id)
+      );
       await Promise.all(deletePromises);
-      invalidateCache('programs');
+      invalidateCache("programs");
       return getPrograms(tutorId); // recursive call to return clean data
     }
   }
@@ -396,13 +403,20 @@ export async function getPrograms(tutorId) {
     let oklch = pr.colorOklch;
     let isConflict = !oklch || pr.colorVersion !== 2;
     if (!isConflict) {
-      isConflict = usedColors.some(u => Math.abs(u.h - oklch.h) < 0.001 && Math.abs(u.l - oklch.l) < 0.001);
+      isConflict = usedColors.some(
+        (u) =>
+          Math.abs(u.h - oklch.h) < 0.001 && Math.abs(u.l - oklch.l) < 0.001
+      );
     }
     if (isConflict) {
       oklch = getNextDistinctColor(usedColors);
       pr.colorOklch = oklch;
       pr.colorVersion = 2;
-      updates.push(updateDoc(doc(col.programs(), pr.id), { colorOklch: oklch, colorVersion: 2 }));
+      updates.push(
+        pb
+          .collection("programs")
+          .update(pr.id, { colorOklch: oklch, colorVersion: 2 })
+      );
     }
     usedColors.push(oklch);
   });
@@ -413,8 +427,7 @@ export async function getPrograms(tutorId) {
 }
 
 export async function getProgram(id) {
-  const snap = await getDoc(doc(col.programs(), id));
-  return docToObject(snap);
+  return await safeGetOne("programs", id);
 }
 
 export async function addProgram(data) {
@@ -424,26 +437,19 @@ export async function addProgram(data) {
     delete data.colorHue;
   }
 
-  invalidateCache('programs');
-  const ref = await addDoc(col.programs(), {
-    ...data,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return ref.id;
+  invalidateCache("programs");
+  const record = await pb.collection("programs").create(data);
+  return record.id;
 }
 
 export async function updateProgram(id, data) {
-  invalidateCache('programs');
-  await updateDoc(doc(col.programs(), id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  invalidateCache("programs");
+  await pb.collection("programs").update(id, data);
 }
 
 export async function deleteProgram(id) {
-  invalidateCache('programs');
-  await deleteDoc(doc(col.programs(), id));
+  invalidateCache("programs");
+  await pb.collection("programs").delete(id);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -451,7 +457,7 @@ export async function deleteProgram(id) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * migrateToSections — ЧИСТАЯ клиентская функция (без Firestore).
+ * migrateToSections — ЧИСТАЯ клиентская функция (без БД).
  *
  * Принимает программу любого формата (старый плоский topics[] или новый с
  * sections[]) и всегда возвращает нормализованный объект с полями:
@@ -494,7 +500,7 @@ export function migrateToSections(program) {
   const sections = [
     {
       id: defaultSectionId,
-      title: 'Основные темы',
+      title: "Основные темы",
       order: 0,
       topicIds: topics.map((t) => t.id),
     },
@@ -514,41 +520,28 @@ function generateId() {
 // ─── Запись структуры ────────────────────────────────────────────────────────
 
 /**
- * Атомарно сохраняет структуру программы (разделы + темы), а также основные поля (имя, предмет).
- * Вызывается после DnD-перетаскивания, переименования или изменения названия программы.
+ * Атомарно сохраняет структуру программы (разделы + темы), а также основные поля.
  *
- * @param {string} id    — Firestore doc ID программы
+ * @param {string} id    — record ID программы
  * @param {object} data  — { sections, topics, name, subject }
  */
 export async function updateProgramStructure(id, payload) {
-  invalidateCache('programs');
-  await updateDoc(doc(col.programs(), id), {
-    ...payload,
-    updatedAt: serverTimestamp(),
-  });
+  invalidateCache("programs");
+  await pb.collection("programs").update(id, payload);
 }
 
 /**
  * Сохраняет только порядок разделов (например, после DnD на уровне секций).
- * Не трогает topics.
  */
 export async function updateProgramSections(id, sections) {
-  invalidateCache('programs');
-  await updateDoc(doc(col.programs(), id), {
-    sections,
-    updatedAt: serverTimestamp(),
-  });
+  invalidateCache("programs");
+  await pb.collection("programs").update(id, { sections });
 }
 
 // ─── CRUD тем ───────────────────────────────────────────────────────────────
 
 /**
  * Добавляет новую тему в конец указанного раздела.
- *
- * @param {string} programId
- * @param {string} sectionId
- * @param {string} title
- * @returns {object} — полная программа с обновлёнными topics и sections
  */
 export async function addThemeToSection(programId, sectionId, title) {
   const program = await getProgram(programId);
@@ -580,15 +573,6 @@ export async function addThemeToSection(programId, sectionId, title) {
 
 /**
  * Обновляет поля темы. Поддерживает частичное обновление (patch).
- * Для обновления homeworkBank используй: { homeworkBank: newArray }.
- *
- * Добавление задания в банк ДЗ:
- *   item = { id: generateId(), text: '...', type: 'task' }
- *   updateTheme(progId, themeId, { homeworkBank: [...old, item] })
- *
- * @param {string} programId
- * @param {string} themeId
- * @param {object} patch     — частичные изменения темы
  */
 export async function updateTheme(programId, themeId, patch) {
   const program = await getProgram(programId);
@@ -598,10 +582,9 @@ export async function updateTheme(programId, themeId, patch) {
     t.id === themeId ? { ...t, ...patch } : t
   );
 
-  invalidateCache('programs');
-  await updateDoc(doc(col.programs(), programId), {
+  invalidateCache("programs");
+  await pb.collection("programs").update(programId, {
     topics: updatedTopics,
-    updatedAt: serverTimestamp(),
   });
 
   return { ...migrated, topics: updatedTopics };
@@ -609,9 +592,6 @@ export async function updateTheme(programId, themeId, patch) {
 
 /**
  * Удаляет тему из программы и из её раздела.
- *
- * @param {string} programId
- * @param {string} themeId
  */
 export async function deleteTheme(programId, themeId) {
   const program = await getProgram(programId);
@@ -633,9 +613,6 @@ export async function deleteTheme(programId, themeId) {
 
 /**
  * Добавляет новый пустой раздел.
- *
- * @param {string} programId
- * @param {string} title
  */
 export async function addSection(programId, title) {
   const program = await getProgram(programId);
@@ -677,8 +654,12 @@ export async function deleteSection(programId, sectionId) {
   const section = migrated.sections.find((s) => s.id === sectionId);
   if (!section) return migrated;
 
-  const updatedTopics = migrated.topics.filter((t) => t.sectionId !== sectionId);
-  const updatedSections = migrated.sections.filter((s) => s.id !== sectionId);
+  const updatedTopics = migrated.topics.filter(
+    (t) => t.sectionId !== sectionId
+  );
+  const updatedSections = migrated.sections.filter(
+    (s) => s.id !== sectionId
+  );
 
   await updateProgramStructure(programId, {
     sections: updatedSections,
@@ -691,21 +672,15 @@ export async function deleteSection(programId, sectionId) {
 
 /**
  * batchImportProgram — атомарное обновление программы после Excel-импорта.
- *
- * Логика Round-Trip:
- *   - Если у темы есть ID (колонка была в экспорте) → updateTheme()
- *   - Если ID пустой (новая строка в Excel) → создаём тему через generateId()
- *
- * @param {string} programId
- * @param {{ sections: Section[], topics: Topic[] }} parsed — результат парсинга Excel
- * @returns {{ added: number, updated: number, unchanged: number }}
  */
 export async function batchImportProgram(programId, { sections, topics }) {
   const program = await getProgram(programId);
   const migrated = migrateToSections(program);
 
   // Индекс существующих тем для быстрого поиска
-  const existingById = Object.fromEntries(migrated.topics.map((t) => [t.id, t]));
+  const existingById = Object.fromEntries(
+    migrated.topics.map((t) => [t.id, t])
+  );
 
   let added = 0;
   let updated = 0;
@@ -713,7 +688,6 @@ export async function batchImportProgram(programId, { sections, topics }) {
 
   const mergedTopics = topics.map((incoming) => {
     if (incoming.id && existingById[incoming.id]) {
-      // Тема существует — мерджим, сохраняя homeworkBank
       const existing = existingById[incoming.id];
       const isDifferent =
         existing.title !== incoming.title ||
@@ -725,7 +699,6 @@ export async function batchImportProgram(programId, { sections, topics }) {
       unchanged++;
       return existing;
     }
-    // Новая тема
     added++;
     return {
       id: generateId(),
@@ -739,11 +712,11 @@ export async function batchImportProgram(programId, { sections, topics }) {
   // Пересчитываем order внутри каждого раздела
   const orderMap = {};
   mergedTopics.forEach((t) => {
-    orderMap[t.sectionId] = (orderMap[t.sectionId] ?? 0);
+    orderMap[t.sectionId] = orderMap[t.sectionId] ?? 0;
     t.order = orderMap[t.sectionId]++;
   });
 
-  // Нормализуем topicIds в разделах по итоговому массиву тем
+  // Нормализуем topicIds в разделах
   const topicsBySection = {};
   mergedTopics.forEach((t) => {
     if (!topicsBySection[t.sectionId]) topicsBySection[t.sectionId] = [];
@@ -773,25 +746,26 @@ export async function batchImportProgram(programId, { sections, topics }) {
  * @param {{ tutorId?: string, studentId?: string, limitCount?: number }} [filters]
  * @returns {Promise<object[]>}
  */
-export async function getLessons({ tutorId, studentId, groupId, limitCount } = {}) {
-  if (cache.lessons && !studentId && !groupId && !limitCount) return cache.lessons;
-  const uid = tutorId || auth.currentUser?.uid;
-  let conditions = [];
-  if (uid) conditions.push(where("tutorId", "==", uid));
-  if (studentId) conditions.push(where("studentId", "==", studentId));
-  if (groupId) conditions.push(where("groupId", "==", groupId));
+export async function getLessons({
+  tutorId,
+  studentId,
+  groupId,
+  limitCount,
+} = {}) {
+  if (cache.lessons && !studentId && !groupId && !limitCount)
+    return cache.lessons;
+  const uid = tutorId || getCurrentUserId();
 
-  const q    = query(col.lessons(), ...conditions);
-  const snap = await getDocs(q);
-  let res = snapshotToArray(snap);
-  
-  // Sort client-side to avoid composite index requirement
-  res.sort((a, b) => {
-    if (!a.date) return 1;
-    if (!b.date) return -1;
-    if (a.date < b.date) return -1;
-    if (a.date > b.date) return 1;
-    return (a.startTime || "").localeCompare(b.startTime || "");
+  let filterParts = [];
+  if (uid) filterParts.push(`tutorId = "${uid}"`);
+  if (studentId) filterParts.push(`studentId = "${studentId}"`);
+  if (groupId) filterParts.push(`groupId = "${groupId}"`);
+
+  const filter = filterParts.length > 0 ? filterParts.join(" && ") : "";
+
+  let res = await pb.collection("lessons").getFullList({
+    filter,
+    sort: "date,startTime",
   });
 
   if (limitCount) {
@@ -808,61 +782,60 @@ export async function getLessons({ tutorId, studentId, groupId, limitCount } = {
  * @returns {Promise<object|null>}
  */
 export async function getLesson(id) {
-  const snap = await getDoc(doc(col.lessons(), id));
-  return docToObject(snap);
+  return await safeGetOne("lessons", id);
 }
 
 /**
  * Add a new lesson.
  * @param {object} data — { tutorId, studentId, scheduledAt, durationMin, subject, ... }
- * @returns {Promise<string>} new document ID
+ * @returns {Promise<string>} new record ID
  */
 export async function addLesson(data) {
-  invalidateCache('lessons');
+  invalidateCache("lessons");
   if (data.isRecurring && data.repeatUntil) {
     const seriesId = `series_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     let currentDate = new Date(data.date);
     const endDate = new Date(data.repeatUntil);
     let lastRefId = null;
-    
+
     // Add 23 hours to endDate to cover the whole last day
     endDate.setHours(23, 59, 59, 999);
-    
+
     const baseData = { ...data };
     delete baseData.isRecurring;
     delete baseData.repeatUntil;
 
-    // Fix #5: Snapshot current group membership into the lesson so that future
-    // balance changes always target the students who were in the group at creation.
-    if (baseData.type === 'group' && baseData.groupId && !baseData.groupStudentIds) {
-      const grSnap = await getDoc(doc(col.groups(), baseData.groupId));
-      if (grSnap.exists()) {
-        baseData.groupStudentIds = grSnap.data().studentIds || [];
+    // Fix #5: Snapshot current group membership
+    if (baseData.type === "group" && baseData.groupId && !baseData.groupStudentIds) {
+      const group = await safeGetOne("groups", baseData.groupId);
+      if (group) {
+        baseData.groupStudentIds = group.studentIds || [];
       }
     }
 
     let iterations = 0;
     while (currentDate <= endDate && iterations < 52) {
       iterations++;
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = currentDate.toISOString().split("T")[0];
       const lessonDataToSave = {
         ...baseData,
         date: dateStr,
         seriesId,
         status: baseData.status ?? "scheduled",
         hwDoneBy: baseData.hwDoneBy || [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
       };
-      const ref = await addDoc(col.lessons(), lessonDataToSave);
-      lastRefId = ref.id;
-      
-      if (lessonDataToSave.status === "conducted" || lessonDataToSave.status === "skipped_paid") {
+      const record = await pb.collection("lessons").create(lessonDataToSave);
+      lastRefId = record.id;
+
+      if (
+        lessonDataToSave.status === "conducted" ||
+        lessonDataToSave.status === "skipped_paid"
+      ) {
         await applyLessonBalanceChange(lessonDataToSave, false);
       }
-      
+
       await applyLessonIncomeChange(null, lessonDataToSave);
-      
+
       // add 7 days
       currentDate.setDate(currentDate.getDate() + 7);
     }
@@ -872,31 +845,31 @@ export async function addLesson(data) {
     delete baseData.isRecurring;
     delete baseData.repeatUntil;
 
-    // Fix #5: Snapshot current group membership into the lesson so that future
-    // balance changes always target the students who were in the group at creation.
-    if (baseData.type === 'group' && baseData.groupId && !baseData.groupStudentIds) {
-      const grSnap = await getDoc(doc(col.groups(), baseData.groupId));
-      if (grSnap.exists()) {
-        baseData.groupStudentIds = grSnap.data().studentIds || [];
+    // Fix #5: Snapshot current group membership
+    if (baseData.type === "group" && baseData.groupId && !baseData.groupStudentIds) {
+      const group = await safeGetOne("groups", baseData.groupId);
+      if (group) {
+        baseData.groupStudentIds = group.studentIds || [];
       }
     }
-    
+
     const lessonDataToSave = {
       ...baseData,
       status: baseData.status ?? "scheduled",
       hwDoneBy: baseData.hwDoneBy || [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     };
-    const ref = await addDoc(col.lessons(), lessonDataToSave);
-    
-    if (lessonDataToSave.status === "conducted" || lessonDataToSave.status === "skipped_paid") {
+    const record = await pb.collection("lessons").create(lessonDataToSave);
+
+    if (
+      lessonDataToSave.status === "conducted" ||
+      lessonDataToSave.status === "skipped_paid"
+    ) {
       await applyLessonBalanceChange(lessonDataToSave, false);
     }
-    
+
     await applyLessonIncomeChange(null, lessonDataToSave);
-    
-    return ref.id;
+
+    return record.id;
   }
 }
 
@@ -907,29 +880,33 @@ export async function addLesson(data) {
  * @returns {Promise<void>}
  */
 export async function updateLesson(id, data) {
-  invalidateCache('lessons');
-  const oldSnap = await getDoc(doc(col.lessons(), id));
-  const oldData = oldSnap.exists() ? oldSnap.data() : null;
+  invalidateCache("lessons");
+  const oldData = await safeGetOne("lessons", id);
 
   if (oldData) {
-    const isDateChanged = data.date !== undefined && data.date !== oldData.date;
-    const isStartTimeChanged = data.startTime !== undefined && data.startTime !== oldData.startTime;
-    const isEndTimeChanged = data.endTime !== undefined && data.endTime !== oldData.endTime;
-    
+    const isDateChanged =
+      data.date !== undefined && data.date !== oldData.date;
+    const isStartTimeChanged =
+      data.startTime !== undefined && data.startTime !== oldData.startTime;
+    const isEndTimeChanged =
+      data.endTime !== undefined && data.endTime !== oldData.endTime;
+
     if (isDateChanged || isStartTimeChanged || isEndTimeChanged) {
-      data.reschedules = [...(oldData.reschedules || []), new Date().toISOString()];
+      data.reschedules = [
+        ...(oldData.reschedules || []),
+        new Date().toISOString(),
+      ];
     }
   }
 
-  await updateDoc(doc(col.lessons(), id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  await pb.collection("lessons").update(id, data);
 
   if (oldData && data.status !== undefined && data.status !== oldData.status) {
-    const isOldPaid = oldData.status === "conducted" || oldData.status === "skipped_paid";
-    const isNewPaid = data.status === "conducted" || data.status === "skipped_paid";
-    
+    const isOldPaid =
+      oldData.status === "conducted" || oldData.status === "skipped_paid";
+    const isNewPaid =
+      data.status === "conducted" || data.status === "skipped_paid";
+
     if (isNewPaid && !isOldPaid) {
       await applyLessonBalanceChange({ ...oldData, ...data }, false);
     } else if (!isNewPaid && isOldPaid) {
@@ -938,14 +915,21 @@ export async function updateLesson(id, data) {
   }
 
   // Price change on an already-paid lesson: apply balance delta
-  if (oldData && data.price !== undefined && data.price !== oldData.price) {
+  if (
+    oldData &&
+    data.price !== undefined &&
+    data.price !== oldData.price
+  ) {
     const effectiveStatus = data.status || oldData.status;
-    const isPaid = effectiveStatus === "conducted" || effectiveStatus === "skipped_paid";
+    const isPaid =
+      effectiveStatus === "conducted" || effectiveStatus === "skipped_paid";
     if (isPaid && (data.status === undefined || data.status === oldData.status)) {
-      // Status didn't change — only price did. Apply the difference.
-      const priceDelta = (oldData.price || 0) - (data.price || 0); // positive = refund, negative = charge more
+      const priceDelta = (oldData.price || 0) - (data.price || 0);
       if (priceDelta !== 0) {
-        await applyLessonBalanceChange({ ...oldData, ...data, price: Math.abs(priceDelta) }, priceDelta > 0);
+        await applyLessonBalanceChange(
+          { ...oldData, ...data, price: Math.abs(priceDelta) },
+          priceDelta > 0
+        );
       }
     }
   }
@@ -962,33 +946,34 @@ export async function updateLesson(id, data) {
 
 /**
  * Patch a lesson with partial data (for optimistic Inspector updates).
- * Unlike updateLesson, does NOT re-read the old doc for reschedule tracking —
- * use this only for non-scheduling field changes (status, homework, notes).
- *
- * @param {string} id       — lesson Firestore doc ID
- * @param {object} partial  — only the fields to update
- * @returns {Promise<void>}
+ * Unlike updateLesson, does NOT re-read the old doc for reschedule tracking.
  */
 export async function patchLesson(id, partial) {
-  invalidateCache('lessons');
+  invalidateCache("lessons");
 
   // Read old data only if we need balance or hwDebtCount side-effects
-  const needsOldData = partial.status !== undefined || partial.hwDoneBy !== undefined || partial.paymentAmount !== undefined || partial.studentPayments !== undefined;
+  const needsOldData =
+    partial.status !== undefined ||
+    partial.hwDoneBy !== undefined ||
+    partial.paymentAmount !== undefined ||
+    partial.studentPayments !== undefined;
   let oldData = null;
   if (needsOldData) {
-    const oldSnap = await getDoc(doc(col.lessons(), id));
-    oldData = oldSnap.exists() ? oldSnap.data() : null;
+    oldData = await safeGetOne("lessons", id);
   }
 
-  await updateDoc(doc(col.lessons(), id), {
-    ...partial,
-    updatedAt: serverTimestamp(),
-  });
+  await pb.collection("lessons").update(id, partial);
 
   // Balance side-effect when status changes
-  if (oldData && partial.status !== undefined && partial.status !== oldData.status) {
-    const isOldPaid = oldData.status === "conducted" || oldData.status === "skipped_paid";
-    const isNewPaid = partial.status === "conducted" || partial.status === "skipped_paid";
+  if (
+    oldData &&
+    partial.status !== undefined &&
+    partial.status !== oldData.status
+  ) {
+    const isOldPaid =
+      oldData.status === "conducted" || oldData.status === "skipped_paid";
+    const isNewPaid =
+      partial.status === "conducted" || partial.status === "skipped_paid";
     if (isNewPaid && !isOldPaid) {
       await applyLessonBalanceChange({ ...oldData, ...partial }, false);
     } else if (!isNewPaid && isOldPaid) {
@@ -1002,64 +987,68 @@ export async function patchLesson(id, partial) {
   }
 
   // Income side-effect when paymentAmount or studentPayments change
-  if (oldData && (partial.paymentAmount !== undefined || partial.studentPayments !== undefined)) {
+  if (
+    oldData &&
+    (partial.paymentAmount !== undefined ||
+      partial.studentPayments !== undefined)
+  ) {
     await applyLessonIncomeChange(oldData, { ...oldData, ...partial });
   }
 }
 
 /**
  * Пересчитывает hwDebtCount на студентах, затронутых изменением урока.
- *
- * Логика:
- *   - Для индивидуального урока: hwDebtCount — кол-во прошедших уроков
- *     у этого студента, где homework задан и студент не в hwDoneBy.
- *   - Вызывается при каждом сохранении урока с изменённым hwDoneBy.
- *
- * @param {string} lessonId     — ID изменённого урока (для исключения из старого подсчёта)
- * @param {object} updatedLesson — данные урока после изменений
  */
 async function recalcHwDebtCount(lessonId, updatedLesson) {
   const studentIds = [];
   if (updatedLesson.type === "individual" && updatedLesson.studentId) {
     studentIds.push(updatedLesson.studentId);
   } else if (updatedLesson.type === "group" && updatedLesson.groupId) {
-    const grSnap = await getDoc(doc(col.groups(), updatedLesson.groupId));
-    if (grSnap.exists()) {
-      (grSnap.data().studentIds || []).forEach(id => studentIds.push(id));
+    const group = await safeGetOne("groups", updatedLesson.groupId);
+    if (group) {
+      (group.studentIds || []).forEach((id) => studentIds.push(id));
     }
   }
 
   if (studentIds.length === 0) return;
 
   // Fetch all lessons for affected students to count HW debts
-  const uid = updatedLesson.tutorId || auth.currentUser?.uid;
-  const allLessonsSnap = await getDocs(
-    query(col.lessons(), where("tutorId", "==", uid))
-  );
-  const allLessons = allLessonsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  // Merge in the updated lesson so count is based on fresh data
-  const merged = allLessons.map(l => l.id === lessonId ? { ...l, ...updatedLesson } : l);
+  const uid = updatedLesson.tutorId || getCurrentUserId();
+  const allLessons = await pb.collection("lessons").getFullList({
+    filter: `tutorId = "${uid}"`,
+  });
 
-  const today = new Date().toISOString().split('T')[0];
-  const pastLessons = merged.filter(l => l.date < today);
+  // Merge in the updated lesson so count is based on fresh data
+  const merged = allLessons.map((l) =>
+    l.id === lessonId ? { ...l, ...updatedLesson } : l
+  );
+
+  const today = new Date().toISOString().split("T")[0];
+  const pastLessons = merged.filter((l) => l.date < today);
 
   const updates = studentIds.map(async (sid) => {
-    const debtCount = pastLessons.filter(l => {
-      const hw = typeof l.homework === 'string' ? l.homework : (l.homework?.text || "");
+    const debtCount = pastLessons.filter((l) => {
+      const hw =
+        typeof l.homework === "string"
+          ? l.homework
+          : l.homework?.text || "";
       if (!hw.trim()) return false;
-      if (l.type === "individual") return l.studentId === sid && !(l.hwDoneBy || []).includes(sid);
+      if (l.type === "individual")
+        return (
+          l.studentId === sid && !(l.hwDoneBy || []).includes(sid)
+        );
       if (l.type === "group") {
-        const inGroup = (l.groupId === updatedLesson.groupId);
+        const inGroup = l.groupId === updatedLesson.groupId;
         return inGroup && !(l.hwDoneBy || []).includes(sid);
       }
       return false;
     }).length;
 
-    await updateDoc(doc(col.students(), sid), { hwDebtCount: debtCount });
+    await pb.collection("students").update(sid, { hwDebtCount: debtCount });
   });
 
   await Promise.all(updates);
-  invalidateCache('students');
+  invalidateCache("students");
 }
 
 /**
@@ -1068,15 +1057,17 @@ async function recalcHwDebtCount(lessonId, updatedLesson) {
  * @returns {Promise<void>}
  */
 export async function deleteLesson(id) {
-  invalidateCache('lessons');
-  const oldSnap = await getDoc(doc(col.lessons(), id));
-  if (oldSnap.exists()) {
-    const oldData = oldSnap.data();
-    if (oldData.status === "conducted" || oldData.status === "skipped_paid") {
+  invalidateCache("lessons");
+  const oldData = await safeGetOne("lessons", id);
+  if (oldData) {
+    if (
+      oldData.status === "conducted" ||
+      oldData.status === "skipped_paid"
+    ) {
       await applyLessonBalanceChange(oldData, true);
     }
   }
-  await deleteDoc(doc(col.lessons(), id));
+  await pb.collection("lessons").delete(id);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1090,20 +1081,17 @@ export async function deleteLesson(id) {
  */
 export async function getPayments({ tutorId, studentId } = {}) {
   if (cache.payments && !studentId) return cache.payments;
-  const uid = tutorId || auth.currentUser?.uid;
-  let conditions = [];
-  if (uid) conditions.push(where("tutorId", "==", uid));
-  if (studentId) conditions.push(where("studentId", "==", studentId));
+  const uid = tutorId || getCurrentUserId();
 
-  const q    = query(col.payments(), ...conditions);
-  const snap = await getDocs(q);
-  const res = snapshotToArray(snap);
-  
-  // Sort client-side to avoid composite index requirement
-  res.sort((a, b) => {
-    if (!a.paidAt) return 1;
-    if (!b.paidAt) return -1;
-    return a.paidAt < b.paidAt ? 1 : -1;
+  let filterParts = [];
+  if (uid) filterParts.push(`tutorId = "${uid}"`);
+  if (studentId) filterParts.push(`studentId = "${studentId}"`);
+
+  const filter = filterParts.length > 0 ? filterParts.join(" && ") : "";
+
+  const res = await pb.collection("payments").getFullList({
+    filter,
+    sort: "-paidAt",
   });
 
   if (!studentId) cache.payments = res;
@@ -1113,30 +1101,28 @@ export async function getPayments({ tutorId, studentId } = {}) {
 /**
  * Add a payment record.
  * @param {object} data — { tutorId, studentId, amount, currency, paidAt, note, ... }
- * @returns {Promise<string>} new document ID
+ * @returns {Promise<string>} new record ID
  */
 export async function addPayment(data) {
-  invalidateCache('payments');
-  invalidateCache('students');
-  const ref = await addDoc(col.payments(), {
+  invalidateCache("payments");
+  invalidateCache("students");
+  const record = await pb.collection("payments").create({
     ...data,
-    currency:  data.currency ?? "RUB",
-    createdAt: serverTimestamp(),
+    currency: data.currency ?? "RUB",
   });
-  
+
   if (data.studentId && data.amount) {
     const amount = Number(data.amount);
-    const stRef = doc(col.students(), data.studentId);
-    const stSnap = await getDoc(stRef);
-    if (stSnap.exists()) {
-      await updateDoc(stRef, {
-        balance: increment(amount),
-        ltv: increment(amount),
+    const student = await safeGetOne("students", data.studentId);
+    if (student) {
+      await pb.collection("students").update(data.studentId, {
+        balance: (student.balance || 0) + amount,
+        ltv: (student.ltv || 0) + amount,
       });
     }
   }
-  
-  return ref.id;
+
+  return record.id;
 }
 
 /**
@@ -1146,65 +1132,57 @@ export async function addPayment(data) {
  * @returns {Promise<void>}
  */
 export async function updatePayment(id, data) {
-  invalidateCache('payments');
-  invalidateCache('students');
+  invalidateCache("payments");
+  invalidateCache("students");
 
-  // Fix #2: When the payment amount changes, compute the delta and apply it to the
-  // student's balance so the ledger stays consistent.
+  // Fix #2: When the payment amount changes, compute the delta and apply it
   if (data.amount !== undefined) {
-    const oldSnap = await getDoc(doc(col.payments(), id));
-    if (oldSnap.exists()) {
-      const oldData = oldSnap.data();
+    const oldData = await safeGetOne("payments", id);
+    if (oldData) {
       const oldAmount = Number(oldData.amount) || 0;
       const newAmount = Number(data.amount) || 0;
       const delta = newAmount - oldAmount;
       if (delta !== 0 && oldData.studentId) {
-        const stRef = doc(col.students(), oldData.studentId);
-        const stSnap = await getDoc(stRef);
-        if (stSnap.exists()) {
-          await updateDoc(stRef, {
-            balance: increment(delta),
-            ltv: increment(delta),
+        const student = await safeGetOne("students", oldData.studentId);
+        if (student) {
+          await pb.collection("students").update(oldData.studentId, {
+            balance: (student.balance || 0) + delta,
+            ltv: (student.ltv || 0) + delta,
           });
         }
       }
     }
   }
 
-  await updateDoc(doc(col.payments(), id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  await pb.collection("payments").update(id, data);
 }
 
 /**
  * Delete a payment record.
- * Reverts the student's balance by the payment amount so the ledger stays correct.
+ * Reverts the student's balance by the payment amount.
  * @param {string} id
  * @returns {Promise<void>}
  */
 export async function deletePayment(id) {
-  invalidateCache('payments');
-  invalidateCache('students');
+  invalidateCache("payments");
+  invalidateCache("students");
 
-  // Fix #1: Read the payment before deleting so we can roll back the student's balance.
-  const paySnap = await getDoc(doc(col.payments(), id));
-  if (paySnap.exists()) {
-    const payData = paySnap.data();
+  // Fix #1: Read the payment before deleting to roll back the student's balance.
+  const payData = await safeGetOne("payments", id);
+  if (payData) {
     const amount = Number(payData.amount) || 0;
     if (amount !== 0 && payData.studentId) {
-      const stRef = doc(col.students(), payData.studentId);
-      const stSnap = await getDoc(stRef);
-      if (stSnap.exists()) {
-        await updateDoc(stRef, {
-          balance: increment(-amount),
-          ltv: increment(-amount),
+      const student = await safeGetOne("students", payData.studentId);
+      if (student) {
+        await pb.collection("students").update(payData.studentId, {
+          balance: (student.balance || 0) - amount,
+          ltv: (student.ltv || 0) - amount,
         });
       }
     }
   }
 
-  await deleteDoc(doc(col.payments(), id));
+  await pb.collection("payments").delete(id);
 }
 
 /**
@@ -1215,29 +1193,28 @@ export async function deletePayment(id) {
  * @returns {Promise<{ stored: number, calculated: number, corrected: boolean }>}
  */
 export async function recalculateStudentBalance(studentId) {
-  const stRef = doc(col.students(), studentId);
-  const stSnap = await getDoc(stRef);
-  if (!stSnap.exists()) return { stored: 0, calculated: 0, corrected: false };
+  const student = await safeGetOne("students", studentId);
+  if (!student) return { stored: 0, calculated: 0, corrected: false };
 
-  const stored = stSnap.data().balance || 0;
+  const stored = student.balance || 0;
 
   // Sum all payments for this student
-  const paymentsSnap = await getDocs(
-    query(col.payments(), where("studentId", "==", studentId))
-  );
+  const payments = await pb.collection("payments").getFullList({
+    filter: `studentId = "${studentId}"`,
+  });
   let totalPayments = 0;
-  paymentsSnap.docs.forEach(d => {
-    totalPayments += Number(d.data().amount) || 0;
+  payments.forEach((p) => {
+    totalPayments += Number(p.amount) || 0;
   });
 
   // Sum all paid lesson costs for this student
-  const uid = stSnap.data().tutorId || auth.currentUser?.uid;
-  const lessonsSnap = await getDocs(
-    query(col.lessons(), where("tutorId", "==", uid))
-  );
+  const uid = student.tutorId || getCurrentUserId();
+  const lessons = await pb.collection("lessons").getFullList({
+    filter: `tutorId = "${uid}"`,
+  });
+
   let totalLessonCost = 0;
-  lessonsSnap.docs.forEach(d => {
-    const l = d.data();
+  lessons.forEach((l) => {
     const isPaid = l.status === "conducted" || l.status === "skipped_paid";
     if (!isPaid) return;
     const price = l.price || 0;
@@ -1251,12 +1228,12 @@ export async function recalculateStudentBalance(studentId) {
 
   // Sum paymentAmount (inline payments from DayInspector)
   let totalInlinePayments = 0;
-  lessonsSnap.docs.forEach(d => {
-    const l = d.data();
+  lessons.forEach((l) => {
     if (l.type === "individual" && l.studentId === studentId) {
       totalInlinePayments += Number(l.paymentAmount) || 0;
     } else if (l.type === "group" && l.studentPayments) {
-      totalInlinePayments += Number(l.studentPayments[studentId]?.amount) || 0;
+      totalInlinePayments +=
+        Number(l.studentPayments[studentId]?.amount) || 0;
     }
   });
 
@@ -1264,9 +1241,13 @@ export async function recalculateStudentBalance(studentId) {
   const drift = Math.abs(stored - calculated);
 
   if (drift > 0.01) {
-    await updateDoc(stRef, { balance: calculated });
-    invalidateCache('students');
-    console.warn(`[recalcBalance] Student ${studentId}: stored=${stored}, calculated=${calculated}, drift=${drift}. Corrected.`);
+    await pb.collection("students").update(studentId, {
+      balance: calculated,
+    });
+    invalidateCache("students");
+    console.warn(
+      `[recalcBalance] Student ${studentId}: stored=${stored}, calculated=${calculated}, drift=${drift}. Corrected.`
+    );
     return { stored, calculated, corrected: true };
   }
 
@@ -1276,24 +1257,48 @@ export async function recalculateStudentBalance(studentId) {
 // ── Configuration ─────────────────────────────────────────────────────────
 
 export async function getUserConfig(uid) {
-  const currentUid = uid || auth.currentUser?.uid;
+  const currentUid = uid || getCurrentUserId();
   if (!currentUid) return null;
   if (cache.config) return cache.config;
-  const configDoc = await getDoc(doc(db, "users", currentUid, "config", "settings"));
-  const res = docToObject(configDoc) || {
+
+  try {
+    const records = await pb.collection("user_config").getFullList({
+      filter: `userId = "${currentUid}"`,
+    });
+
+    if (records.length > 0) {
+      const res = records[0];
+      if (!res.dashboardMetrics) {
+        res.dashboardMetrics = [
+          "todayCount",
+          "activeStudentsCount",
+          "hoursWorkedThisMonth",
+          "incomeMonth",
+        ];
+      }
+      cache.config = res;
+      return res;
+    }
+  } catch {
+    // Fall through to defaults
+  }
+
+  const defaults = {
     theme: "light",
     timezone: "Europe/Moscow",
     currency: "RUB",
     workingDays: [1, 2, 3, 4, 5],
     scheduleColorBy: "subject",
     requisites: "",
-    dashboardMetrics: ["todayCount", "activeStudentsCount", "hoursWorkedThisMonth", "incomeMonth"]
+    dashboardMetrics: [
+      "todayCount",
+      "activeStudentsCount",
+      "hoursWorkedThisMonth",
+      "incomeMonth",
+    ],
   };
-  if (!res.dashboardMetrics) {
-    res.dashboardMetrics = ["todayCount", "activeStudentsCount", "hoursWorkedThisMonth", "incomeMonth"];
-  }
-  cache.config = res;
-  return res;
+  cache.config = defaults;
+  return defaults;
 }
 
 /**
@@ -1303,14 +1308,29 @@ export async function getUserConfig(uid) {
  * @returns {Promise<void>}
  */
 export async function updateUserConfig(uid, data) {
-  const currentUid = uid || auth.currentUser?.uid;
+  const currentUid = uid || getCurrentUserId();
   if (!currentUid) return;
-  invalidateCache('config');
-  const ref = doc(db, "users", currentUid, "config", "settings");
-  await setDoc(ref, {
-    ...data,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  invalidateCache("config");
+
+  try {
+    // Try to find existing config
+    const records = await pb.collection("user_config").getFullList({
+      filter: `userId = "${currentUid}"`,
+    });
+
+    if (records.length > 0) {
+      // Update existing
+      await pb.collection("user_config").update(records[0].id, data);
+    } else {
+      // Create new
+      await pb.collection("user_config").create({
+        ...data,
+        userId: currentUid,
+      });
+    }
+  } catch (err) {
+    console.error("[updateUserConfig] Error:", err);
+  }
 }
 
 // ── Community News ────────────────────────────────────────────────────────
@@ -1318,58 +1338,56 @@ export async function updateUserConfig(uid, data) {
 /**
  * getCommunityNews()
  * ─────────────────────────────────────────────────────────────────────────
- * Fetches the latest post from the @tochilka_online Telegram channel
- * via our Vercel Serverless Function endpoint.
- *
- * Security contract:
- *   - The Telegram Bot Token lives ONLY in Vercel Environment Variables.
- *   - This adapter makes a plain HTTP GET to our own /api — no token,
- *     no Telegram API details leak to the browser.
+ * Fetches the latest post from the community_news collection in PocketBase.
+ * The Telegram bot writes news to this collection.
  *
  * Returns:
  *   { id, text, date, channelName, postUrl } on success
  *   null on any error (caller shows graceful fallback)
  *
  * @returns {Promise<CommunityPost|null>}
- *
- * @typedef {{ id: number, text: string, date: string, channelName: string, postUrl: string }} CommunityPost
  */
 
 // Client-side in-memory cache so rapid re-renders don't trigger extra fetches
 const _newsCache = { data: null, fetchedAt: 0 };
-const _NEWS_CACHE_TTL = 5 * 60 * 1000; // 5 min (mirrors Function TTL)
+const _NEWS_CACHE_TTL = 5 * 60 * 1000; // 5 min
 
 export async function getCommunityNews() {
   // Cache hit?
   const now = Date.now();
-  if (_newsCache.data !== undefined && now - _newsCache.fetchedAt < _NEWS_CACHE_TTL) {
+  if (
+    _newsCache.data !== undefined &&
+    now - _newsCache.fetchedAt < _NEWS_CACHE_TTL
+  ) {
     return _newsCache.data;
   }
 
-  // Under Vercel, the API is mounted on the same domain at /api/*
-  // For local dev, Vercel CLI (vercel dev) automatically routes /api
-  const endpoint = `/api/getCommunityNews`;
-
   try {
-    const res = await fetch(endpoint, {
-      signal: AbortSignal.timeout(10_000), // 10 s hard timeout
-      headers: { Accept: "application/json" },
+    const records = await pb.collection("community_news").getList(1, 1, {
+      sort: "-id",
     });
 
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+    if (records.items.length > 0) {
+      const post = records.items[0];
+      const postData = {
+        id: post.messageId || post.id,
+        text: post.text || "",
+        date: post.created,
+        channelName: post.channelName || "tochilka_online",
+        postUrl: post.postUrl || "",
+        imageData: post.imageData || null,
+        isVideo: post.isVideo || false,
+      };
+      _newsCache.data = postData;
+      _newsCache.fetchedAt = now;
+      return postData;
     }
 
-    const json = await res.json();
-
-    // Update client cache regardless of ok/data (avoids hammering on partial errors)
-    _newsCache.data = (json.ok && json.data) ? json.data : null;
+    _newsCache.data = null;
     _newsCache.fetchedAt = now;
-
-    return _newsCache.data;
+    return null;
   } catch {
-    // Network error, timeout, JSON parse error — all handled silently
-    // Do NOT update fetchedAt so we retry sooner on next mount
+    // Network error, timeout — handled silently
     return null;
   }
 }

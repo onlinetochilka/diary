@@ -7,13 +7,13 @@ export default defineConfig({
   server: {
     proxy: {
       // Proxy PocketBase API calls through Vite dev server.
-      // The browser on localhost often can't reach api.tochilka.app directly
-      // (firewall / extension blocks). This proxy forwards calls via Node.js
-      // which has no such restrictions.
-      '/api-pb': {
+      // The browser on localhost often can't reach api.tochilka.app directly.
+      // This proxy forwards calls via Node.js which has no such restrictions.
+      // Same path used in vercel.json rewrites for production.
+      '/api/pb': {
         target: 'https://api.tochilka.app',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api-pb/, ''),
+        rewrite: (path) => path.replace(/^\/api\/pb/, ''),
         secure: true,
         // Long timeouts: generateDemoData creates 100+ records sequentially
         timeout: 120000,
