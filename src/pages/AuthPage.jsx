@@ -36,13 +36,9 @@ export default function AuthPage() {
         });
         await pb.collection("users").authWithPassword(email, password);
       }
-      // refreshUser triggers a re-render — AuthPage will unmount, no need to setIsLoading(false)
+      // refreshUser updates React state; authStore.onChange fires too.
+      // No reload needed — React transitions AuthPage → AppShell automatically.
       refreshUser();
-      // Fallback: if React doesn't re-render within 1.5s (e.g. StrictMode race), force a reload.
-      // After reload PocketBase will restore the session from localStorage automatically.
-      setTimeout(() => {
-        if (pb.authStore.isValid) window.location.reload();
-      }, 1500);
     } catch (err) {
       console.error("[AuthPage] login error:", err?.status, err?.message, JSON.stringify(err?.data));
       const msg = err?.message || err?.response?.message || "";
@@ -97,13 +93,12 @@ export default function AuthPage() {
       }
 
       setDemoStatus("Готово! Открываем дашборд...");
-      // Small delay so user sees the success message, then reload into the app
+      // refreshUser() reads from pb.authStore (already updated by authWithPassword)
+      // and updates React state. AuthContext.onChange also fires automatically.
+      // NO window.location.reload() — that would remount AuthContext which clears demo sessions!
       setTimeout(() => {
         refreshUser();
-        setTimeout(() => {
-          if (pb.authStore.isValid) window.location.reload();
-        }, 1000);
-      }, 500);
+      }, 300);
 
     } catch (err) {
       console.error("[AuthPage] Demo login error:", err?.status, err?.message, JSON.stringify(err?.data));
