@@ -72,6 +72,7 @@ export const NAV_ITEMS = [
  */
 export default function Sidebar({ activePage, onNavigate }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState("");
   const isAnonymous = pb.authStore.record?.email?.startsWith("demo_");
 
   const handleToggleDemo = async () => {
@@ -84,7 +85,7 @@ export default function Sidebar({ activePage, onNavigate }) {
         const tutorId = pb.authStore.record?.id;
         pb.authStore.clear();
         window.location.reload();
-        // Cleanup runs after reload (fire and forget — user is already gone)
+        // Cleanup happens before reload call returns (fire and forget)
         if (tutorId) {
           clearAllTutorData(tutorId).catch((err) => {
             console.warn("Demo data cleanup failed (non-critical):", err);
@@ -100,17 +101,19 @@ export default function Sidebar({ activePage, onNavigate }) {
         const demoId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         const demoEmail = `demo_${demoId}@tochilka.app`;
         const demoPassword = `Demo_${Math.random().toString(36).slice(-10)}!1`;
+        setLoadingMsg("Создаём аккаунт...");
         await pb.collection("users").create({ email: demoEmail, password: demoPassword, passwordConfirm: demoPassword, name: "Демо-репетитор" });
         await pb.collection("users").authWithPassword(demoEmail, demoPassword);
-        generateDemoData(pb.authStore.record?.id).catch((err) => {
-          console.warn("Demo data generation failed:", err);
-        });
+        // AWAIT data generation — don't reload until data is ready!
+        setLoadingMsg("Данные...");
+        await generateDemoData(pb.authStore.record?.id);
         window.location.reload();
       }
     } catch (err) {
       console.error("[Sidebar] demo toggle error:", err?.status, err?.message);
       alert(`Произошла ошибка: ${err?.message || "неизвестная"}`);
       setIsLoading(false);
+      setLoadingMsg("");
     }
   };
 
@@ -199,7 +202,7 @@ export default function Sidebar({ activePage, onNavigate }) {
           )}
         >
           {isLoading ? (
-            <span className="animate-pulse mx-auto">Подождите...</span>
+            <span className="animate-pulse mx-auto text-xs">{loadingMsg || "Подождите..."}</span>
           ) : isAnonymous ? (
             <>
               <LogOut size={16} strokeWidth={2.5} />
