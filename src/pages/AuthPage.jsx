@@ -1,8 +1,8 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import pb from "../services/pocketbase.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { generateDemoData } from "../utils/demoData.js";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
 import { Input, Button } from "../components/ui/index.js";
 
 export default function AuthPage() {
@@ -12,7 +12,10 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLogin, setIsLogin] = useState(true);
+  // "login" | "register" | "forgot"
+  const [mode, setMode] = useState("login");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,12 +23,13 @@ export default function AuthPage() {
       setError("Пожалуйста, заполните все поля");
       return;
     }
-    
+
     setIsLoading(true);
     setError("");
-    
+    setSuccess("");
+
     try {
-      if (isLogin) {
+      if (mode === "login") {
         await pb.collection("users").authWithPassword(email, password);
       } else {
         // Register: create user, then authenticate
@@ -36,36 +40,31 @@ export default function AuthPage() {
         });
         await pb.collection("users").authWithPassword(email, password);
       }
-      // refreshUser updates React state; authStore.onChange fires too.
-      // No reload needed — React transitions AuthPage → AppShell automatically.
       refreshUser();
     } catch (err) {
-      console.error("[AuthPage] login error:", err?.status, err?.message, JSON.stringify(err?.data));
+      console.error("[AuthPage] auth error:", err?.status, err?.message, JSON.stringify(err?.data));
       const msg = err?.message || err?.response?.message || "";
-      // PocketBase SDK v0.27: field validation errors are in err.data.data (not err.data)
       const fieldErrors = err?.data?.data || err?.response?.data || {};
-
-      // Collect all field-level error messages for display
       const fieldMessages = Object.entries(fieldErrors)
         .map(([field, info]) => `${field}: ${info?.message || info?.code || JSON.stringify(info)}`)
         .join("; ");
 
       if (msg.includes("Invalid") || msg.includes("invalid") || msg.includes("authenticate") || msg.includes("Failed to authenticate")) {
-        setError("Неверный email или пароль. Попробуем ещё раз?");
+        setError("Неверный email или пароль. Нажмите «Забыли пароль?» чтобы сбросить.");
       } else if (fieldErrors.email?.code === "validation_not_unique") {
-        setError("Этот email уже зарегистрирован. Войдите в существующий аккаунт.");
+        setError("Этот email уже зарегистрирован. Войдите или сбросьте пароль.");
       } else if (fieldErrors.email?.code === "validation_invalid_email") {
         setError("Некорректный формат email.");
       } else if (fieldErrors.password?.code === "validation_length_out_of_range") {
         setError("Пароль слишком короткий — минимум 8 символов.");
-      } else if (err?.status === 403 && (msg.includes("not allowed") || msg.includes("disabled"))) {
+      } else if (err?.status === 403) {
         setError("Регистрация отключена. Обратитесь к администратору.");
       } else if (err?.status === 429) {
         setError("Слишком много попыток. Подождите пару минут.");
       } else if (err?.status === 0 || msg.includes("fetch") || msg.includes("Failed to fetch")) {
         setError("Нет соединения с сервером. Проверьте интернет.");
       } else if (fieldMessages) {
-        setError(`Ошибка при регистрации: ${fieldMessages}`);
+        setError(`Ошибка: ${fieldMessages}`);
       } else {
         setError(`Ошибка ${err?.status || ""}: ${msg || "Проверьте интернет-соединение"}`);
       }
@@ -73,13 +72,40 @@ export default function AuthPage() {
     }
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!email) {
+      setError("Введите email чтобы сбросить пароль");
+      return;
+    }
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      await pb.collection("users").requestPasswordReset(email);
+      setSuccess(`Письмо со ссылкой для сброса пароля отправлено на ${email}. Проверьте почту (и папку «Спам»).`);
+    } catch (err) {
+      console.error("[AuthPage] password reset error:", err?.status, err?.message);
+      const msg = err?.message || "";
+      if (err?.status === 0 || msg.includes("fetch") || msg.includes("Failed to fetch")) {
+        setError("Нет соединения с сервером.");
+      } else if (err?.status === 429) {
+        setError("Слишком много попыток. Подождите пару минут.");
+      } else {
+        // PocketBase не раскрывает наличие email из соображений безопасности — считаем успехом
+        setSuccess(`Если аккаунт с ${email} существует, письмо отправлено. Проверьте почту.`);
+      }
+    }
+    setIsLoading(false);
+  };
+
   const [demoStatus, setDemoStatus] = useState("");
 
   const handleDemoLogin = async () => {
     setIsLoading(true);
     setError("");
+    setSuccess("");
     try {
-      // Create a unique temporary demo user
       const demoId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
       const demoEmail = `demo_${demoId}@tochilka.app`;
       const demoPassword = `Demo_${Math.random().toString(36).slice(-10)}!1`;
@@ -94,7 +120,6 @@ export default function AuthPage() {
 
       await pb.collection("users").authWithPassword(demoEmail, demoPassword);
 
-      // Generate demo data BEFORE entering the app — user sees loading screen
       const tutorId = pb.authStore.record?.id;
       if (tutorId) {
         setDemoStatus("Генерируем демо-данные...");
@@ -102,13 +127,7 @@ export default function AuthPage() {
       }
 
       setDemoStatus("Готово! Открываем дашборд...");
-      // refreshUser() reads from pb.authStore (already updated by authWithPassword)
-      // and updates React state. AuthContext.onChange also fires automatically.
-      // NO window.location.reload() — that would remount AuthContext which clears demo sessions!
-      setTimeout(() => {
-        refreshUser();
-      }, 300);
-
+      setTimeout(() => { refreshUser(); }, 300);
     } catch (err) {
       console.error("[AuthPage] Demo login error:", err?.status, err?.message, JSON.stringify(err?.data));
       const msg = err?.message || "";
@@ -123,31 +142,100 @@ export default function AuthPage() {
     }
   };
 
+  // ─── Режим сброса пароля ───────────────────────────────────────────
+  if (mode === "forgot") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF9] p-4 font-sans text-stone-900">
+        <div className="w-full max-w-sm">
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 ring-1 ring-stone-900/5 p-3">
+              <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-stone-900">Сброс пароля</h1>
+            <p className="text-stone-500 mt-1 text-sm">Введите email — пришлём ссылку</p>
+          </div>
+
+          <div className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-xl shadow-stone-200/50">
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center">{error}</div>
+              )}
+              {success && (
+                <div className="p-3 bg-green-50 text-green-700 rounded-xl text-sm font-medium text-center">{success}</div>
+              )}
+
+              {!success && (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-stone-700 ml-1">Email</label>
+                    <Input
+                      type="email"
+                      placeholder="yandji2@mail.ru"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoFocus
+                      className="h-12 bg-white"
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={isLoading}
+                    className="w-full h-12 mt-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-lg shadow-stone-900/20"
+                  >
+                    {isLoading ? (
+                      <><Loader2 size={18} className="animate-spin mr-2" />Отправляем...</>
+                    ) : (
+                      "Отправить письмо"
+                    )}
+                  </Button>
+                </>
+              )}
+
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={() => { setMode("login"); setError(""); setSuccess(""); }}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-stone-500 hover:text-stone-800 transition-colors"
+                  disabled={isLoading}
+                >
+                  <ArrowLeft size={14} />
+                  Вернуться ко входу
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Режим входа / регистрации ─────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FAFAF9] p-4 font-sans text-stone-900">
       <div className="w-full max-w-sm">
-        
+
         {/* Header / Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 ring-1 ring-stone-900/5 p-3">
             <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900">
-            {isLogin ? "С возвращением" : "Регистрация"}
+            {mode === "login" ? "С возвращением" : "Регистрация"}
           </h1>
           <p className="text-stone-500 mt-1 text-sm">
-            {isLogin ? "Войдите в свою учетную запись" : "Создайте новую учетную запись"}
+            {mode === "login" ? "Войдите в свою учетную запись" : "Создайте новую учетную запись"}
           </p>
         </div>
 
         {/* Card */}
         <div className="bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-xl shadow-stone-200/50">
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+
             {error && (
-              <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center">
-                {error}
-              </div>
+              <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center">{error}</div>
             )}
 
             <div className="space-y-1">
@@ -162,10 +250,20 @@ export default function AuthPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div className="space-y-1">
-              <div className="flex justify-between items-center ml-1">
+              <div className="flex justify-between items-center ml-1 mr-1">
                 <label className="text-sm font-medium text-stone-700">Пароль</label>
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => { setMode("forgot"); setError(""); setSuccess(""); }}
+                    className="text-xs font-medium text-stone-400 hover:text-stone-700 transition-colors"
+                    disabled={isLoading}
+                  >
+                    Забыли пароль?
+                  </button>
+                )}
               </div>
               <div className="relative">
                 <Input
@@ -196,24 +294,24 @@ export default function AuthPage() {
               {isLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin mr-2" />
-                  {isLogin ? "Вход..." : "Регистрация..."}
+                  {mode === "login" ? "Вход..." : "Регистрация..."}
                 </>
               ) : (
-                isLogin ? "Войти" : "Зарегистрироваться"
+                mode === "login" ? "Войти" : "Зарегистрироваться"
               )}
             </Button>
-            
+
             <div className="pt-2 text-center">
-              <button 
-                type="button" 
-                onClick={() => { setIsLogin(!isLogin); setError(""); }}
+              <button
+                type="button"
+                onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setSuccess(""); }}
                 className="text-sm font-medium text-stone-500 hover:text-stone-800 transition-colors"
                 disabled={isLoading}
               >
-                {isLogin ? "Нет аккаунта? Зарегистрируйтесь" : "Уже есть аккаунт? Войти"}
+                {mode === "login" ? "Нет аккаунта? Зарегистрируйтесь" : "Уже есть аккаунт? Войти"}
               </button>
             </div>
-            
+
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-stone-200"></div>
               <span className="flex-shrink-0 mx-4 text-stone-400 text-xs">ИЛИ</span>
@@ -238,7 +336,7 @@ export default function AuthPage() {
             </Button>
           </form>
         </div>
-        
+
         <p className="text-center text-xs text-stone-400 mt-8">
           Точилка — Планнер для репетиторов
         </p>
