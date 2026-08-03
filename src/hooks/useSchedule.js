@@ -88,9 +88,18 @@ export function useSchedule() {
   };
 
   const handleDeleteLesson = async (id) => {
+    // Check if this lesson was conducted/paid — warn that balance will be reverted
+    const lesson = lessons.find(l => l.id === id);
+    if (lesson && (lesson.status === 'conducted' || lesson.status === 'skipped_paid')) {
+      const confirmed = window.confirm(
+        'Этот урок уже проведён и деньги списаны. Если вы удалите его, стоимость вернётся на баланс ученика. Продолжить?'
+      );
+      if (!confirmed) return;
+    }
     await deleteLesson(id);
     await fetchData();
   };
+
 
   const handleQuickStatus = async (lesson, status) => {
     // Optimistic update
@@ -139,7 +148,11 @@ export function useSchedule() {
       }
     }
 
-    await fetchData();
+    // Перезагружаем данные только при изменении полей, влияющих на серверные расчёты (баланс, статус)
+    const needsRefetch = ['status', 'paymentAmount', 'paymentStatus', 'studentPayments', 'attendance'].some(k => k in partial);
+    if (needsRefetch) {
+      await fetchData();
+    }
   };
 
   const handleQuickHomework = async (lesson, studentId, isDone, hwStatus = 'on_time') => {
@@ -147,7 +160,7 @@ export function useSchedule() {
     const currentHwStatuses = lesson.hwStatuses || {};
 
     const newHwDoneBy = isDone 
-      ? [...currentHwDoneBy, studentId]
+      ? (currentHwDoneBy.includes(studentId) ? currentHwDoneBy : [...currentHwDoneBy, studentId])
       : currentHwDoneBy.filter(id => id !== studentId);
 
     const newHwStatuses = { ...currentHwStatuses };

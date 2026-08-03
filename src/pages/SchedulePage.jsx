@@ -351,15 +351,20 @@ export default function SchedulePage({ pageState, onNavigate }) {
               const l = item.lessons[0];
               await hookQuickHomework(l, item.student.id, true);
             } else if (item.type === "money") {
-              await addPayment({
-                studentId:   item.student.id,
-                studentName: item.student.name,
-                amount:      selectedLessonsOrAmount,
-                paidAt:      new Date().toISOString(),
-                note:        note || "Оплата с расписания",
-              });
-              if (pageState?.refreshData) pageState.refreshData();
-              window.dispatchEvent(new CustomEvent("force-refresh-data"));
+              try {
+                await addPayment({
+                  studentId:   item.student.id,
+                  studentName: item.student.name,
+                  amount:      selectedLessonsOrAmount,
+                  paidAt:      new Date().toISOString(),
+                  note:        note || "Оплата с расписания",
+                });
+              } catch (e) {
+                console.error(e);
+              } finally {
+                if (pageState?.refreshData) pageState.refreshData();
+                window.dispatchEvent(new CustomEvent("force-refresh-data"));
+              }
             }
           }}
         />

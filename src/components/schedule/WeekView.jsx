@@ -38,9 +38,19 @@ export default function WeekView({
 
   const todayStr = ymd(new Date());
   
-  // Timeline bounds
-  const tlStartH = 8;
-  const tlEndH = 23; 
+  // Динамические границы таймлайна: расширяем если уроки выходят за 8–23
+  let tlStartH = 8;
+  let tlEndH = 23;
+  weekDays.forEach(wd => {
+    const dStr = ymd(wd);
+    (lessonsByDate[dStr] || []).forEach(l => {
+      const [sH] = l.startTime.split(':').map(Number);
+      const [eH, eM] = l.endTime.split(':').map(Number);
+      if (sH < tlStartH) tlStartH = sH;
+      const effectiveEnd = eM > 0 ? eH + 1 : eH;
+      if (effectiveEnd > tlEndH) tlEndH = Math.min(effectiveEnd, 24);
+    });
+  });
   const hours = Array.from({ length: tlEndH - tlStartH }, (_, i) => tlStartH + i);
   const hourHeight = 64; // px
 
@@ -237,6 +247,7 @@ export default function WeekView({
                       let displayEnd = l.endMins;
                       if (displayStart < tlStartH * 60) displayStart = tlStartH * 60;
                       if (displayEnd > tlEndH * 60) displayEnd = tlEndH * 60;
+                      if (displayEnd < displayStart) displayEnd = displayStart;
                       
                       const top = ((displayStart - (tlStartH * 60)) / 60) * hourHeight;
                       const height = Math.max(20, ((displayEnd - displayStart) / 60) * hourHeight);

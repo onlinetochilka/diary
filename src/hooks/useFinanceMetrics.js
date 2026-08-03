@@ -2,9 +2,12 @@
  * useFinanceMetrics.js — хук для хранения выбранных метрик в localStorage.
  */
 import { useState } from "react";
-import { DEFAULT_METRICS } from "../constants/financeMetrics.js";
+import { DEFAULT_METRICS, METRIC_GROUPS } from "../constants/financeMetrics.js";
 
 const LS_KEY = "finance_metrics_v1";
+
+/** All valid metric keys from the catalogue */
+const VALID_KEYS = new Set(METRIC_GROUPS.flatMap(g => g.metrics.map(m => m.key)));
 
 export function useFinanceMetrics() {
   const [selected, setSelected] = useState(() => {
@@ -12,7 +15,7 @@ export function useFinanceMetrics() {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length === 4) return parsed;
+        if (Array.isArray(parsed) && parsed.length === 4 && parsed.every(k => VALID_KEYS.has(k))) return parsed;
       }
     } catch (_) {}
     return DEFAULT_METRICS;

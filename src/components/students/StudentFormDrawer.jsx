@@ -258,6 +258,10 @@ export default function StudentFormDrawer({
       duration: Number(subj.duration) || 60,
       paymentType: subj.paymentType,
       subscriptionLessons: subj.paymentType === "subscription" ? Number(subj.subscriptionLessons) : null,
+      // Lock per-lesson price at subscription creation/update time
+      lockedLessonPrice: subj.paymentType === "subscription" && Number(subj.subscriptionLessons) > 0
+        ? Math.round((Number(subj.price) || 0) / Number(subj.subscriptionLessons))
+        : null,
     }));
 
     const studentData = {

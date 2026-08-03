@@ -3,6 +3,16 @@
  * Каждая метрика знает: как называться и как получить данные из useFinanceData.
  */
 
+/** Склонение существительных: pluralize(5, 'ученик', 'ученика', 'учеников') → 'учеников' */
+function pluralize(n, one, few, many) {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return many;
+  if (last > 1 && last < 5) return few;
+  if (last === 1) return one;
+  return many;
+}
+
 export const METRIC_GROUPS = [
   {
     label: "Финансовые",
@@ -61,7 +71,7 @@ export function getMetricCardData(key, data) {
         label:   "Задолженность",
         value:   data.totalDebt > 0 ? `${data.totalDebt.toLocaleString("ru")} ₽` : "Нет долгов",
         sub:     data.totalDebt > 0
-          ? `${data.debtorsCount} ${data.debtorsCount === 1 ? "ученик" : "ученика"} · ~${data.unpaidLessonsCount} урока`
+          ? `${data.debtorsCount} ${pluralize(data.debtorsCount, "ученик", "ученика", "учеников")} · ~${data.unpaidLessonsCount} ${pluralize(data.unpaidLessonsCount, "урок", "урока", "уроков")}`
           : "Все ученики в расчёте",
         variant: data.totalDebt > 0 ? "danger" : "default",
       };

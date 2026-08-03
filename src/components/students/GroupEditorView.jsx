@@ -223,6 +223,10 @@ export default function GroupEditorView({
       paymentType: formData.paymentType,
       subscriptionLessons: formData.paymentType === 'subscription'
         ? Number(formData.subscriptionLessons) : null,
+      // Lock per-lesson price at subscription creation/update time
+      lockedLessonPrice: formData.paymentType === 'subscription' && Number(formData.subscriptionLessons) > 0
+        ? Math.round((Number(formData.price) || 0) / Number(formData.subscriptionLessons))
+        : null,
       studentFinances: formData.studentFinances,
     };
 

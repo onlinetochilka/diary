@@ -28,6 +28,7 @@ import {
   orderBy,
   limit,
   serverTimestamp,
+  increment,
 } from "firebase/firestore";
 import { db, auth } from "./firebase.js";
 import { getNextDistinctColor } from "../utils/colors.js";
@@ -89,7 +90,7 @@ async function applyLessonIncomeChange(oldData, newData) {
     const stRef = doc(col.students(), stId);
     const stSnap = await getDoc(stRef);
     if (stSnap.exists()) {
-      await updateDoc(stRef, { balance: (stSnap.data().balance || 0) + amtDelta });
+      await updateDoc(stRef, { balance: increment(amtDelta) });
     }
   };
 
@@ -120,7 +121,7 @@ async function applyLessonBalanceChange(lessonData, isReverting = false) {
     const stRef = doc(col.students(), lessonData.studentId);
     const stSnap = await getDoc(stRef);
     if (stSnap.exists()) {
-      await updateDoc(stRef, { balance: (stSnap.data().balance || 0) + amountToApply });
+      await updateDoc(stRef, { balance: increment(amountToApply) });
     }
   } else if (lessonData.type === "group" && lessonData.groupId) {
     // Fix #5: Prefer the group membership snapshot captured at lesson creation time.
@@ -141,7 +142,7 @@ async function applyLessonBalanceChange(lessonData, isReverting = false) {
       const stRef = doc(col.students(), stId);
       const stSnap = await getDoc(stRef);
       if (stSnap.exists()) {
-        await updateDoc(stRef, { balance: (stSnap.data().balance || 0) + amountToApply });
+        await updateDoc(stRef, { balance: increment(amountToApply) });
       }
     }
   }
@@ -936,6 +937,19 @@ export async function updateLesson(id, data) {
     }
   }
 
+  // Price change on an already-paid lesson: apply balance delta
+  if (oldData && data.price !== undefined && data.price !== oldData.price) {
+    const effectiveStatus = data.status || oldData.status;
+    const isPaid = effectiveStatus === "conducted" || effectiveStatus === "skipped_paid";
+    if (isPaid && (data.status === undefined || data.status === oldData.status)) {
+      // Status didn't change — only price did. Apply the difference.
+      const priceDelta = (oldData.price || 0) - (data.price || 0); // positive = refund, negative = charge more
+      if (priceDelta !== 0) {
+        await applyLessonBalanceChange({ ...oldData, ...data, price: Math.abs(priceDelta) }, priceDelta > 0);
+      }
+    }
+  }
+
   // Recalculate hwDebtCount on affected students when hwDoneBy changes
   if (data.hwDoneBy !== undefined) {
     await recalcHwDebtCount(id, { ...oldData, ...data });
@@ -1115,11 +1129,9 @@ export async function addPayment(data) {
     const stRef = doc(col.students(), data.studentId);
     const stSnap = await getDoc(stRef);
     if (stSnap.exists()) {
-      const stData = stSnap.data();
       await updateDoc(stRef, {
-        balance: (stData.balance || 0) + amount,
-        // Fix #4: Keep LTV (Lifetime Value) in sync — increment by every confirmed payment.
-        ltv: (stData.ltv || 0) + amount,
+        balance: increment(amount),
+        ltv: increment(amount),
       });
     }
   }
@@ -1150,11 +1162,9 @@ export async function updatePayment(id, data) {
         const stRef = doc(col.students(), oldData.studentId);
         const stSnap = await getDoc(stRef);
         if (stSnap.exists()) {
-          const stData = stSnap.data();
           await updateDoc(stRef, {
-            balance: (stData.balance || 0) + delta,
-            // Keep LTV consistent with balance edits.
-            ltv: Math.max(0, (stData.ltv || 0) + delta),
+            balance: increment(delta),
+            ltv: increment(delta),
           });
         }
       }
@@ -1186,17 +1196,81 @@ export async function deletePayment(id) {
       const stRef = doc(col.students(), payData.studentId);
       const stSnap = await getDoc(stRef);
       if (stSnap.exists()) {
-        const stData = stSnap.data();
         await updateDoc(stRef, {
-          balance: (stData.balance || 0) - amount,
-          // Roll back LTV as well — the payment is being erased from history.
-          ltv: Math.max(0, (stData.ltv || 0) - amount),
+          balance: increment(-amount),
+          ltv: increment(-amount),
         });
       }
     }
   }
 
   await deleteDoc(doc(col.payments(), id));
+}
+
+/**
+ * Recalculate a student's balance from scratch using payments and conducted lessons.
+ * If the stored balance differs from the calculated one, silently correct it.
+ *
+ * @param {string} studentId
+ * @returns {Promise<{ stored: number, calculated: number, corrected: boolean }>}
+ */
+export async function recalculateStudentBalance(studentId) {
+  const stRef = doc(col.students(), studentId);
+  const stSnap = await getDoc(stRef);
+  if (!stSnap.exists()) return { stored: 0, calculated: 0, corrected: false };
+
+  const stored = stSnap.data().balance || 0;
+
+  // Sum all payments for this student
+  const paymentsSnap = await getDocs(
+    query(col.payments(), where("studentId", "==", studentId))
+  );
+  let totalPayments = 0;
+  paymentsSnap.docs.forEach(d => {
+    totalPayments += Number(d.data().amount) || 0;
+  });
+
+  // Sum all paid lesson costs for this student
+  const uid = stSnap.data().tutorId || auth.currentUser?.uid;
+  const lessonsSnap = await getDocs(
+    query(col.lessons(), where("tutorId", "==", uid))
+  );
+  let totalLessonCost = 0;
+  lessonsSnap.docs.forEach(d => {
+    const l = d.data();
+    const isPaid = l.status === "conducted" || l.status === "skipped_paid";
+    if (!isPaid) return;
+    const price = l.price || 0;
+    if (l.type === "individual" && l.studentId === studentId) {
+      totalLessonCost += price;
+    } else if (l.type === "group") {
+      const inGroup = (l.groupStudentIds || []).includes(studentId);
+      if (inGroup) totalLessonCost += price;
+    }
+  });
+
+  // Sum paymentAmount (inline payments from DayInspector)
+  let totalInlinePayments = 0;
+  lessonsSnap.docs.forEach(d => {
+    const l = d.data();
+    if (l.type === "individual" && l.studentId === studentId) {
+      totalInlinePayments += Number(l.paymentAmount) || 0;
+    } else if (l.type === "group" && l.studentPayments) {
+      totalInlinePayments += Number(l.studentPayments[studentId]?.amount) || 0;
+    }
+  });
+
+  const calculated = totalPayments + totalInlinePayments - totalLessonCost;
+  const drift = Math.abs(stored - calculated);
+
+  if (drift > 0.01) {
+    await updateDoc(stRef, { balance: calculated });
+    invalidateCache('students');
+    console.warn(`[recalcBalance] Student ${studentId}: stored=${stored}, calculated=${calculated}, drift=${drift}. Corrected.`);
+    return { stored, calculated, corrected: true };
+  }
+
+  return { stored, calculated, corrected: false };
 }
 
 // ── Configuration ─────────────────────────────────────────────────────────

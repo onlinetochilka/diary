@@ -203,15 +203,20 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
         item={payModal.item}
         mode="action"
         onConfirm={async (item, amount, note) => {
-          await addPayment({
-            studentId:   item.student.id,
-            studentName: item.student.name,
-            amount:      Number(amount) || 0,
-            paidAt:      new Date().toISOString(),
-            note:        note || 'Оплата занятий',
-          });
-          setPayModal({ isOpen: false, item: null });
-          window.dispatchEvent(new CustomEvent('force-refresh-data'));
+          try {
+            await addPayment({
+              studentId:   item.student.id,
+              studentName: item.student.name,
+              amount:      Number(amount) || 0,
+              paidAt:      new Date().toISOString(),
+              note:        note || 'Оплата занятий',
+            });
+          } catch (e) {
+            console.error(e);
+          } finally {
+            setPayModal({ isOpen: false, item: null });
+            window.dispatchEvent(new CustomEvent('force-refresh-data'));
+          }
         }}
       />
     </div>

@@ -151,6 +151,7 @@ export function normalizeStudent(raw) {
     duration: Number(s.duration) || 60,
     paymentType: s.paymentType || "per_lesson",
     subscriptionLessons: s.subscriptionLessons ? Number(s.subscriptionLessons) : null,
+    lockedLessonPrice: s.lockedLessonPrice ? Number(s.lockedLessonPrice) : null,
     programs: (s.programs || []).map((p) => ({
       id: p.id,
       name: p.name || "",

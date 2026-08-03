@@ -32,6 +32,7 @@ export default function MonthView({
   
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
+  while (days.length % 7 !== 0) days.push(null);
 
   const todayStr = ymd(new Date());
 
@@ -47,7 +48,7 @@ export default function MonthView({
         </div>
         <div 
           className="grid grid-cols-7 flex-1 overflow-hidden"
-          style={{ gridTemplateRows: `repeat(${days.length / 7}, minmax(0, 1fr))` }}
+          style={{ gridTemplateRows: `repeat(${Math.ceil(days.length / 7)}, minmax(0, 1fr))` }}
         >
           {days.map((day, idx) => {
           if (!day) return <div key={idx} className="min-w-0 border-r border-b border-slate-200/60 bg-slate-50/40 p-1" />;

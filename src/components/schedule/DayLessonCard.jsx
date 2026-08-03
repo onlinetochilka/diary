@@ -40,7 +40,7 @@ export default function DayLessonCard({
   // Длительность
   const [sH, sM] = (startTime || '0:0').split(':').map(Number);
   const [eH, eM] = (endTime || '0:0').split(':').map(Number);
-  const durationMins = (eH * 60 + eM) - (sH * 60 + sM);
+  const durationMins = Math.max(0, (eH * 60 + eM) - (sH * 60 + sM));
   const durationLabel = durationMins >= 60
     ? `${Math.floor(durationMins / 60)} ч${durationMins % 60 > 0 ? ` ${durationMins % 60} мин` : ''}`
     : `${durationMins} мин`;

@@ -84,12 +84,34 @@ function moveThemeBetweenSections(topics, sections, activeId, overId, overSectio
   return { topics: updatedTopics, sections: updatedSections };
 }
 
-/** Пересчитывает order у тем на основе порядка topicIds в разделах */
+/** Пересчитывает order у тем на основе порядка topicIds в разделах.
+ *  Темы-сироты (не найденные ни в одном topicIds) автоматически
+ *  добавляются в первый раздел, чтобы не пропасть из интерфейса. */
 function reorderTopics(topics, sections) {
   const orderMap = {};
+  const allKnownIds = new Set();
   sections.forEach((s) => {
-    s.topicIds.forEach((id, i) => { orderMap[id] = i; });
+    s.topicIds.forEach((id, i) => {
+      orderMap[id] = i;
+      allKnownIds.add(id);
+    });
   });
+
+  // Собираем сирот — темы, не привязанные ни к одному разделу
+  const orphanIds = topics
+    .filter((t) => !allKnownIds.has(t.id))
+    .map((t) => t.id);
+
+  // Если есть сироты и хотя бы один раздел — «усыновляем» в первый раздел
+  if (orphanIds.length > 0 && sections.length > 0) {
+    const firstSection = sections[0];
+    orphanIds.forEach((id) => {
+      const nextOrder = firstSection.topicIds.length;
+      firstSection.topicIds.push(id);
+      orderMap[id] = nextOrder;
+    });
+  }
+
   return topics.map((t) =>
     orderMap[t.id] !== undefined ? { ...t, order: orderMap[t.id] } : t
   );
@@ -266,7 +288,7 @@ function SectionAccordion({
           "pe-accordion-content ml-3 border-l border-stone-200/60 pl-2",
           !isOpen && "is-closed",
         )}
-        style={{ maxHeight: isOpen ? `${sectionTopics.length * 64 + 80}px` : "0px" }}
+        style={{ maxHeight: isOpen ? `${sectionTopics.length * 120 + 120}px` : "0px" }}
         aria-hidden={!isOpen}
       >
         <SortableContext

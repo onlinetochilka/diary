@@ -42,9 +42,10 @@ export default function StudentMiniCard({
       totalPrice += price;
     }
   });
+  const activeLessonsCount = lessons.filter(l => l.status !== 'cancelled').length;
 
   const subject = student?.subjects?.[0];
-  const style = getEntityStyle(student.id);
+  const style = getEntityStyle(student);
 
   return (
     <div 
@@ -133,9 +134,9 @@ export default function StudentMiniCard({
       {/* Footer / Summary */}
       <div className="flex justify-between items-center text-xs">
         <span className="text-stone-500">
-          {lessons.length} {getPlural(lessons.length, ["занятие", "занятия", "занятий"])} {periodLabel}
+          {activeLessonsCount} {getPlural(activeLessonsCount, ["занятие", "занятия", "занятий"])} {periodLabel}
         </span>
-        {totalPrice > 0 && (
+        {totalPrice !== 0 && (
           <span className="font-bold text-stone-900">{formatMoney(totalPrice)}</span>
         )}
       </div>

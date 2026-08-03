@@ -9,6 +9,8 @@ import { cn } from '../../utils/cn.js';
 import { getEntityStyle } from '../../utils/colors.js';
 import DayMiniCalendar from './DayMiniCalendar.jsx';
 import { Select, Checkbox, Tooltip } from '../ui/index.js';
+import { useAuth } from '../../contexts/AuthContext.jsx';
+import { getUserConfig } from '../../services/database.js';
 
 // --- Contact Helpers ---
 export function getPrimaryChannel(channels) {
@@ -23,7 +25,8 @@ export function getLastPaidLessonInfo(student, subjectName) {
   if (!subject) return null;
 
   let costPerLesson = subject.price || 0;
-  if (subject.paymentType === 'subscription' && subject.subscriptionLessons > 0) {
+  if (subject.paymentType === 'subscription') {
+    if (!subject.subscriptionLessons || subject.subscriptionLessons <= 0) return null;
     costPerLesson = subject.price / subject.subscriptionLessons;
   }
 
@@ -45,7 +48,13 @@ function buildContactUrl(channel, text = '') {
   const waText = text ? `&text=${encodeURIComponent(text)}` : ''; 
   switch (channel.type) {
     case 'telegram':
-      if (v.startsWith('http')) return v;
+      if (v.startsWith('http')) {
+        try {
+          const url = new URL(v);
+          if (url.hostname === 't.me' || url.hostname === 'telegram.me') return v;
+        } catch { /* invalid URL */ }
+        return null;
+      }
       if (v.startsWith('+') || /^\d{7,}/.test(v)) return `tg://resolve?phone=${v.replace(/\D/g, '')}${encodedText}`;
       return `tg://resolve?domain=${v.replace(/^@/, '')}${encodedText}`;
     case 'whatsapp': return `whatsapp://send?phone=${v.replace(/\D/g, '')}${waText}`;
@@ -115,7 +124,7 @@ function StatusBlock({ formData, onPatch }) {
   );
 }
 
-function PaymentBlock({ formData, onPatch, student }) {
+function PaymentBlock({ formData, onPatch, student, requisites }) {
   if (formData.type === 'group') return null;
 
   const balance = student?.balance || 0;
@@ -125,7 +134,8 @@ function PaymentBlock({ formData, onPatch, student }) {
   const lastLessonInfo = getLastPaidLessonInfo(student, formData.subjectName);
   const primaryChannel = getPrimaryChannel(student?.channels);
   
-  const reminderText = `Здравствуйте! Сегодня у нас последнее оплаченное занятие по абонементу.\nСумма к оплате за следующий: ${lastLessonInfo?.amount || 0} ₽.\nРеквизиты те же: [Номер/Ссылка].`;
+  const requisitesLine = requisites ? `\nРеквизиты: ${requisites}` : '';
+  const reminderText = `Здравствуйте! Сегодня у нас последнее оплаченное занятие по абонементу.\nСумма к оплате за следующий: ${lastLessonInfo?.amount || 0} ₽.${requisitesLine}`;
   const reminderUrl = primaryChannel ? buildContactUrl(primaryChannel, reminderText) : null;
 
   // Fix #3: Detect when both a "paid" status AND a paymentAmount are active simultaneously.
@@ -353,7 +363,7 @@ function HwIndividualBlock({ formData, onPatch }) {
   );
 }
 
-function GroupStudentsTracker({ formData, students, groups, onPatch }) {
+function GroupStudentsTracker({ formData, students, groups, onPatch, requisites }) {
   const hwText = typeof formData.homework === 'string' ? formData.homework : (formData.homework?.text || '');
   const [localHw, setLocalHw] = useState(hwText);
   useEffect(() => { setLocalHw(hwText); }, [hwText]);
@@ -421,7 +431,8 @@ function GroupStudentsTracker({ formData, students, groups, onPatch }) {
 
               const lastLessonInfo = getLastPaidLessonInfo(st, formData.subjectName);
               const primaryChannel = getPrimaryChannel(st.channels);
-              const reminderText = `Здравствуйте! Сегодня у нас последнее оплаченное занятие по абонементу.\nСумма к оплате за следующий: ${lastLessonInfo?.amount || 0} ₽.\nРеквизиты те же: [Номер/Ссылка].`;
+              const grpReqLine = requisites ? `\nРеквизиты: ${requisites}` : '';
+              const reminderText = `Здравствуйте! Сегодня у нас последнее оплаченное занятие по абонементу.\nСумма к оплате за следующий: ${lastLessonInfo?.amount || 0} ₽.${grpReqLine}`;
               const reminderUrl = primaryChannel ? buildContactUrl(primaryChannel, reminderText) : null;
 
               const stripeColor = st.colorOklch 
@@ -577,10 +588,18 @@ export default function DayInspector({
   onPaymentClick,
   onGoToProfile,
 }) {
+  const { user } = useAuth();
   const mode = createInitial ? 'create' : selectedLesson ? 'lesson' : 'calendar';
   const [formData, setFormData] = useState({});
   const [initialDataStr, setInitialDataStr] = useState("{}");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requisites, setRequisites] = useState('');
+  const [saveError, setSaveError] = useState('');
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    getUserConfig(user.uid).then(c => setRequisites(c?.requisites || '')).catch(() => {});
+  }, [user?.uid]);
 
   useEffect(() => {
     if (mode === 'create') {
@@ -621,16 +640,35 @@ export default function DayInspector({
   const isDirty = JSON.stringify(formData) !== initialDataStr;
 
   const handlePatch = (updates) => {
+    setSaveError('');
     setFormData(prev => ({ ...prev, ...updates }));
   };
 
   const handleSave = async () => {
     if (isSubmitting) return;
+    setSaveError('');
+
+    // Validate: time order
+    if (formData.startTime && formData.endTime) {
+      const startObj = new Date(`1970-01-01T${formData.startTime}:00Z`);
+      const endObj = new Date(`1970-01-01T${formData.endTime}:00Z`);
+      if (startObj >= endObj) {
+        setSaveError('Время начала должно быть раньше окончания');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       if (mode === 'create') {
-        if (!formData.studentId && formData.type === 'individual') return;
-        if (!formData.groupId && formData.type === 'group') return;
+        if (!formData.studentId && formData.type === 'individual') {
+          setSaveError('Выберите ученика');
+          return;
+        }
+        if (!formData.groupId && formData.type === 'group') {
+          setSaveError('Выберите группу');
+          return;
+        }
         await onSaveLesson(null, formData);
         onClearCreate();
       } else {
@@ -695,7 +733,7 @@ export default function DayInspector({
             </button>
           </Tooltip>
         )}
-        <button onClick={() => { onClose(); onClearCreate?.(); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-xl text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-colors">
+        <button onClick={() => { if (isDirty && !window.confirm('Есть несохранённые изменения. Закрыть без сохранения?')) return; onClose(); onClearCreate?.(); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-xl text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-colors">
           <X size={16} />
         </button>
       </div>
@@ -738,10 +776,10 @@ export default function DayInspector({
           {formData.type === 'individual' ? (
             <HwIndividualBlock formData={formData} onPatch={handlePatch} />
           ) : (
-            <GroupStudentsTracker formData={formData} students={students} groups={groups} onPatch={handlePatch} />
+            <GroupStudentsTracker formData={formData} students={students} groups={groups} onPatch={handlePatch} requisites={requisites} />
           )}
 
-          <PaymentBlock formData={formData} onPatch={handlePatch} student={student} />
+          <PaymentBlock formData={formData} onPatch={handlePatch} student={student} requisites={requisites} />
 
           <div className="px-4 py-4"><hr className="border-stone-100" /></div>
 
@@ -752,7 +790,13 @@ export default function DayInspector({
       </div>
 
       {/* STICKY SAVE BUTTON */}
-      <div className={cn("absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-stone-100 shadow-[0_-8px_24px_rgba(0,0,0,0.03)] transition-transform duration-300", isDirty ? "translate-y-0" : "translate-y-full")}>
+      <div className={cn("absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-stone-100 shadow-[0_-8px_24px_rgba(0,0,0,0.03)] transition-transform duration-300", isDirty || saveError ? "translate-y-0" : "translate-y-full")}>
+        {saveError && (
+          <p className="text-[11px] text-red-600 font-medium flex items-center gap-1 px-1 mb-2">
+            <AlertCircle size={12} />
+            {saveError}
+          </p>
+        )}
         <button onClick={handleSave} disabled={isSubmitting || (mode === 'create' && !formData.studentId && !formData.groupId)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#006584] text-white font-bold hover:bg-[#00526a] disabled:opacity-50 transition-colors shadow-sm">
           <CheckCircle2 size={18} />
           {mode === 'create' ? "Создать урок" : "Сохранить изменения"}

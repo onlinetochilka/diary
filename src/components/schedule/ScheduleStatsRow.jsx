@@ -37,19 +37,25 @@ export default function ScheduleStatsRow({ lessons, students, periodLabel = "Ð½Ð
       uniqueStudents.add(l.studentId);
       if (l.status !== "cancelled" && l.status !== "skipped_free") {
         if (l.customPrice != null) {
-           expectedRevenue += Number(l.customPrice);
+           const parsed = Number(l.customPrice);
+           if (!isNaN(parsed) && parsed >= 0) expectedRevenue += parsed;
         } else {
            const student = students.find(s => s.id === l.studentId);
-           const price = student?.subjects?.[0]?.price || 0;
-           expectedRevenue += price;
+           const matchedSubject = student?.subjects?.find(sub => sub.name === l.subjectName);
+           const price = matchedSubject?.price ?? student?.subjects?.[0]?.price ?? 0;
+           expectedRevenue += Math.max(0, price);
         }
       }
     } else if (l.type === "group" && l.groupId) {
        // Group logic
        if (l.status !== "cancelled" && l.status !== "skipped_free") {
-         if (l.customPrice != null) {
-            expectedRevenue += Number(l.customPrice);
-         }
+          if (l.customPrice != null) {
+             const gp = Number(l.customPrice);
+             if (!isNaN(gp) && gp >= 0) expectedRevenue += gp;
+          } else if (l.price != null) {
+             const gp = Number(l.price);
+             if (!isNaN(gp) && gp >= 0) expectedRevenue += gp;
+          }
        }
        uniqueStudents.add(`group_${l.groupId}`);
     }

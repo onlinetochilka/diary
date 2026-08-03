@@ -67,14 +67,14 @@ export function useFinanceData() {
   const incomeThisMonth = useMemo(() =>
     payments
       .filter(p => new Date(p.paidAt) >= currentMonthStart && new Date(p.paidAt) < nextMonthStart)
-      .reduce((sum, p) => sum + Number(p.amount), 0),
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
     [payments, currentMonthStart, nextMonthStart]
   );
 
   const incomeLastMonth = useMemo(() =>
     payments
       .filter(p => new Date(p.paidAt) >= lastMonthStart && new Date(p.paidAt) < lastMonthEnd)
-      .reduce((sum, p) => sum + Number(p.amount), 0),
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
     [payments, lastMonthStart, lastMonthEnd]
   );
 
@@ -150,7 +150,7 @@ export function useFinanceData() {
 
       const mIncome = payments
         .filter(p => new Date(p.paidAt) >= mStart && new Date(p.paidAt) < mEnd)
-        .reduce((sum, p) => sum + Number(p.amount), 0);
+        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
       if (mIncome > maxIncome) maxIncome = mIncome;
 
@@ -187,7 +187,7 @@ export function useFinanceData() {
         ...stPayments.map(p => ({
           type: "payment",
           id: `p_${p.id}`,
-          date: new Date(p.paidAt),
+          date: p.paidAt ? new Date(p.paidAt) : new Date(),
           title: p.note || "Оплата",
           amount: p.amount,
         })),
@@ -199,7 +199,7 @@ export function useFinanceData() {
         subjectName,
         totalLessons: stLessons.length,
         totalPaymentsCount: stPayments.length,
-        totalPaymentsSum: stPayments.reduce((acc, p) => acc + Number(p.amount), 0),
+        totalPaymentsSum: stPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0),
         ledger,
       };
     }),

@@ -60,7 +60,8 @@ export default function LessonInspector({
           hwStatuses: initialData.hwStatuses || {},
           presentStudentIds: initialData.presentStudentIds || [],
           notes: initialData.notes || "",
-          format: initialData.format || "online"
+          format: initialData.format || "online",
+          price: initialData.price !== undefined ? initialData.price : ""
         };
       } else {
         initial = {
@@ -90,11 +91,15 @@ export default function LessonInspector({
       setFormData(initial);
       setInitialStateStr(JSON.stringify(initial));
       setIsSubmitting(false);
-      setActiveTab("info");
     }
   }, [isOpen, initialData]);
 
   const isDirty = JSON.stringify(formData) !== initialStateStr;
+
+  const safeClose = () => {
+    if (isDirty && !window.confirm('Есть несохранённые изменения. Закрыть без сохранения?')) return;
+    onClose();
+  };
 
   const handleChange = (field, value) => {
     setFormData((prev) => {
@@ -144,13 +149,26 @@ export default function LessonInspector({
     if (student) {
       const subject = student.subjects?.find(sub => sub.name === formData.subjectName) || student.subjects?.[0];
       if (subject?.programs) activePrograms = subject.programs;
-      if (subject?.price !== undefined) subjectPrice = Number(subject.price);
+      if (subject?.price !== undefined) {
+        if (subject.paymentType === 'subscription' && subject.subscriptionLessons > 0) {
+          // Use locked per-lesson price, or calculate it for backward compatibility
+          subjectPrice = subject.lockedLessonPrice || Math.round(Number(subject.price) / subject.subscriptionLessons);
+        } else {
+          subjectPrice = Number(subject.price);
+        }
+      }
       if (subject?.format) subjectFormat = subject.format;
     }
   } else if (formData.type === "group" && formData.groupId) {
     const group = groups.find(g => g.id === formData.groupId);
     if (group?.programs) activePrograms = group.programs;
-    if (group?.price !== undefined) subjectPrice = Number(group.price);
+    if (group?.price !== undefined) {
+      if (group.paymentType === 'subscription' && group.subscriptionLessons > 0) {
+        subjectPrice = group.lockedLessonPrice || Math.round(Number(group.price) / group.subscriptionLessons);
+      } else {
+        subjectPrice = Number(group.price);
+      }
+    }
     if (group?.format) subjectFormat = group.format;
   }
 
@@ -190,13 +208,16 @@ export default function LessonInspector({
 
     setIsSubmitting(true);
     
-    // Auto-update topic progress if lesson is conducted
-    if (formData.status === "conducted" && formData.programId && formData.topicId) {
-      formData._markTopicCompleted = true;
-    }
+    // Use manually edited price if set, otherwise fall back to subject price
+    const effectivePrice = formData.price !== "" && formData.price !== undefined
+      ? Number(formData.price)
+      : subjectPrice;
+    const payload = { ...formData, price: effectivePrice };
 
-    // Inject current subject price to ensure immutability of past lesson records
-    const payload = { ...formData, price: subjectPrice };
+    // Auto-update topic progress if lesson is conducted (set on payload, not formData)
+    if (payload.status === "conducted" && payload.programId && payload.topicId) {
+      payload._markTopicCompleted = true;
+    }
 
     try {
       await onSubmit(initialData?.id, payload);
@@ -227,7 +248,7 @@ export default function LessonInspector({
     <div className="flex flex-col h-full bg-white relative shadow-sm rounded-[28px] overflow-hidden border border-stone-100">
       <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100/80 bg-white shrink-0">
         <h3 className="font-semibold text-lg text-stone-800">{initialData?.id ? "Правка урока" : "Новый урок"}</h3>
-        <button onClick={onClose} type="button" className="p-2 hover:bg-stone-50 text-stone-400 hover:text-stone-600 rounded-full transition-colors">
+        <button onClick={safeClose} type="button" className="p-2 hover:bg-stone-50 text-stone-400 hover:text-stone-600 rounded-full transition-colors">
           <X size={20} />
         </button>
       </div>
@@ -332,6 +353,22 @@ export default function LessonInspector({
                   </select>
                 </div>
                 </div>
+
+                {/* Стоимость урока — только для существующих уроков */}
+                {initialData?.id && (
+                  <div>
+                    <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Стоимость урока, ₽</p>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                      value={formData.price !== "" && formData.price !== undefined ? formData.price : subjectPrice}
+                      onChange={(e) => handleChange("price", e.target.value.replace(/\D/g, '') ? Number(e.target.value.replace(/\D/g, '')) : '')}
+                      disabled={isSubmitting}
+                      placeholder={String(subjectPrice)}
+                    />
+                  </div>
+                )}
                 {subjectFormat === "mixed" && (
                   <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Формат урока</p>
@@ -665,7 +702,7 @@ export default function LessonInspector({
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-stone-50/80 to-transparent pointer-events-none z-10" />
       </div>
       <div className="p-5 border-t border-stone-100/80 bg-white shrink-0">
-        {drawerFooter(onClose)}
+        {drawerFooter(safeClose)}
       </div>
     </div>
   );

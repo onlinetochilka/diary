@@ -81,8 +81,8 @@ export default function PaymentsTab({ payments, students }) {
                       }
                     </td>
                     <td className="py-3 px-5 text-sm text-stone-500 font-medium text-right">{date}</td>
-                    <td className="py-3 px-5 text-right font-bold text-emerald-600">
-                      +{Number(p.amount).toLocaleString("ru")} ₽
+                    <td className={`py-3 px-5 text-right font-bold ${Number(p.amount) >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
+                      {Number(p.amount) >= 0 ? "+" : "−"}{Math.abs(Number(p.amount) || 0).toLocaleString("ru")} ₽
                     </td>
                     <td className="py-3 px-5 text-right">
                       <Check size={16} className="text-stone-200 inline" />

@@ -8,15 +8,21 @@ import { Tooltip } from "../../components/ui/index.js";
 export default function ProgramCard({ program, onOpenEditor }) {
   const c = getEntityColorClasses();
   
-  // Mock данные для аналитики
-  const mockPopularity = Math.floor(Math.random() * 20) + 1; // от 1 до 20 учеников
-  const mockProgress = Math.floor(Math.random() * 100); // от 0 до 100 %
-  const mockRevenue = (Math.floor(Math.random() * 50) * 1000).toLocaleString('ru-RU');
-  const mockHours = Math.floor(Math.random() * 100);
+  // Детерминированный seed из program.id для стабильных mock-данных
+  // (не прыгают при каждой перерисовке)
+  const seed = (program.id || "").split("").reduce((acc, ch) => acc * 31 + ch.charCodeAt(0) | 0, 0);
+  const stableRand = (min, max, offset = 0) => {
+    const v = Math.abs((seed * 16807 + offset * 2654435761) % 2147483647);
+    return min + (v % (max - min + 1));
+  };
+  const mockPopularity = stableRand(1, 20, 1);
+  const mockProgress = stableRand(0, 99, 2);
+  const mockRevenue = (stableRand(0, 49, 3) * 1000).toLocaleString('ru-RU');
+  const mockHours = stableRand(0, 99, 4);
   
   const count = program.topics?.length ?? 0;
-  // Считаем ДЗ. В реальных данных это может быть поле hasHomework у топика.
-  const hwCount = program.topics?.filter(t => t.homework || t.hasHomework)?.length || Math.floor(count * 0.7);
+  // Считаем реальные задания из homeworkBank каждой темы
+  const hwCount = program.topics?.reduce((sum, t) => sum + (t.homeworkBank?.length ?? 0), 0) ?? 0;
 
   return (
     <div

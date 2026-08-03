@@ -253,13 +253,21 @@ export default function ProgramEditorPage({
       return;
     }
 
+    // Защита от программного обхода maxLength (Excel-импорт, API, автозаполнение)
+    const safeName    = program.name.trim().slice(0, 150);
+    const safeSubject = program.subject.trim().slice(0, 100);
+
     try {
       await updateProgramStructure(programId, {
-        name:     program.name.trim(),
-        subject:  program.subject.trim(),
+        name:     safeName,
+        subject:  safeSubject,
         sections: program.sections,
         topics:   program.topics,
       });
+      // Синхронизируем обрезанные значения обратно в state, если они были укорочены
+      if (safeName !== program.name.trim() || safeSubject !== program.subject.trim()) {
+        setProgram((prev) => ({ ...prev, name: safeName, subject: safeSubject }));
+      }
       setIsDirty(false);
       showToast({ message: "Программа сохранена", type: "success" });
     } catch {

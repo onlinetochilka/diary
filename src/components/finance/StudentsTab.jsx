@@ -50,20 +50,25 @@ export default function StudentsTab({ studentData, onRefresh }) {
   };
 
   const handlePay = async (student) => {
-    if (!payAmount) return;
+    if (!payAmount || Number(payAmount) <= 0) return;
     setIsSubmitting(true);
-    await addPayment({
-      studentId: student.id,
-      amount:    Number(payAmount),
-      currency:  "RUB",
-      paidAt:    new Date().toISOString(),
-      note:      payNote.trim() || "Оплата занятий",
-    });
-    if (onRefresh) await onRefresh();
-    setIsSubmitting(false);
-    setShowSuccess(true);
-    setPayNote("");
-    setTimeout(() => { setShowSuccess(false); setActiveAction(null); }, 1000);
+    try {
+      await addPayment({
+        studentId: student.id,
+        amount:    Number(payAmount),
+        currency:  "RUB",
+        paidAt:    new Date().toISOString(),
+        note:      payNote.trim() || "Оплата занятий",
+      });
+      if (onRefresh) await onRefresh();
+      setShowSuccess(true);
+      setPayNote("");
+      setTimeout(() => { setShowSuccess(false); setActiveAction(null); }, 1000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const sorted = useMemo(() => {
@@ -205,7 +210,7 @@ export default function StudentsTab({ studentData, onRefresh }) {
                                   </div>
                                   <div className="text-right">
                                     {item.type === "payment"
-                                      ? <span className="font-bold text-emerald-600">+{Number(item.amount).toLocaleString("ru")} ₽</span>
+                                      ? <span className={`font-bold ${Number(item.amount) >= 0 ? "text-emerald-600" : "text-rose-500"}`}>{Number(item.amount) >= 0 ? "+" : "−"}{Math.abs(Number(item.amount) || 0).toLocaleString("ru")} ₽</span>
                                       : <span className="font-medium text-stone-400">—</span>
                                     }
                                   </div>
@@ -251,7 +256,7 @@ export default function StudentsTab({ studentData, onRefresh }) {
                                 <Button
                                   className={`w-full sm:w-auto px-6 h-11 text-white font-medium ${showSuccess ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"} shadow-lg rounded-xl transition-all flex items-center justify-center shrink-0`}
                                   onClick={() => handlePay(s)}
-                                  disabled={isSubmitting || showSuccess || !payAmount}
+                                  disabled={isSubmitting || showSuccess || !payAmount || Number(payAmount) <= 0}
                                 >
                                   {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : showSuccess ? <Check size={18} className="animate-in zoom-in" /> : "Подтвердить оплату"}
                                 </Button>
