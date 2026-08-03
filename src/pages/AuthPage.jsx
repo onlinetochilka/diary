@@ -45,6 +45,11 @@ export default function AuthPage() {
       // PocketBase SDK v0.27: field validation errors are in err.data.data (not err.data)
       const fieldErrors = err?.data?.data || err?.response?.data || {};
 
+      // Collect all field-level error messages for display
+      const fieldMessages = Object.entries(fieldErrors)
+        .map(([field, info]) => `${field}: ${info?.message || info?.code || JSON.stringify(info)}`)
+        .join("; ");
+
       if (msg.includes("Invalid") || msg.includes("invalid") || msg.includes("authenticate") || msg.includes("Failed to authenticate")) {
         setError("Неверный email или пароль. Попробуем ещё раз?");
       } else if (fieldErrors.email?.code === "validation_not_unique") {
@@ -53,10 +58,14 @@ export default function AuthPage() {
         setError("Некорректный формат email.");
       } else if (fieldErrors.password?.code === "validation_length_out_of_range") {
         setError("Пароль слишком короткий — минимум 8 символов.");
+      } else if (err?.status === 403 && (msg.includes("not allowed") || msg.includes("disabled"))) {
+        setError("Регистрация отключена. Обратитесь к администратору.");
       } else if (err?.status === 429) {
         setError("Слишком много попыток. Подождите пару минут.");
       } else if (err?.status === 0 || msg.includes("fetch") || msg.includes("Failed to fetch")) {
         setError("Нет соединения с сервером. Проверьте интернет.");
+      } else if (fieldMessages) {
+        setError(`Ошибка при регистрации: ${fieldMessages}`);
       } else {
         setError(`Ошибка ${err?.status || ""}: ${msg || "Проверьте интернет-соединение"}`);
       }
