@@ -115,18 +115,27 @@ export default function StudentMiniCard({
         <div className="flex items-center gap-1.5">
           <span className="font-medium">{timeStr}</span>
         </div>
-        <span className="text-stone-300">•</span>
-        <div className="flex items-center gap-1">
-          {student.format === "online" ? (
-            <><Video size={13} className="text-stone-400" /> Онлайн</>
-          ) : student.format === "offline" ? (
-            <><MapPin size={13} className="text-stone-400" /> Очно</>
-          ) : student.format === "mixed" ? (
-            "Смешанный"
-          ) : (
-            <span className="text-stone-400">Не указан</span>
-          )}
-        </div>
+        
+        {(nextLesson?.format || subject?.format) && (nextLesson?.format || subject?.format) !== 'unknown' && (
+          <>
+            <span className="text-stone-300">•</span>
+            <div className="flex items-center gap-1">
+              {(nextLesson?.format || subject?.format) === "online" ? (
+                (nextLesson?.videoLink || subject?.videoLink) ? (
+                  <a href={nextLesson?.videoLink || subject?.videoLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                    <Video size={13} className="text-blue-500" /> Онлайн
+                  </a>
+                ) : (
+                  <><Video size={13} className="text-stone-400" /> Онлайн</>
+                )
+              ) : (nextLesson?.format || subject?.format) === "offline" ? (
+                <><MapPin size={13} className="text-stone-400" /> Очно</>
+              ) : (nextLesson?.format || subject?.format) === "mixed" ? (
+                "Смешанный"
+              ) : null}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="h-px bg-stone-100 w-full" />

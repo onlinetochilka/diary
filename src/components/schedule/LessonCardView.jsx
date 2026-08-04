@@ -11,7 +11,7 @@ export const LessonCardView = forwardRef(({
 }, ref) => {
   const isCanceled = lesson.status === 'cancelled';
   const isSkippedFree = lesson.status === 'skipped_free';
-  const isNeedsAttention = ymd(new Date(lesson.date)) < ymd(new Date()) && lesson.status === 'planned';
+  const isNeedsAttention = ymd(new Date(lesson.date)) < ymd(new Date()) && lesson.status === 'scheduled';
 
   const combinedStyle = { ...style, ...entityStyle };
 

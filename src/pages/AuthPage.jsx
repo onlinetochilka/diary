@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import pb from "../services/pocketbase.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { generateDemoData } from "../utils/demoData.js";
-import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft, Home } from "lucide-react";
 import { Input, Button } from "../components/ui/index.js";
 
 export default function AuthPage() {
@@ -15,13 +16,25 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLogin, setIsLogin] = useState(true);
-  // "login" | "register" | "forgot"
-  const [mode, setMode] = useState("login");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [searchParams] = useSearchParams();
+  
+  const token = searchParams.get("token");
+  const [mode, setMode] = useState(token ? "reset" : (searchParams.get("mode") === "register" ? "register" : "login"));
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       setError("Пожалуйста, заполните все поля");
+      return;
+    }
+    if (mode === "reset" && (!password || !passwordConfirm)) {
+      setError("Пожалуйста, заполните оба поля");
+      return;
+    }
+    if (mode === "reset" && password !== passwordConfirm) {
+      setError("Пароли не совпадают");
       return;
     }
     if (mode === "register" && !agreed) {
@@ -34,7 +47,15 @@ export default function AuthPage() {
     setSuccess("");
 
     try {
-      if (mode === "login") {
+      if (mode === "reset") {
+        await pb.collection("users").confirmPasswordReset(token, password, passwordConfirm);
+        setSuccess("Пароль успешно изменён! Теперь вы можете войти.");
+        setMode("login");
+        setPassword("");
+        setPasswordConfirm("");
+        setIsLoading(false);
+        return;
+      } else if (mode === "login") {
         await pb.collection("users").authWithPassword(email, password);
       } else {
         // Register: create user, then authenticate
@@ -196,31 +217,33 @@ export default function AuthPage() {
             <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" style={{ animation: 'spin-gear 12s linear infinite' }} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900">
-            {mode === "login" ? "С возвращением" : "Добро пожаловать"}
+            {mode === "reset" ? "Новый пароль" : (mode === "login" ? "С возвращением" : "Добро пожаловать")}
           </h1>
           <p className="text-stone-500 mt-1 text-sm text-center">
-            {mode === "login" ? "Войдите в свою учетную запись" : "Создайте аккаунт, чтобы начать"}
+            {mode === "reset" ? "Придумайте новый пароль для аккаунта" : (mode === "login" ? "Войдите в свою учетную запись" : "Создайте аккаунт, чтобы начать")}
           </p>
         </div>
 
         {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center">{error}</div>}
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-stone-700 ml-1">Email</label>
-          <Input
-            type="email"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoFocus
-            className="h-12"
-            disabled={isLoading}
-          />
-        </div>
+        {mode !== "reset" && (
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-stone-700 ml-1">Email</label>
+            <Input
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+              className="h-12"
+              disabled={isLoading}
+            />
+          </div>
+        )}
 
         <div className="space-y-1">
           <div className="flex justify-between items-center ml-1 mr-1">
-            <label className="text-sm font-medium text-stone-700">Пароль</label>
+            <label className="text-sm font-medium text-stone-700">{mode === "reset" ? "Новый пароль" : "Пароль"}</label>
             {mode === "login" && (
               <button
                 type="button"
@@ -252,6 +275,22 @@ export default function AuthPage() {
           </div>
         </div>
 
+        {mode === "reset" && (
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-stone-700 ml-1">Подтвердите пароль</label>
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                className="h-12 pr-12"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+        )}
+
         {mode === "register" && (
           <div className="flex items-start gap-2 pt-2 pb-1">
             <input 
@@ -274,22 +313,24 @@ export default function AuthPage() {
           className="w-full h-12 mt-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-lg shadow-stone-900/20"
         >
           {isLoading ? (
-            <><Loader2 size={18} className="animate-spin mr-2 inline" />{mode === "login" ? "Вход..." : "Создаём аккаунт..."}</>
+            <><Loader2 size={18} className="animate-spin mr-2 inline" />{mode === "reset" ? "Сохраняем..." : (mode === "login" ? "Вход..." : "Создаём аккаунт...")}</>
           ) : (
-            mode === "login" ? "Войти" : "Начать"
+            mode === "reset" ? "Сохранить пароль" : (mode === "login" ? "Войти" : "Начать")
           )}
         </Button>
 
-        <div className="pt-2 text-center">
-          <button
-            type="button"
-            onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setSuccess(""); }}
-            className="text-sm font-medium text-stone-500 hover:text-stone-800 transition-colors"
-            disabled={isLoading}
-          >
-            {mode === "login" ? "Ещё нет аккаунта? Создать" : "Уже есть аккаунт? Войти"}
-          </button>
-        </div>
+        {mode !== "reset" && (
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setSuccess(""); }}
+              className="text-sm font-medium text-stone-500 hover:text-stone-800 transition-colors"
+              disabled={isLoading}
+            >
+              {mode === "login" ? "Ещё нет аккаунта? Создать" : "Уже есть аккаунт? Войти"}
+            </button>
+          </div>
+        )}
 
         <div className="relative flex items-center py-2">
           <div className="flex-grow border-t border-stone-200"></div>
@@ -339,6 +380,12 @@ export default function AuthPage() {
       {/* Правая часть - Форма */}
       <div className="w-full lg:w-[55%] flex flex-col items-center justify-center p-6 sm:p-12 relative bg-[#FAFAF9]">
         <div className="w-full max-w-[400px]">
+          <button
+            onClick={() => navigate("/")}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-400 hover:text-stone-700 transition-colors mb-4"
+          >
+            <ArrowLeft size={14} /> На главную
+          </button>
           <div className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-xl shadow-stone-200/40 ring-1 ring-stone-900/5">
             {renderFormContent()}
           </div>

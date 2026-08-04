@@ -25,9 +25,7 @@ export function TopStudentsSection({ studentData, maxItems = 5, className = "" }
     [studentData, maxItems]
   );
 
-  if (top.length < 2) return null;
-
-  const maxSum = top[0].totalPaymentsSum;
+  const maxSum = top.length > 0 ? top[0].totalPaymentsSum : 0;
 
   return (
     <div className={`space-y-2.5 ${className} w-full`}>
@@ -38,7 +36,18 @@ export function TopStudentsSection({ studentData, maxItems = 5, className = "" }
       </div>
 
       <Card variant="elevated" className="p-0 overflow-hidden">
-        {/* Прокручиваемая зона: 3 строки видны */}
+        {top.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 px-4 text-center bg-gradient-to-b from-stone-50/50 to-amber-50/20" style={{ height: 192 }}>
+            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center border border-amber-100 mb-1">
+              <Crown size={24} className="text-amber-500" strokeWidth={2} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-stone-700">Нет данных</p>
+              <p className="text-xs text-stone-500 max-w-[200px] leading-relaxed mx-auto">Здесь появится топ учеников по сумме оплат.</p>
+            </div>
+          </div>
+        ) : (
+        /* Прокручиваемая зона: 3 строки видны */
         <div
           className="divide-y divide-stone-50 overflow-y-auto"
           style={{ maxHeight: "192px", scrollbarWidth: "none", msOverflowStyle: "none" }}
@@ -78,6 +87,7 @@ export function TopStudentsSection({ studentData, maxItems = 5, className = "" }
             );
           })}
         </div>
+        )}
       </Card>
     </div>
   );

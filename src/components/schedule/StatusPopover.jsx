@@ -23,7 +23,7 @@ export function StatusPopover({ popover, onClose, onQuickStatus }) {
   if (!popover) return null;
 
   const { lesson, triggerRect: rect } = popover;
-  const currentStatus = lesson.status || "planned";
+  const currentStatus = lesson.status || "scheduled";
 
   // Умное позиционирование: показываем снизу или сверху
   const popoverEstimatedHeight = 350;
@@ -58,7 +58,7 @@ export function StatusPopover({ popover, onClose, onQuickStatus }) {
 
         {STATUS_OPTIONS.map(({ status, label, Icon, colors }) => {
           const isActive = currentStatus === status;
-          const toggledStatus = isActive ? "planned" : status;
+          const toggledStatus = isActive ? "scheduled" : status;
           return (
             <button
               key={status}

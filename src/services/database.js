@@ -256,9 +256,14 @@ export async function getStudent(id) {
  */
 export async function addStudent(data) {
   if (!data.colorOklch) {
-    const usedColors = await getAllUsedColors(data.tutorId);
+    const tutorId = data.tutorId || pb.authStore.model?.id;
+    const usedColors = await getAllUsedColors(tutorId);
     data.colorOklch = getNextDistinctColor(usedColors);
     delete data.colorHue;
+  }
+  
+  if (!data.tutorId) {
+    data.tutorId = pb.authStore.model?.id;
   }
 
   invalidateCache("students");
@@ -284,6 +289,27 @@ export async function updateStudent(id, data) {
  */
 export async function deleteStudent(id) {
   invalidateCache("students");
+  
+  // Каскадное удаление уроков
+  try {
+    const lessons = await pb.collection("lessons").getFullList({ filter: `studentId="${id}"` });
+    for (const lesson of lessons) {
+      await pb.collection("lessons").delete(lesson.id);
+    }
+  } catch (e) {
+    console.error("Ошибка при каскадном удалении уроков ученика", e);
+  }
+
+  // Каскадное удаление оплат
+  try {
+    const payments = await pb.collection("payments").getFullList({ filter: `studentId="${id}"` });
+    for (const payment of payments) {
+      await pb.collection("payments").delete(payment.id);
+    }
+  } catch (e) {
+    console.error("Ошибка при каскадном удалении оплат ученика", e);
+  }
+
   await pb.collection("students").delete(id);
 }
 
@@ -357,6 +383,17 @@ export async function updateGroup(id, data) {
 
 export async function deleteGroup(id) {
   invalidateCache("groups");
+  
+  // Каскадное удаление уроков группы
+  try {
+    const lessons = await pb.collection("lessons").getFullList({ filter: `groupId="${id}"` });
+    for (const lesson of lessons) {
+      await pb.collection("lessons").delete(lesson.id);
+    }
+  } catch (e) {
+    console.error("Ошибка при каскадном удалении уроков группы", e);
+  }
+
   await pb.collection("groups").delete(id);
 }
 
@@ -823,6 +860,7 @@ export async function addLesson(data) {
         seriesId,
         status: baseData.status ?? "scheduled",
         hwDoneBy: baseData.hwDoneBy || [],
+        tutorId: pb.authStore.model?.id || baseData.tutorId,
       };
       const record = await pb.collection("lessons").create(lessonDataToSave);
       lastRefId = record.id;
@@ -857,6 +895,7 @@ export async function addLesson(data) {
       ...baseData,
       status: baseData.status ?? "scheduled",
       hwDoneBy: baseData.hwDoneBy || [],
+      tutorId: pb.authStore.model?.id || baseData.tutorId,
     };
     const record = await pb.collection("lessons").create(lessonDataToSave);
 

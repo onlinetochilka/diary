@@ -164,6 +164,16 @@ export function SubjectsSection({
                     onChange={val => handleSubjectChange(index, 'format', val)}
                   />
                 </div>
+                {(subject.format === 'online' || subject.format === 'mixed' || !subject.format) && (
+                  <div className="md:col-span-2">
+                    <Label>Ссылка на занятие (Zoom, Meet...)</Label>
+                    <Input
+                      placeholder="https://..."
+                      value={subject.videoLink || ''}
+                      onChange={e => handleSubjectChange(index, 'videoLink', e.target.value)}
+                    />
+                  </div>
+                )}
 
                 <div className="md:col-span-2">
                   <div className="flex items-center justify-between mb-1.5">

@@ -18,12 +18,14 @@ export default function StudentTileStats({
           <span className="text-xs font-medium text-stone-500">Посещаемость</span>
         </div>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-lg font-bold text-stone-800">{subjectStats.attendanceRate ?? 100}%</span>
+          <span className="text-lg font-bold text-stone-800">{subjectStats.attendanceRate != null ? `${subjectStats.attendanceRate}%` : '—'}</span>
         </div>
         <span className="text-[11px] text-stone-400 mt-0.5">
-          {subjectStats.cancellationsCount > 0 
-            ? `${subjectStats.cancellationsCount} ${getPlural(subjectStats.cancellationsCount, 'отмена', 'отмены', 'отмен')}` 
-            : 'Без пропусков'}
+          {subjectStats.attendanceRate == null 
+            ? 'Занятий пока не было'
+            : subjectStats.cancellationsCount > 0 
+              ? `${subjectStats.cancellationsCount} ${getPlural(subjectStats.cancellationsCount, 'отмена', 'отмены', 'отмен')}` 
+              : 'Без пропусков'}
         </span>
       </div>
 
@@ -47,9 +49,11 @@ export default function StudentTileStats({
           )}
         </div>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-lg font-bold text-stone-800">{subjectStats.homeworkRate ?? 100}%</span>
+          <span className="text-lg font-bold text-stone-800">{subjectStats.homeworkRate != null ? `${subjectStats.homeworkRate}%` : '—'}</span>
         </div>
-        <span className="text-[11px] text-stone-400 mt-0.5">Сдано вовремя</span>
+        <span className="text-[11px] text-stone-400 mt-0.5">
+          {subjectStats.homeworkRate != null ? 'Сдано вовремя' : 'Пока нет ДЗ'}
+        </span>
       </div>
     </div>
   );

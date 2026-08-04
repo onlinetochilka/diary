@@ -542,6 +542,12 @@ input[type='number'].no-spinners {
   -moz-appearance: textfield;
 }
 
+/* Hide native time picker clock icon so users just type the time */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
 /* ─── Auth page: spinning logo ─────────────────────────────── */
 @keyframes spin-gear {
   from { transform: rotate(0deg); }

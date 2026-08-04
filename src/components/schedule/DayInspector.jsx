@@ -83,7 +83,7 @@ function channelLabel(type) {
 // --- Blocks ---
 function StatusBlock({ formData, onPatch }) {
   const STATUS_OPTIONS = [
-    { value: 'planned',      label: 'Запланирован' },
+    { value: 'scheduled',      label: 'Запланирован' },
     { value: 'conducted',    label: 'Проведен' },
     { value: 'skipped_paid', label: 'Оплаченный пропуск' },
     { value: 'skipped_free', label: 'Бесплатный пропуск' },
@@ -91,7 +91,7 @@ function StatusBlock({ formData, onPatch }) {
   ];
 
   const activeColors = {
-    planned: 'bg-[#006584]/10 text-[#006584] ring-1 ring-[#006584]/20 shadow-sm',
+    scheduled: 'bg-[#006584]/10 text-[#006584] ring-1 ring-[#006584]/20 shadow-sm',
     conducted: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 shadow-sm',
     skipped_paid: 'bg-amber-50 text-amber-600 ring-1 ring-amber-200 shadow-sm',
     skipped_free: 'bg-stone-100 text-stone-600 ring-1 ring-stone-300 shadow-sm',
@@ -103,7 +103,7 @@ function StatusBlock({ formData, onPatch }) {
       <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Статус урока</p>
       <div className="flex flex-wrap gap-1.5">
         {STATUS_OPTIONS.map(opt => {
-          const isActive = (formData.status || 'planned') === opt.value;
+          const isActive = (formData.status || 'scheduled') === opt.value;
           return (
             <button
               key={opt.value}
@@ -610,8 +610,8 @@ export default function DayInspector({
         date: createInitial.date,
         startTime: createInitial.startTime,
         endTime: createInitial.endTime,
-        status: 'planned',
-        paymentStatus: 'planned',
+        status: 'scheduled',
+        paymentStatus: 'scheduled',
         hwAssigned: false, // Default to no HW when creating
         subjectName: '',
         programId: '',
@@ -629,7 +629,7 @@ export default function DayInspector({
       const hasHw = !!selectedLesson.homework || Object.keys(selectedLesson.hwStatuses || {}).length > 0;
       const init = { 
         ...selectedLesson, 
-        paymentStatus: selectedLesson.paymentStatus || 'planned',
+        paymentStatus: selectedLesson.paymentStatus || 'scheduled',
         hwAssigned: selectedLesson.hwAssigned !== undefined ? selectedLesson.hwAssigned : hasHw
       };
       setFormData(init);

@@ -90,7 +90,7 @@ export default function WeekView({
             const paidCount = isPast ? dayLessons.filter(l => l.status === "conducted" || l.status === "skipped_paid").length : 0;
             const cancelCount = dayLessons.filter(l => l.status === "cancelled").length;
             const skippedFreeCount = dayLessons.filter(l => l.status === "skipped_free").length;
-            const unmarkedCount = isPast ? dayLessons.filter(l => l.status === "planned").length : 0;
+            const unmarkedCount = isPast ? dayLessons.filter(l => l.status === "scheduled").length : 0;
 
             return (
               <div 

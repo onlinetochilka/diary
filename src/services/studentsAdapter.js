@@ -160,9 +160,9 @@ export function normalizeStudent(raw) {
     })),
     completedTopics: s.completedTopics || {},
     stats: {
-      attendanceRate: s.stats?.attendanceRate ?? (raw.stats?.attendanceRate ?? 100),
+      attendanceRate: s.stats?.attendanceRate ?? (raw.stats?.attendanceRate ?? null),
       cancellationsCount: s.stats?.cancellationsCount ?? (raw.stats?.cancellationsCount ?? 0),
-      homeworkRate: s.stats?.homeworkRate ?? (raw.stats?.homeworkRate ?? 100),
+      homeworkRate: s.stats?.homeworkRate ?? (raw.stats?.homeworkRate ?? null),
       pendingHomeworks: s.stats?.pendingHomeworks ?? 0,
     },
   }));
@@ -220,9 +220,9 @@ export function normalizeStudent(raw) {
     contacts,
     subjects,
     stats: {
-      attendanceRate: raw.stats?.attendanceRate ?? 100, // Глобальный фоллбэк, если нужно
+      attendanceRate: raw.stats?.attendanceRate ?? null, // Глобальный фоллбэк, если нужно
       cancellationsCount: raw.stats?.cancellationsCount ?? 0,
-      homeworkRate: raw.stats?.homeworkRate ?? 100,
+      homeworkRate: raw.stats?.homeworkRate ?? null,
       conductedHours: raw.stats?.conductedHours ?? 0,
       pendingHomeworks: 0,
     },
@@ -324,9 +324,9 @@ export function createEmptyStudent() {
       autoRemind: false,
     },
     stats: {
-      attendanceRate: 100,
+      attendanceRate: null,
       cancellationsCount: 0,
-      homeworkRate: 100,
+      homeworkRate: null,
       conductedHours: 0,
     },
     subjects: [createEmptySubject()],
@@ -349,9 +349,9 @@ export function createEmptySubject() {
     programs: [],
     completedTopics: {},
     stats: {
-      attendanceRate: 100,
+      attendanceRate: null,
       cancellationsCount: 0,
-      homeworkRate: 100,
+      homeworkRate: null,
     }
   };
 }

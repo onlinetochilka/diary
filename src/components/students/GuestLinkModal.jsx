@@ -42,10 +42,13 @@ function getContactMeta(channel) {
 
 export default function GuestLinkModal({ isOpen, onClose, student }) {
   const [copied, setCopied] = useState(false);
+  const [videoCopied, setVideoCopied] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
   const hash = student?.linkHash || (student ? `guest-${student.id}` : 'unknown');
   const url = `${window.location.origin}/?guest=${hash}`;
+
+  const videoLink = student?.subjects?.find(s => s.videoLink)?.videoLink;
 
   // Берём основной канал (первый в списке, либо единственный)
   const channels = student?.contacts?.studentChannels || [];
@@ -59,6 +62,16 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const handleVideoCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(videoLink);
+      setVideoCopied(true);
+      setTimeout(() => setVideoCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy video link: ', err);
     }
   };
 
@@ -127,6 +140,41 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
           {copied ? <Check size={16} className="mr-2" /> : <Copy size={16} className="mr-2" />}
           {copied ? 'Скопировано' : 'Скопировать ссылку'}
         </Button>
+
+        {videoLink && (
+          <div className="pt-3 border-t border-stone-100 mt-2">
+            <p className="text-sm text-stone-500 mb-3">
+              Ссылка на занятие (Zoom, Meet...)
+            </p>
+            <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5">
+              <input
+                type="text"
+                readOnly
+                value={videoLink}
+                className="flex-1 bg-transparent border-none outline-none text-xs text-stone-500 font-mono min-w-0"
+              />
+              <button
+                onClick={handleVideoCopy}
+                className={cn(
+                  "transition-colors shrink-0 p-1 rounded-md",
+                  videoCopied ? "text-emerald-500 bg-emerald-50" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100"
+                )}
+                title="Копировать ссылку на звонок"
+              >
+                {videoCopied ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+              <a
+                href={videoLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-stone-400 hover:text-stone-600 hover:bg-stone-100 p-1 rounded-md transition-colors shrink-0"
+                title="Открыть"
+              >
+                <ExternalLink size={14} />
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Отправить контакту */}
         {contactMeta && contactMeta.shareText && (

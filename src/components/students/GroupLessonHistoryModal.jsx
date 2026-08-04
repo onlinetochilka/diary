@@ -19,7 +19,7 @@ const FILTERS = [
 const STATUS_LABELS = {
   conducted:    { label: 'Проведён',     cls: 'bg-emerald-50 text-emerald-600' },
   scheduled:    { label: 'Запланирован', cls: 'bg-stone-100 text-stone-400' },
-  planned:      { label: 'Запланирован', cls: 'bg-stone-100 text-stone-400' },
+
   cancelled:    { label: 'Отменён',      cls: 'bg-red-50 text-red-400' },
   skipped_paid: { label: 'Пропуск (оплач.)', cls: 'bg-amber-50 text-amber-600' },
   skipped_free: { label: 'Пропуск',      cls: 'bg-stone-100 text-stone-400' },
@@ -217,7 +217,7 @@ export default function GroupLessonHistoryModal({ isOpen, onClose, group, studen
           <MonthLabel dateKey={monthKey} />
           <div className="flex flex-col gap-3">
             {monthLessons.map(lesson => {
-              const statusInfo = STATUS_LABELS[lesson.status] || STATUS_LABELS.planned;
+              const statusInfo = STATUS_LABELS[lesson.status] || STATUS_LABELS.scheduled;
               const groupSize  = group?.studentIds?.length || 0;
               const presentCount = Array.isArray(lesson.presentStudentIds)
                 ? lesson.presentStudentIds.length

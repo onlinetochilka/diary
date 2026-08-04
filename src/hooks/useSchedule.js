@@ -64,7 +64,7 @@ export function useSchedule() {
     // Clean up past specific states
     const cleanData = {
       ...lessonData,
-      status: 'planned',
+      status: 'scheduled',
       hwDoneBy: [],
       hwStatuses: {},
       presentStudentIds: [],

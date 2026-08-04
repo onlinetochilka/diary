@@ -261,7 +261,19 @@ export default function GroupEditorView({
   };
 
   const handleDelete = () => {
-    if (!window.confirm('Удалить группу? Это действие нельзя отменить.')) return;
+    const hasHistory = !!initialData && initialData.stats?.conductedLessons > 0;
+    const isArchived = !!initialData?.isArchived;
+
+    if (hasHistory && !isArchived) {
+      alert('Группу с историей проведенных уроков можно удалить только из архива. Пожалуйста, сначала перенесите её в архив.');
+      return;
+    }
+
+    const message = hasHistory && isArchived
+      ? 'ВНИМАНИЕ! Вместе с группой будут безвозвратно удалены ВСЕ её уроки. Вы уверены?'
+      : 'Удалить группу? Это действие нельзя отменить.';
+
+    if (!window.confirm(message)) return;
     onDelete?.(groupId);
   };
 

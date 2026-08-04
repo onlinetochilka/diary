@@ -40,7 +40,19 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
   };
 
   const handleDelete = () => {
-    if (!window.confirm('Удалить ученика? Это действие нельзя отменить.')) return;
+    const hasHistory = !!initialData && (initialData.stats?.conductedHours > 0 || initialData.ltv > 0);
+    const isArchived = !!initialData?.isArchived;
+
+    if (hasHistory && !isArchived) {
+      alert('Ученика с историей уроков и оплат можно удалить только из архива. Пожалуйста, сначала перенесите его в архив.');
+      return;
+    }
+    
+    const message = hasHistory && isArchived 
+      ? 'ВНИМАНИЕ! Вместе с учеником будут безвозвратно удалены ВСЕ его проведенные уроки и история оплат. Вы уверены, что хотите продолжить?'
+      : 'Удалить ученика? Это действие нельзя отменить. Все его данные будут стерты.';
+      
+    if (!window.confirm(message)) return;
     onDelete?.(studentId);
   };
 

@@ -14,7 +14,8 @@ import {
   Settings,
   BookOpen,
   PlaySquare,
-  LogOut
+  LogOut,
+  Zap
 } from "lucide-react";
 import pb from "../../services/pocketbase.js";
 import { generateDemoData, clearAllTutorData } from "../../utils/demoData.js";
@@ -27,6 +28,13 @@ export const NAV_ITEMS = [
     icon:   LayoutDashboard,
     activeBg: "bg-[#3B5266]/10",
     activeText: "text-[#3B5266]",
+  },
+  {
+    id:     "lite",
+    label:  "Легкий старт",
+    icon:   Zap,
+    activeBg: "bg-[#EAB308]/10", // yellow-500 equivalent
+    activeText: "text-[#EAB308]",
   },
   {
     id:     "schedule",

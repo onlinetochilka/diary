@@ -26,7 +26,7 @@ export default function LessonInspector({
     date: new Date().toISOString().split('T')[0],
     startTime: "10:00",
     endTime: "11:00",
-    status: "planned", // planned, conducted, cancelled, skipped_paid, skipped_free
+    status: "scheduled", // scheduled, conducted, cancelled, skipped_paid, skipped_free
     programId: "",
     topicId: "",
     homework: "",
@@ -34,7 +34,8 @@ export default function LessonInspector({
     hwStatuses: {},
     presentStudentIds: [], // кто присутствовал на групповом уроке
     notes: "",
-    format: "online"
+    format: "online",
+    videoLink: ""
   });
 
   const [initialStateStr, setInitialStateStr] = useState("");
@@ -52,7 +53,7 @@ export default function LessonInspector({
           date: initialData.date || new Date().toISOString().split('T')[0],
           startTime: initialData.startTime || "10:00",
           endTime: initialData.endTime || "11:00",
-          status: initialData.status || "planned",
+          status: initialData.status || "scheduled",
           programId: initialData.programId || "",
           topicId: initialData.topicId || "",
           homework: initialData.homework || "",
@@ -61,6 +62,7 @@ export default function LessonInspector({
           presentStudentIds: initialData.presentStudentIds || [],
           notes: initialData.notes || "",
           format: initialData.format || "online",
+          videoLink: initialData.videoLink || "",
           price: initialData.price !== undefined ? initialData.price : ""
         };
       } else {
@@ -72,7 +74,7 @@ export default function LessonInspector({
           date: new Date().toISOString().split('T')[0],
           startTime: "10:00",
           endTime: "11:00",
-          status: "planned",
+          status: "scheduled",
           programId: "",
           topicId: "",
           homework: "",
@@ -80,6 +82,7 @@ export default function LessonInspector({
           hwStatuses: {},
           notes: "",
           format: "online",
+          videoLink: "",
           isRecurring: false,
           repeatUntil: (() => {
             const d = new Date();
@@ -112,6 +115,7 @@ export default function LessonInspector({
           const subject = student.subjects[0];
           next.subjectName = subject.name;
           next.format = subject.format === "mixed" ? "online" : (subject.format || "online");
+          next.videoLink = subject.videoLink || "";
           next.programId = "";
           next.topicId = "";
         }
@@ -236,6 +240,10 @@ export default function LessonInspector({
       await onSubmit(initialData?.id, payload);
     } catch (error) {
       console.error(error);
+      const errorMsg = error?.response?.data 
+        ? JSON.stringify(error.response.data) 
+        : (error?.message || "Неизвестная ошибка базы данных");
+      alert("Ошибка PocketBase: " + errorMsg);
       setIsSubmitting(false);
     }
   };
@@ -247,13 +255,32 @@ export default function LessonInspector({
 
   /* ── Footer ─────────────────────────────────────────────── */
   const drawerFooter = (requestClose) => (
-    <div className="flex justify-end gap-3">
-      <Button type="button" variant="ghost" onClick={requestClose} disabled={isSubmitting}>
-        Отмена
-      </Button>
-      <Button type="submit" form="lesson-form" variant="filled" disabled={isSubmitting} className="min-w-[120px]">
-        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Сохранить"}
-      </Button>
+    <div className="flex justify-between items-center w-full">
+      <div>
+        {initialData?.id && onDelete && (
+          <Button 
+            type="button" 
+            variant="ghost" 
+            onClick={() => {
+              if (window.confirm("Удалить этот урок? Это действие необратимо.")) {
+                handleDelete();
+              }
+            }}
+            disabled={isSubmitting}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            Удалить
+          </Button>
+        )}
+      </div>
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="ghost" onClick={requestClose} disabled={isSubmitting}>
+          Отмена
+        </Button>
+        <Button type="submit" form="lesson-form" variant="filled" disabled={isSubmitting} className="min-w-[120px]">
+          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Сохранить"}
+        </Button>
+      </div>
     </div>
   );
 
@@ -359,7 +386,7 @@ export default function LessonInspector({
                     onChange={(e) => handleChange("status", e.target.value)}
                     disabled={isSubmitting}
                   >
-                    <option value="planned">Запланирован</option>
+                    <option value="scheduled">Запланирован</option>
                     <option value="conducted">Проведен</option>
                     <option value="cancelled">Отменён</option>
                     <option value="skipped_paid">Оплаченный пропуск</option>
@@ -385,17 +412,30 @@ export default function LessonInspector({
                 )}
                 {subjectFormat === "mixed" && (
                   <div>
-                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Формат урока</p>
-                  <select
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
-                    value={formData.format}
-                    onChange={(e) => handleChange("format", e.target.value)}
-                    disabled={isSubmitting}
-                  >
-                    <option value="online">Онлайн</option>
-                    <option value="offline">Офлайн</option>
-                  </select>
-                </div>
+                    <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Формат урока</p>
+                    <select
+                      className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                      value={formData.format}
+                      onChange={(e) => handleChange("format", e.target.value)}
+                      disabled={isSubmitting}
+                    >
+                      <option value="online">Онлайн</option>
+                      <option value="offline">Офлайн</option>
+                    </select>
+                  </div>
+                )}
+                {formData.format === "online" && (
+                  <div>
+                    <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Ссылка на урок (Zoom, Meet...)</p>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                      value={formData.videoLink || ""}
+                      onChange={(e) => handleChange("videoLink", e.target.value)}
+                      placeholder="https://..."
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 )}
               </div>
 

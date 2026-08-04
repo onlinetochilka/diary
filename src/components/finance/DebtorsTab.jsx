@@ -98,8 +98,16 @@ export default function DebtorsTab({ debtors, onRefresh }) {
         <tbody className="divide-y divide-stone-100">
           {sorted.length === 0 ? (
             <tr>
-              <td colSpan="3" className="py-12 text-center text-stone-400 text-sm">
-                Ученики всё оплатили вовремя.
+              <td colSpan="3" className="py-16">
+                <div className="flex flex-col items-center justify-center gap-4 text-center max-w-sm mx-auto">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-full flex items-center justify-center border border-emerald-100/50 shadow-sm">
+                    <CheckCircle size={28} className="text-emerald-500" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-stone-800 mb-1.5">Отличная работа!</h3>
+                    <p className="text-xs text-stone-500 leading-relaxed">В этом месяце все ученики вовремя оплатили занятия. Здесь будут отображаться те, у кого отрицательный баланс.</p>
+                  </div>
+                </div>
               </td>
             </tr>
           ) : (

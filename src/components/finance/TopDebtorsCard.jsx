@@ -28,9 +28,14 @@ export function TopDebtorsCard({ studentData, maxItems = 5, className = "" }) {
 
       <Card variant="elevated" className="p-0 overflow-hidden">
         {debtors.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8 px-4 text-center">
-            <CheckCircle size={22} className="text-emerald-400/60" />
-            <p className="text-sm font-medium text-stone-500">Все ученики в расчёте</p>
+          <div className="flex flex-col items-center justify-center gap-3 px-4 text-center bg-gradient-to-b from-stone-50/50 to-emerald-50/20" style={{ height: 192 }}>
+            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center border border-emerald-100 mb-1">
+              <CheckCircle size={24} className="text-emerald-500" strokeWidth={2} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-stone-700">Всё оплачено</p>
+              <p className="text-xs text-stone-500 max-w-[200px] leading-relaxed mx-auto">На данный момент у ваших учеников нет задолженностей.</p>
+            </div>
           </div>
         ) : (
           /* Прокручиваемая зона: 3 строки видны */

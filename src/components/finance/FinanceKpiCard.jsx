@@ -21,15 +21,16 @@ const VALUE_CLASS = {
 export function FinanceKpiCard({ label, value, sub, delta, variant = "default" }) {
   const valueClass = VALUE_CLASS[variant] ?? VALUE_CLASS.default;
   const hasPositive = delta?.value != null && delta.value > 0;
-  const hasNegative = delta?.value != null && delta.value < 0;
   const showDelta   = delta?.value != null && delta.value !== 0;
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-stone-100 flex flex-col justify-between min-h-[112px]">
-      {/* Delta row (or spacer) */}
-      <div className="h-5 flex items-center">
+    <div className="bg-white rounded-2xl p-5 shadow-sm border border-stone-100 flex flex-col h-[116px]">
+      <div className="flex items-start justify-between gap-2">
+        <p className={`text-2xl font-extrabold tracking-tight leading-none truncate ${valueClass}`}>
+          {value}
+        </p>
         {showDelta && (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
             hasPositive ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-500"
           }`}>
             {hasPositive ? "↑ +" : "↓ "}{delta.value}%
@@ -37,19 +38,13 @@ export function FinanceKpiCard({ label, value, sub, delta, variant = "default" }
         )}
       </div>
 
-      {/* Main value */}
-      <p className={`text-2xl sm:text-3xl font-bold tracking-tight leading-none mt-1 ${valueClass}`}>
-        {value}
-      </p>
-
-      {/* Label + sub */}
-      <div className="mt-2 space-y-0.5">
-        <p className="text-[10px] font-bold tracking-widest uppercase text-stone-400 leading-tight">
+      <div className="mt-auto space-y-1">
+        <p className="text-[10px] font-bold tracking-widest uppercase text-stone-400 leading-none truncate">
           {label}
         </p>
-        {sub && (
-          <p className="text-[11px] text-stone-400 leading-tight">{sub}</p>
-        )}
+        <p className="text-[11px] text-stone-400 leading-none truncate">
+          {sub || "\u00A0"}
+        </p>
       </div>
     </div>
   );

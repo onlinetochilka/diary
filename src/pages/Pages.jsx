@@ -50,6 +50,7 @@ export function PageWrapper({ children, title, subtitle, icon: Icon, iconBgClass
 // ── Dashboard ──────────────────────────────────────────────────────────────
 
 export { default as DashboardPage } from "./DashboardPage.jsx";
+export { default as LiteDashboardPage } from "./SimpleDashboardPage.jsx";
 
 export { default as SchedulePage } from "./SchedulePage.jsx";
 
@@ -63,3 +64,5 @@ export { default as FinancePage } from "./FinancePage.jsx";
 // ── Settings ───────────────────────────────────────────────────────────────
 
 export { default as SettingsPage } from "./SettingsScreen.jsx";
+
+export { default as LandingPage } from "./LandingPage.jsx";

@@ -120,6 +120,28 @@ export function useStudentForm({ studentId, initialData, availablePrograms = [],
   };
 
   const handleSave = async () => {
+    // Валидация перед сохранением
+    if (!formData.name?.trim()) {
+      alert("Пожалуйста, введите полное имя ученика.");
+      return;
+    }
+    
+    for (let i = 0; i < formData.subjects.length; i++) {
+      const subj = formData.subjects[i];
+      if (!subj.name?.trim()) {
+        alert(`Пожалуйста, укажите название предмета (предмет №${i + 1}).`);
+        return;
+      }
+      if (subj.price === undefined || subj.price === "" || Number(subj.price) <= 0) {
+        alert(`Пожалуйста, укажите стоимость одного занятия для предмета "${subj.name || i + 1}".`);
+        return;
+      }
+      if (subj.duration === undefined || subj.duration === "" || Number(subj.duration) <= 0) {
+        alert(`Пожалуйста, укажите длительность урока для предмета "${subj.name || i + 1}".`);
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       if (onSubmit) {
@@ -135,6 +157,7 @@ export function useStudentForm({ studentId, initialData, availablePrograms = [],
       }
     } catch (error) {
       console.error("Error saving student:", error);
+      alert("Произошла ошибка при сохранении ученика. Проверьте правильность введенных данных.");
     } finally {
       setIsSaving(false);
     }
