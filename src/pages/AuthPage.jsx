@@ -155,7 +155,7 @@ export default function AuthPage() {
                 <label className="text-sm font-medium text-stone-700 ml-1">Email</label>
                 <Input
                   type="email"
-                  placeholder="yandji2@mail.ru"
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoFocus
@@ -196,10 +196,10 @@ export default function AuthPage() {
             <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900">
-            {mode === "login" ? "С возвращением" : "Регистрация"}
+            {mode === "login" ? "С возвращением" : "Добро пожаловать"}
           </h1>
           <p className="text-stone-500 mt-1 text-sm text-center">
-            {mode === "login" ? "Войдите в свою учетную запись" : "Создайте новую учетную запись"}
+            {mode === "login" ? "Войдите в свою учетную запись" : "Создайте аккаунт, чтобы начать"}
           </p>
         </div>
 
@@ -209,7 +209,7 @@ export default function AuthPage() {
           <label className="text-sm font-medium text-stone-700 ml-1">Email</label>
           <Input
             type="email"
-            placeholder="yandji2@mail.ru"
+            placeholder="name@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoFocus
@@ -262,7 +262,7 @@ export default function AuthPage() {
               onChange={(e) => setAgreed(e.target.checked)}
             />
             <label htmlFor="agree" className="text-[11px] text-stone-500 leading-tight cursor-pointer">
-              Создавая аккаунт, вы принимаете <a href="https://tochilka.app/terms" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Лицензионное соглашение</a>, <a href="https://tochilka.app/privacy" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Политику конфиденциальности</a> и даете <a href="https://tochilka.app/consent" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">согласие на обработку данных</a>.
+              Создавая аккаунт, вы принимаете <a href="/docs/terms.docx" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Лицензионное соглашение</a>, <a href="/docs/privacy.docx" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Политику конфиденциальности</a> и даете <a href="/docs/consent.docx" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">согласие на обработку данных</a>.
             </label>
           </div>
         )}
@@ -274,9 +274,9 @@ export default function AuthPage() {
           className="w-full h-12 mt-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-lg shadow-stone-900/20"
         >
           {isLoading ? (
-            <><Loader2 size={18} className="animate-spin mr-2 inline" />{mode === "login" ? "Вход..." : "Регистрация..."}</>
+            <><Loader2 size={18} className="animate-spin mr-2 inline" />{mode === "login" ? "Вход..." : "Создаём аккаунт..."}</>
           ) : (
-            mode === "login" ? "Войти" : "Зарегистрироваться"
+            mode === "login" ? "Войти" : "Начать"
           )}
         </Button>
 
@@ -287,7 +287,7 @@ export default function AuthPage() {
             className="text-sm font-medium text-stone-500 hover:text-stone-800 transition-colors"
             disabled={isLoading}
           >
-            {mode === "login" ? "Нет аккаунта? Зарегистрируйтесь" : "Уже есть аккаунт? Войти"}
+            {mode === "login" ? "Ещё нет аккаунта? Создать" : "Уже есть аккаунт? Войти"}
           </button>
         </div>
 
