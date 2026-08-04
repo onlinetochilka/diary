@@ -34,9 +34,9 @@ import { Tooltip } from "../ui/index.js";
 // ─── Skeleton пока программа загружается ─────────────────────────────────────
 function EditorSkeleton() {
   return (
-    <div className="flex w-full h-full max-w-[1400px] mx-auto bg-white rounded-2xl shadow-sm border border-stone-200/80 overflow-hidden animate-pulse">
+    <div className="flex gap-4 lg:gap-6 w-full h-full max-w-[1400px] mx-auto overflow-hidden animate-pulse">
       {/* Левая колонка */}
-      <div className="pe-structure w-[55%] space-y-3">
+      <div className="pe-structure w-[55%] space-y-3 bg-white rounded-2xl shadow-sm border border-stone-200/80 p-6 lg:p-8">
         <div className="h-5 w-40 rounded-md bg-stone-200/80" />
         {Array.from({ length: 7 }).map((_, i) => (
           <div
@@ -55,7 +55,7 @@ function EditorSkeleton() {
         ))}
       </div>
       {/* Правая колонка */}
-      <div className="pe-inspector w-[45%] flex-shrink-0 p-4 space-y-3">
+      <div className="w-[45%] flex-shrink-0 p-6 space-y-3 bg-white rounded-3xl shadow-sm border border-stone-200/80">
         <div className="h-4 w-24 rounded bg-stone-200/80" />
         <div className="h-20 rounded-xl bg-stone-100" />
         <div className="h-4 w-32 rounded bg-stone-200/80 mt-2" />
@@ -407,9 +407,9 @@ export default function ProgramEditorPage({
               </button>
             </div>
           ) : (
-            <div className="flex w-full h-full max-w-[1400px] mx-auto bg-white rounded-2xl shadow-sm border border-stone-200/80 overflow-hidden">
+            <div className="flex gap-4 lg:gap-6 w-full h-full max-w-[1400px] mx-auto overflow-hidden">
               {/* Левая: структура программы (строго 55%) */}
-              <div className="pe-structure w-[55%]">
+              <div className="w-[55%] bg-white rounded-3xl shadow-sm border border-stone-200/80 overflow-y-auto overflow-x-hidden flex flex-col">
                 {renderStructure ? (
                   renderStructure({
                     program,
@@ -425,7 +425,7 @@ export default function ProgramEditorPage({
               </div>
 
               {/* Правая: инспектор (строго 45% flex-shrink-0) */}
-              <div className="pe-inspector w-[45%] flex-shrink-0">
+              <div className="w-[45%] flex-shrink-0 bg-white rounded-3xl shadow-sm border border-stone-200/80 overflow-y-auto overflow-x-hidden flex flex-col relative">
                 {renderInspector ? (
                   renderInspector({
                     program,

@@ -341,12 +341,11 @@
 
   /* ── Корневая оболочка редактора ─────────────────────────────────────── */
   .pe-shell {
-    /* Тёплый кремовый, не трогает глобальный --ivory */
-    background-color: var(--editor-bg);
-    /* Занимает всё пространство внутри <main> без глобального скролла */
+    /* Прозрачный фон, наследует стиль приложения */
+    background-color: transparent;
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - 0px);          /* вся высота; при необходимости заменить на calc(100dvh - BottomTabs) */
+    height: 100%;
     overflow: hidden;
   }
 
@@ -359,7 +358,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0 1.25rem;
-    background-color: var(--editor-bg);
+    background-color: #fafaf9; /* fallback bg-stone-50 for sticky header */
     border-bottom: 1px solid var(--editor-divider);
     /* Препятствует перекрытию при скролле левой колонки */
     position: sticky;

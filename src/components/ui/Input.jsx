@@ -80,14 +80,14 @@ export default function Input({
           inputMode={isNumberFormat ? "numeric" : rest.inputMode}
           placeholder={label ? " " : rest.placeholder || " "}
           className={cn(
-            "peer w-full rounded-xl bg-ivory px-3.5 text-sm",
+            "peer w-full rounded-xl bg-stone-50 px-3.5 text-sm",
             label ? "pb-2 pt-6" : "py-2.5",
             "text-stone-900 outline-none transition-all duration-300 ease-out-quart",
             label && "placeholder:text-transparent focus:placeholder:text-stone-400",
             !label && "placeholder:text-stone-400",
-            "border-2 border-transparent shadow-neu-sm-inset",
-            "focus:border-transparent focus:ring-2 focus:ring-brand-teal focus:ring-offset-2 focus:ring-offset-ivory focus:shadow-neu-sm-inset",
-            hasError && "ring-2 ring-brand-red ring-offset-2 ring-offset-ivory",
+            "border border-stone-200/80 shadow-sm",
+            "focus:bg-white focus:border-stone-300 focus:ring-2 focus:ring-academic-blue/20 focus:ring-offset-0",
+            hasError && "border-brand-red focus:ring-brand-red/20",
             disabled && "opacity-60 cursor-not-allowed",
             leftIcon && "pl-10",
             rightIcon && "pr-10"

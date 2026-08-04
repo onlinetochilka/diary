@@ -5,7 +5,7 @@
  * Повторяет паттерн StudentEditorView: секции с нумерацией, фиксированный SaveBar.
  */
 import { useState, useEffect, useId } from 'react';
-import { ArrowLeft, Save, Loader2, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Trash2, Plus, Archive, ArchiveRestore } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 import { Label, Input, Select, SegmentedToggle, SectionHeading } from './StudentFormAtoms.jsx';
 
@@ -36,24 +36,41 @@ function SegmentedControl({ options, value, onChange }) {
 }
 
 // ── SaveBar ───────────────────────────────────────────────────────────────────
-function GroupSaveBar({ onBack, onSave, isSaving, isEditMode, onDelete }) {
+function GroupSaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchive, isArchived }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-stone-200/50 flex justify-end items-center px-6 lg:px-12 z-50 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
-      <div className="flex gap-4 w-full max-w-3xl mx-auto justify-between">
-        {/* Удалить (только при редактировании) */}
-        {isEditMode && onDelete ? (
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400 active:scale-[0.98] disabled:opacity-50"
-          >
-            <Trash2 size={16} />
-            Удалить группу
-          </button>
-        ) : (
-          <div />
-        )}
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 p-3 px-4 bg-white/95 backdrop-blur-md border border-stone-200/80 rounded-2xl flex justify-between items-center z-50 shadow-2xl shadow-stone-900/10 w-[calc(100%-2rem)] max-w-4xl transition-all duration-300">
+      <div className="flex w-full justify-between items-center">
+        <div className="flex items-center gap-2">
+          {isEditMode && onArchive && (
+            <button
+              type="button"
+              onClick={onArchive}
+              disabled={isSaving}
+              data-action="archive_group"
+              className={`px-4 py-2.5 rounded-xl font-medium transition-colors outline-none focus-visible:ring-2 flex items-center gap-2 ${
+                isArchived
+                  ? 'text-teal-700 hover:bg-teal-50 focus-visible:ring-teal-400'
+                  : 'text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400'
+              }`}
+            >
+              {isArchived ? <ArchiveRestore size={18} /> : <Archive size={18} />}
+              <span className="hidden sm:inline">
+                {isArchived ? 'Восстановить' : 'В архив'}
+              </span>
+            </button>
+          )}
+          {isEditMode && onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400 active:scale-[0.98] disabled:opacity-50"
+            >
+              <Trash2 size={16} />
+              <span className="hidden sm:inline">Удалить</span>
+            </button>
+          )}
+        </div>
 
         {/* Отмена + Сохранить */}
         <div className="flex gap-3">
@@ -89,6 +106,7 @@ export default function GroupEditorView({
   onBack,
   onSubmit,
   onDelete,
+  onArchive,
   availableStudents = [],
   availablePrograms = [],
   existingSubjects = [],
@@ -247,8 +265,17 @@ export default function GroupEditorView({
     onDelete?.(groupId);
   };
 
+  const handleArchive = () => {
+    const isCurrentlyArchived = initialData?.isArchived;
+    const message = isCurrentlyArchived
+      ? 'Восстановить группу из архива?'
+      : 'Перенести группу в архив?';
+    if (!window.confirm(message)) return;
+    onArchive?.(groupId, !isCurrentlyArchived);
+  };
+
   return (
-    <div className="max-w-3xl mx-auto p-6 lg:p-8 animate-fade-in pb-40">
+    <div className="max-w-[1400px] mx-auto p-6 lg:p-8 animate-fade-in pb-40">
       {/* Header */}
       <div className="flex items-center justify-between mb-10">
         <button
@@ -264,7 +291,9 @@ export default function GroupEditorView({
         </div>
       </div>
 
-      <div className="flex flex-col gap-12">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+        {/* Левая колонка */}
+        <div className="xl:col-span-5 flex flex-col gap-8">
 
         {/* ── Секция 1: Основное ─────────────────────────────────── */}
         <section>
@@ -389,7 +418,10 @@ export default function GroupEditorView({
 
           </div>
         </section>
+        </div>
 
+        {/* Правая колонка */}
+        <div className="xl:col-span-7 flex flex-col gap-8">
         {/* ── Секция 3: Программа обучения ───────────────────────── */}
         {availablePrograms.length > 0 && (
           <section>
@@ -590,9 +622,10 @@ export default function GroupEditorView({
             )}
           </div>
         </section>
+        </div>
 
-        <div className="h-32 shrink-0" />
       </div>
+      <div className="h-32 shrink-0" />
 
       <GroupSaveBar
         onBack={handleBackAttempt}
@@ -600,6 +633,8 @@ export default function GroupEditorView({
         isSaving={isSaving}
         isEditMode={isEditMode}
         onDelete={isEditMode ? handleDelete : undefined}
+        onArchive={isEditMode && onArchive ? handleArchive : undefined}
+        isArchived={!!initialData?.isArchived}
       />
     </div>
   );

@@ -74,10 +74,10 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
             maxLength={150}
             className={cn(
               "w-full px-3 py-2 rounded-xl text-sm font-bold text-stone-900",
-              "border border-stone-200 bg-white transition-all duration-150",
+              "border border-stone-200/60 bg-stone-50 transition-all duration-150",
               "placeholder:text-stone-400 placeholder:font-normal",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
-              errors.name && "border-red-300 ring-2 ring-red-100"
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72] focus:bg-white",
+              errors.name && "border-red-300 ring-2 ring-red-100 bg-white"
             )}
           />
           {errors.name && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.name}</p>}
@@ -94,10 +94,10 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
             maxLength={100}
             className={cn(
               "w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-600",
-              "border border-stone-200 bg-white transition-all duration-150",
+              "border border-stone-200/60 bg-stone-50 transition-all duration-150",
               "placeholder:text-stone-400 placeholder:font-normal",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
-              errors.subject && "border-red-300 ring-2 ring-red-100"
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72] focus:bg-white",
+              errors.subject && "border-red-300 ring-2 ring-red-100 bg-white"
             )}
           />
           {errors.subject && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.subject}</p>}
@@ -243,14 +243,14 @@ function SectionInspector({ section, topics, programId, onProgramChange }) {
             aria-describedby={`${inputId}-hint`}
             className={cn(
               "flex-1 min-w-0 px-3 py-2 rounded-xl text-sm text-stone-800",
-              "border bg-white transition-all duration-150",
+              "border bg-stone-50 transition-all duration-150",
               "placeholder:text-stone-400",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72] focus:bg-white",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               status === "error"   && "border-red-300 bg-red-50",
               status === "success" && "border-emerald-300 bg-emerald-50",
               status === "idle" || status === "saving"
-                ? "border-stone-200"
+                ? "border-stone-200/60"
                 : "",
             )}
           />

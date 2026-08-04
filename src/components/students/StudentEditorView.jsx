@@ -54,7 +54,7 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 lg:p-8 animate-fade-in pb-40">
+    <div className="max-w-[1400px] mx-auto p-6 lg:p-8 animate-fade-in pb-40">
       {/* Header */}
       <div className="flex items-center justify-between mb-10">
         <button
@@ -69,32 +69,37 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
         </div>
       </div>
 
-      <div className="flex flex-col gap-12">
-        <PersonalInfoSection
-          formData={formData}
-          handleChange={handleChange}
-        />
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+        {/* Левая колонка: Личные данные и Связь */}
+        <div className="xl:col-span-5 flex flex-col gap-8">
+          <PersonalInfoSection
+            formData={formData}
+            handleChange={handleChange}
+          />
+          <ContactsSection
+            formData={formData}
+            handleContactChange={handleContactChange}
+            showParent={showParent}
+          />
+        </div>
 
-        <SubjectsSection
-          formData={formData}
-          handleSubjectChange={handleSubjectChange}
-          handleProgramChange={handleProgramChange}
-          availablePrograms={availablePrograms}
-          handleNavigateToPrograms={handleNavigateToPrograms}
-          handleAddSubject={handleAddSubject}
-          handleRemoveSubject={handleRemoveSubject}
-          handleContactChange={handleContactChange}
-        />
-
-        <ContactsSection
-          formData={formData}
-          handleContactChange={handleContactChange}
-          showParent={showParent}
-        />
-
-        {/* Dummy spacer for scrolling past fixed bottom bar */}
-        <div className="h-32 shrink-0"></div>
+        {/* Правая колонка: Учебный процесс и Финансы */}
+        <div className="xl:col-span-7 flex flex-col gap-8">
+          <SubjectsSection
+            formData={formData}
+            handleSubjectChange={handleSubjectChange}
+            handleProgramChange={handleProgramChange}
+            availablePrograms={availablePrograms}
+            handleNavigateToPrograms={handleNavigateToPrograms}
+            handleAddSubject={handleAddSubject}
+            handleRemoveSubject={handleRemoveSubject}
+            handleContactChange={handleContactChange}
+          />
+        </div>
       </div>
+
+      {/* Dummy spacer for scrolling past fixed bottom bar */}
+      <div className="h-32 shrink-0"></div>
 
       <SaveBar
         onBack={handleBackAttempt}

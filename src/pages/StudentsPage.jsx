@@ -152,6 +152,13 @@ export default function StudentsPage() {
     setEditingGroup(null);
   };
 
+  const handleGroupArchive = async (groupId, archive) => {
+    await updateGroup(groupId, { isArchived: archive });
+    loadGroupsData();
+    setCurrentView("directory");
+    setEditingGroup(null);
+  };
+
   const handleEditGroup = (group) => {
     setEditingGroup(group);
     setCurrentView("group_editor");
@@ -212,6 +219,7 @@ export default function StudentsPage() {
           onBack={handleGroupBack}
           onSubmit={handleGroupSubmit}
           onDelete={handleGroupDelete}
+          onArchive={handleGroupArchive}
           availableStudents={availableStudentsForGroup}
           availablePrograms={programs}
           existingSubjects={existingSubjects}

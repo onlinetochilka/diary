@@ -442,8 +442,8 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
 
 export function SaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchive, isArchived }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-stone-200/50 flex justify-end items-center px-6 lg:px-12 z-50 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
-      <div className="flex gap-4 w-full max-w-3xl mx-auto justify-between">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 p-3 px-4 bg-white/95 backdrop-blur-md border border-stone-200/80 rounded-2xl flex justify-between items-center z-50 shadow-2xl shadow-stone-900/10 w-[calc(100%-2rem)] max-w-4xl transition-all duration-300">
+      <div className="flex w-full justify-between items-center">
         <div className="flex items-center gap-2">
           {isEditMode && onArchive && (
             <button
