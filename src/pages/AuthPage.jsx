@@ -140,7 +140,7 @@ export default function AuthPage() {
         <form onSubmit={handleForgotPassword} className="space-y-4">
           <div className="flex flex-col items-center mb-8">
             <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 ring-1 ring-stone-900/5 p-3">
-              <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" />
+              <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" style={{ animation: 'spin-gear 12s linear infinite' }} />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-stone-900">Сброс пароля</h1>
             <p className="text-stone-500 mt-1 text-sm text-center">Введите email — пришлём ссылку</p>
@@ -193,7 +193,7 @@ export default function AuthPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 ring-1 ring-stone-900/5 p-3">
-            <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" />
+            <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" style={{ animation: 'spin-gear 12s linear infinite' }} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900">
             {mode === "login" ? "С возвращением" : "Добро пожаловать"}

@@ -541,3 +541,9 @@ input[type='number'].no-spinners::-webkit-outer-spin-button {
 input[type='number'].no-spinners {
   -moz-appearance: textfield;
 }
+
+/* ─── Auth page: spinning logo ─────────────────────────────── */
+@keyframes spin-gear {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
