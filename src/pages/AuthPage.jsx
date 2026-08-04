@@ -262,7 +262,7 @@ export default function AuthPage() {
               onChange={(e) => setAgreed(e.target.checked)}
             />
             <label htmlFor="agree" className="text-[11px] text-stone-500 leading-tight cursor-pointer">
-              Создавая аккаунт, вы принимаете <a href="/docs/terms.docx" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Лицензионное соглашение</a>, <a href="/docs/privacy.docx" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Политику конфиденциальности</a> и даете <a href="/docs/consent.docx" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">согласие на обработку данных</a>.
+              Создавая аккаунт, вы принимаете <a href="/docs/terms.html" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Лицензионное соглашение</a>, <a href="/docs/privacy.html" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Политику конфиденциальности</a> и даете <a href="/docs/consent.html" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">согласие на обработку данных</a>.
             </label>
           </div>
         )}

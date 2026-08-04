@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Согласие на обработку персональных данных — Точилка</title>
+  <style>
+    :root {
+      --bg-color: #faf9f6;
+      --card-bg: #ffffff;
+      --text-main: #44403c;
+      --text-heading: #1c1917;
+      --text-muted: #78716c;
+      --border-color: #e7e5e4;
+      --accent-color: #d97706;
+      --accent-hover: #b45309;
+      --accent-light: #fef3c7;
+      --accent-dark: #92400e;
+      --requisites-bg: #f5f5f4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.65;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: 0 16px 48px;
+    }
+
+    .top-bar {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 0 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-heading);
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .brand-badge {
+      background-color: var(--accent-color);
+      color: #ffffff;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .close-btn {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .close-btn:hover {
+      border-color: var(--accent-color);
+      color: var(--accent-hover);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+
+    .doc-header {
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .doc-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-heading);
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+    }
+
+    .preamble {
+      font-size: 15px;
+      margin-bottom: 28px;
+      color: var(--text-main);
+    }
+
+    .section {
+      margin-bottom: 28px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 12px;
+      margin-top: 20px;
+      letter-spacing: 0.01em;
+    }
+
+    .section p {
+      margin-bottom: 12px;
+    }
+
+    .section p:last-child {
+      margin-bottom: 0;
+    }
+
+    ul {
+      margin: 8px 0 14px 24px;
+      padding-left: 0;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    a {
+      color: var(--accent-color);
+      text-decoration: none;
+      border-bottom: 1px transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+
+    .notice-box {
+      background-color: var(--accent-light);
+      border-left: 4px solid var(--accent-color);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin-top: 32px;
+      font-size: 14px;
+      color: var(--accent-dark);
+      line-height: 1.6;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+      .top-bar {
+        display: none !important;
+      }
+      .container {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 24px 18px;
+        border-radius: 8px;
+      }
+      .doc-title {
+        font-size: 19px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="brand">
+      <span class="brand-badge">Т</span>
+      <span>Точилка — Ежедневник репетитора</span>
+    </div>
+    <button class="close-btn" onclick="closeWindow()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      Закрыть
+    </button>
+  </header>
+
+  <main class="container">
+    <div class="doc-header">
+      <h1 class="doc-title">СОГЛАШЕНИЕ НА ОБРАБОТКУ ПЕРСОНАЛЬНЫХ ДАННЫХ</h1>
+    </div>
+
+    <p class="preamble">
+      Я (далее — «Пользователь»), регистрируясь в веб-сервисе «Ежедневник репетитора» по адресу <a href="https://app.tutorplanner.ru" target="_blank" rel="noopener">https://app.tutorplanner.ru</a>, свободно, своей волей и в своем интересе даю согласие физическому лицу Докторовой Светлане Викторовне (ИНН: 782608845206), применяющему специальный налоговый режим «Налог на профессиональный доход» (далее — «Оператор»), на обработку моих персональных данных.
+    </p>
+
+    <section class="section">
+      <h2 class="section-title">1. Перечень обрабатываемых данных:</h2>
+      <ul>
+        <li>Адрес электронной почты (e-mail);</li>
+        <li>Номер мобильного телефона;</li>
+        <li>Учетные данные в мессенджерах (ID, никнейм);</li>
+        <li>Имя / Псевдоним.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">2. Цели обработки:</h2>
+      <p>Заключение и исполнение Лицензионного договора-оферты (создание аккаунта, предоставление доступа к сервису, направление электронных чеков об оплате).</p>
+      <p>Установление обратной связи, оказание технической поддержки и направление сервисных уведомлений через электронную почту и мессенджеры.</p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">3. Перечень действий с данными:</h2>
+      <p>Сбор, запись, систематизация, накопление, хранение, уточнение (обновление, изменение), извлечение, использование, удаление, уничтожение. Обработка осуществляется с использованием средств автоматизации.</p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">4. Срок действия и отзыв согласия:</h2>
+      <p>Настоящее согласие действует с момента регистрации Пользователя в Сервисе и до момента удаления учетной записи (Аккаунта) Пользователем. Согласие может быть отозвано в любой момент путем самостоятельного удаления Аккаунта в настройках Сервиса или направления письменного запроса на электронную почту Оператора.</p>
+    </section>
+
+    <div class="notice-box">
+      Настоящим подтверждаю, что я ознакомлен(а) с тем, что самостоятельно несу ответственность за правомерность и наличие законных оснований для внесения в Сервис персональных данных третьих лиц (моих учеников).
+    </div>
+  </main>
+
+  <script>
+    function closeWindow() {
+      window.close();
+      setTimeout(function() {
+        if (!window.closed && window.history.length > 1) {
+          window.history.back();
+        }
+      }, 100);
+    }
+  </script>
+</body>
+</html>

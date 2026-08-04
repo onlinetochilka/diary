@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Публичная оферта (Лицензионное соглашение) — Точилка</title>
+  <style>
+    :root {
+      --bg-color: #faf9f6;
+      --card-bg: #ffffff;
+      --text-main: #44403c;
+      --text-heading: #1c1917;
+      --text-muted: #78716c;
+      --border-color: #e7e5e4;
+      --accent-color: #d97706;
+      --accent-hover: #b45309;
+      --accent-light: #fef3c7;
+      --requisites-bg: #f5f5f4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.65;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: 0 16px 48px;
+    }
+
+    .top-bar {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 0 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-heading);
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .brand-badge {
+      background-color: var(--accent-color);
+      color: #ffffff;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .close-btn {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .close-btn:hover {
+      border-color: var(--accent-color);
+      color: var(--accent-hover);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+
+    .doc-header {
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .doc-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-heading);
+      line-height: 1.35;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .doc-date {
+      display: inline-block;
+      font-size: 13px;
+      color: var(--text-muted);
+      background: var(--requisites-bg);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .preamble {
+      font-size: 15px;
+      margin-bottom: 28px;
+      color: var(--text-main);
+    }
+
+    .section {
+      margin-bottom: 28px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 12px;
+      margin-top: 20px;
+      letter-spacing: 0.01em;
+    }
+
+    .section p {
+      margin-bottom: 12px;
+    }
+
+    .section p:last-child {
+      margin-bottom: 0;
+    }
+
+    a {
+      color: var(--accent-color);
+      text-decoration: none;
+      border-bottom: 1px transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+
+    .requisites-card {
+      background-color: var(--requisites-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 32px;
+    }
+
+    .requisites-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+    }
+
+    .requisites-card p {
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .requisites-card p:last-child {
+      margin-bottom: 0;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+      .top-bar {
+        display: none !important;
+      }
+      .container {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 24px 18px;
+        border-radius: 8px;
+      }
+      .doc-title {
+        font-size: 19px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="brand">
+      <span class="brand-badge">Т</span>
+      <span>Точилка — Ежедневник репетитора</span>
+    </div>
+    <button class="close-btn" onclick="closeWindow()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      Закрыть
+    </button>
+  </header>
+
+  <main class="container">
+    <div class="doc-header">
+      <h1 class="doc-title">ПУБЛИЧНАЯ ОФЕРТА (ЛИЦЕНЗИОННОЕ СОГЛАШЕНИЕ)</h1>
+      <span class="doc-date">Редакция от 01.08.2026</span>
+    </div>
+
+    <p class="preamble">
+      Физическое лицо Докторова Светлана Викторовна, применяющее специальный налоговый режим «Налог на профессиональный доход» (далее — «Лицензиар»), с одной стороны, и любое физическое или юридическое лицо, принявшее условия настоящей оферты (далее — «Лицензиат»), заключили настоящий договор о нижеследующем:
+    </p>
+
+    <section class="section">
+      <h2 class="section-title">1. ПРЕДМЕТ ДОГОВОРА</h2>
+      <p><strong>1.1.</strong> Лицензиар обязуется предоставить Лицензиату на условиях простой (неисключительной) лицензии право использования программы для ЭВМ «Ежедневник репетитора» (далее — Программа) посредством предоставления удаленного доступа через сеть Интернет по адресу: <a href="https://app.tutorplanner.ru" target="_blank" rel="noopener">https://app.tutorplanner.ru</a>, а Лицензиат обязуется принять и оплатить это право.</p>
+      <p><strong>1.2.</strong> Использование Программы осуществляется исключительно удаленно. Лицензиат не имеет права скачивать, модифицировать, декомпилировать или копировать исходный код Программы.</p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">2. ГАРАНТИИ И ОГРАНИЧЕНИЕ ОТВЕТСТВЕННОСТИ</h2>
+      <p><strong>2.1.</strong> Программа предоставляется на условиях «как есть» (AS IS). Лицензиар не гарантирует, что Программа будет соответствовать индивидуальным ожиданиям Лицензиата, а также не гарантирует ее бесперебойную работу.</p>
+      <p><strong>2.2.</strong> Лицензиар не несет ответственности за задержки и перебои в работе, происходящие по причинам, находящимся вне разумного контроля Лицензиара (сбои на стороне хостинг-провайдера, перебои в работе мессенджеров, отсутствие интернета у Лицензиата).</p>
+      <p><strong>2.3.</strong> Лицензиар вправе в одностороннем порядке изменять интерфейс, функциональные возможности Программы и тарифы, уведомляя об этом Лицензиата путем публикации информации на сайте или направления уведомления в мессенджеры либо на электронную почту.</p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">3. ПЕРСОНАЛЬНЫЕ ДАННЫЕ И БЕЗОПАСНОСТЬ</h2>
+      <p><strong>3.1.</strong> Лицензиар предоставляет исключительно вычислительные мощности (интерфейс) для самостоятельного ведения учета Лицензиатом.</p>
+      <p><strong>3.2.</strong> Лицензиар не инициирует сбор, не определяет цели обработки и не несет ответственности за содержание персональных данных третьих лиц (учеников, их законных представителей), которые Лицензиат самостоятельно вносит в Программу.</p>
+      <p><strong>3.3.</strong> В отношении данных своих клиентов (учеников) Лицензиат признается единственным Оператором персональных данных в соответствии с Федеральным законом №152-ФЗ и обязуется самостоятельно получать от них необходимые согласия.</p>
+      <p><strong>3.4.</strong> Лицензиар обрабатывает персональные данные самого Лицензиата исключительно в целях исполнения настоящего Договора в соответствии с Политикой конфиденциальности.</p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">4. ПОРЯДОК ОПЛАТЫ</h2>
+      <p><strong>4.1.</strong> Вознаграждение Лицензиара определяется в соответствии с тарифами, размещенными по адресу: <a href="https://app.tutorplanner.ru/tariffs" target="_blank" rel="noopener">https://app.tutorplanner.ru/tariffs</a>.</p>
+      <p><strong>4.2.</strong> Оплата производится в виде 100% авансового платежа.</p>
+      <p><strong>4.3.</strong> Вознаграждение не облагается НДС в связи с применением Лицензиаром специального налогового режима «Налог на профессиональный доход» (НПД).</p>
+      <p><strong>4.4.</strong> Документом, подтверждающим факт оплаты и надлежащего предоставления неисключительных прав, является электронный чек, сформированный Лицензиаром в приложении ФНС России «Мой налог» и направленный Лицензиату. Стороны соглашаются не составлять бумажные акты.</p>
+      <p><strong>4.5.</strong> Возврат средств: поскольку предметом договора является предоставление права на использование цифрового продукта, после активации доступа на оплаченный период возврат лицензионного вознаграждения при досрочном отказе Лицензиата от использования Программы не производится.</p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">5. АКЦЕПТ ОФЕРТЫ</h2>
+      <p><strong>5.1.</strong> Настоящий договор признается заключенным с момента его акцепта Лицензиатом.</p>
+      <p><strong>5.2.</strong> Акцептом признается факт проставления Лицензиатом отметки о согласии с условиями Лицензионного соглашения при регистрации, либо факт оплаты лицензионного вознаграждения, в зависимости от того, какое событие наступит раньше.</p>
+    </section>
+
+    <div class="requisites-card">
+      <h3>6. РЕКВИЗИТЫ ЛИЦЕНЗИАРА</h3>
+      <p><strong>Физическое лицо, применяющее НПД:</strong> Докторова Светлана Викторовна</p>
+      <p><strong>ИНН:</strong> 782608845206</p>
+    </div>
+  </main>
+
+  <script>
+    function closeWindow() {
+      window.close();
+      setTimeout(function() {
+        if (!window.closed && window.history.length > 1) {
+          window.history.back();
+        }
+      }, 100);
+    }
+  </script>
+</body>
+</html>
