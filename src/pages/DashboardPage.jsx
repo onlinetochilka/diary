@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getPlural } from "../utils/plural.js";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
 import { Card, Button, Tooltip } from "../components/ui/index.js";
@@ -17,7 +18,12 @@ import MetricsSettingsModal from "../components/dashboard/MetricsSettingsModal.j
 import { useDashboardData } from "../hooks/useDashboardData.js";
 
 
-export default function DashboardPage({ onNavigate }) {
+export default function DashboardPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const onNavigate = (path, state) => navigate(`/${path}`, { state });
+  const pageState = location.state;
+
   const {
     loading, todayLessons = [], actionItems = [], stats = {},
     metricsConfig = [], setMetricsConfig, refresh,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import StudentsDirectoryView from "../components/students/StudentsDirectoryView.jsx";
 import StudentEditorView from "../components/students/StudentEditorView.jsx";
 import GroupEditorView from "../components/students/GroupEditorView.jsx";
@@ -10,9 +11,14 @@ import GroupReportBuilderModal from "../components/students/GroupReportBuilderMo
 import ReportTemplateView from "../components/students/ReportTemplateView.jsx";
 import { getPrograms, addGroup, updateGroup, deleteGroup, getGroups, deleteStudent } from "../services/database.js";
 import { fetchStudents, createStudent, patchStudent } from "../services/studentsAdapter.js";
-import { auth } from "../services/firebase.js";
+import pb from "../services/pocketbase.js";
 
-export default function StudentsPage({ onNavigate, pageState }) {
+export default function StudentsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const onNavigate = (path, state) => navigate(`/${path}`, { state });
+  const pageState = location.state;
+
   // App Shell State: 'directory' | 'editor' | 'group_editor' | 'report_template'
   const [currentView, setCurrentView] = useState("directory");
 
@@ -90,7 +96,7 @@ export default function StudentsPage({ onNavigate, pageState }) {
   };
 
   const handleStudentSubmit = async (studentData, existingId) => {
-    const tutorId = auth.currentUser?.uid;
+    const tutorId = pb.authStore.record?.id;
     if (existingId) {
       await patchStudent(existingId, studentData);
     } else {
@@ -127,7 +133,7 @@ export default function StudentsPage({ onNavigate, pageState }) {
   };
 
   const handleGroupSubmit = async (groupData, existingId) => {
-    const tutorId = auth.currentUser?.uid;
+    const tutorId = pb.authStore.record?.id;
     if (existingId) {
       await updateGroup(existingId, groupData);
     } else {
@@ -257,6 +263,7 @@ export default function StudentsPage({ onNavigate, pageState }) {
         onGenerate={(config) => {
           // Групповой отчёт — пока заглушка, в будущем отдельный ReportTemplateView для групп
           console.log('Group report config:', config);
+          alert("Функция генерации группового отчета в разработке");
           setReportBuilderGroup(null);
         }}
       />

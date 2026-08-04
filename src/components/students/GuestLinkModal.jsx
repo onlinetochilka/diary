@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Button } from '../ui/index.js';
 import { Link2, Copy, Check, Send, Smartphone, Phone, Mail, ExternalLink } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
+import { updateStudent } from '../../services/database.js';
 
 // Возвращает иконку и ссылку для открытия контакта
 function getContactMeta(channel) {
@@ -41,8 +42,9 @@ function getContactMeta(channel) {
 
 export default function GuestLinkModal({ isOpen, onClose, student }) {
   const [copied, setCopied] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
-  const hash = student ? `mock-hash-${student.id}` : 'unknown';
+  const hash = student?.linkHash || (student ? `guest-${student.id}` : 'unknown');
   const url = `${window.location.origin}/?guest=${hash}`;
 
   // Берём основной канал (первый в списке, либо единственный)
@@ -159,10 +161,35 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
           </div>
         )}
 
-        <div className="flex justify-center pt-1">
-          <button className="text-xs text-stone-400 hover:text-red-500 transition-colors">
-            Сбросить и создать новую ссылку
+        <div className="flex justify-between items-center px-6 py-4 bg-stone-50/50 border-t border-stone-100">
+          <button
+            type="button"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            onClick={async () => {
+              if (isResetting) return;
+              setIsResetting(true);
+              try {
+                const newHash = Math.random().toString(36).substring(2, 15);
+                await updateStudent(student.id, { linkHash: newHash });
+                if (student) student.linkHash = newHash; // Optimistic update
+                window.dispatchEvent(new CustomEvent("force-refresh-data"));
+              } catch (err) {
+                console.error("Ошибка при сбросе ссылки:", err);
+                alert("Не удалось сбросить ссылку");
+              } finally {
+                setIsResetting(false);
+              }
+            }}
+            disabled={isResetting}
+          >
+            {isResetting ? "Сбрасывается..." : "Сбросить ссылку"}
           </button>
+          <Button
+            variant="outline"
+            onClick={onClose}
+          >
+            Готово
+          </Button>
         </div>
       </div>
     </Modal>

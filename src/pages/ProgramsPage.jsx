@@ -13,6 +13,7 @@
  * Редактирование существующей — только через ProgramEditorPage.
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { BookOpen, Plus, FilePlus2 } from "lucide-react";
 import { Card, Button, Input } from "../components/ui/index.js";
 import { getPrograms, addProgram, deleteProgram } from "../services/database.js";
@@ -83,6 +84,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
           </div>
         </div>
         <button
+          type="button"
           onClick={onCreateNew}
           className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#7A5299] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A5299] active:scale-[0.98] w-full sm:w-auto"
         >
@@ -108,6 +110,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
         <Card variant="elevated" className="text-center py-12 px-6">
           {programs.length === 0 ? (
             <button
+              type="button"
               onClick={onCreateNew}
               className="w-16 h-16 rounded-full flex items-center justify-center mb-5 mx-auto bg-[#7A5299]/10 text-[#7A5299] hover:scale-105 active:scale-95 shadow-sm hover:shadow-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-[#7A5299]/20"
             >
@@ -144,8 +147,13 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
 }
 
 // ─── Корневой компонент страницы ──────────────────────────────────────────────
-export default function ProgramsPage({ pageState, onNavigate }) {
-  const [programs, setPrograms]               = useState([]);
+export default function ProgramsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const onNavigate = (path, state) => navigate(`/${path}`, { state });
+  const pageState = location.state;
+
+  const [programs, setPrograms] = useState([]);
   const [isLoading, setIsLoading]             = useState(true);
 
   // State-роутинг: null = список, string = редактор

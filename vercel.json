@@ -1,8 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/pb/:path*",
-      "destination": "https://api.tochilka.app/:path*"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

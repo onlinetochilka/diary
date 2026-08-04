@@ -597,9 +597,9 @@ export default function DayInspector({
   const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
-    if (!user?.uid) return;
-    getUserConfig(user.uid).then(c => setRequisites(c?.requisites || '')).catch(() => {});
-  }, [user?.uid]);
+    if (!user?.id) return;
+    getUserConfig(user.id).then(c => setRequisites(c?.requisites || '')).catch(() => {});
+  }, [user?.id]);
 
   useEffect(() => {
     if (mode === 'create') {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppShell from "./components/layout/AppShell.jsx";
 import SplashScreen from "./components/layout/SplashScreen.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
@@ -17,15 +18,6 @@ import { ToastProvider } from "./components/ui/index.js";
 import { TooltipProvider } from "./components/ui/Tooltip.jsx";
 
 import GuestPortalView from "./pages/GuestPortalView.jsx";
-
-const PAGE_MAP = {
-  dashboard: DashboardPage,
-  schedule:  SchedulePage,
-  students:  StudentsPage,
-  programs:  ProgramsPage,
-  finance:   FinancePage,
-  settings:  SettingsPage,
-};
 
 function RootApp() {
   const { user, isLoading } = useAuth();
@@ -60,24 +52,32 @@ function RootApp() {
 
   return (
     <ErrorBoundary>
-      <AppShell defaultPage="dashboard">
-        {(activePage, onNavigate, pageState) => {
-          const Page = PAGE_MAP[activePage] ?? DashboardPage;
-          return <Page onNavigate={onNavigate} pageState={pageState} />;
-        }}
-      </AppShell>
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/students" element={<StudentsPage />} />
+          <Route path="/programs" element={<ProgramsPage />} />
+          <Route path="/finance" element={<FinancePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Route>
+      </Routes>
     </ErrorBoundary>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <TooltipProvider>
-        <ToastProvider>
-          <RootApp />
-        </ToastProvider>
-      </TooltipProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <ToastProvider>
+            <RootApp />
+          </ToastProvider>
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

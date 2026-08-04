@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CalendarDays, Plus } from "lucide-react";
+import { DndContext, DragOverlay } from '@dnd-kit/core';
+import { createPortal } from 'react-dom';
 
 import { useSchedule } from "../hooks/useSchedule.js";
+import { useScheduleDragAndDrop } from '../hooks/useScheduleDragAndDrop.js';
 import { useScheduleModals } from "../hooks/useScheduleModals.js";
 import { useScheduleNavigation } from "../hooks/useScheduleNavigation.js";
 import { useScheduleLessonData } from "../hooks/useScheduleLessonData.js";
@@ -15,6 +19,7 @@ import { StatusPopover } from "../components/schedule/StatusPopover.jsx";
 import MonthView from "../components/schedule/MonthView.jsx";
 import WeekView from "../components/schedule/WeekView.jsx";
 import DayView from "../components/schedule/DayView.jsx";
+import { LessonCardOverlay } from '../components/schedule/LessonCardOverlay.jsx';
 
 import { addPayment } from "../services/database.js";
 
@@ -45,7 +50,12 @@ function PageWrapper({ children, title, subtitle, icon: Icon, iconBgClass, iconT
   );
 }
 
-export default function SchedulePage({ pageState, onNavigate }) {
+export default function SchedulePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const onNavigate = (path, state) => navigate(`/${path}`, { state });
+  const pageState = location.state;
+
   // ── Данные ──────────────────────────────────────────────────────────────
   const {
     lessons,
@@ -132,7 +142,23 @@ export default function SchedulePage({ pageState, onNavigate }) {
     closeActionModal,
   } = useScheduleModals();
 
-  
+  const {
+    sensors,
+    activeDragLesson,
+    dragTimeDelta,
+    dragWidth,
+    dragHeight,
+    isCopyMode,
+    handleDragStart,
+    handleDragMove,
+    handleDragEnd,
+  } = useScheduleDragAndDrop({
+    view,
+    hookCopyLesson,
+    handleSaveLesson: hookSaveLesson,
+    lessons,
+  });
+
   // ── Intent: открыть drawer при переходе с другого экрана ───────────────
   useEffect(() => {
     const intent = localStorage.getItem("intent_schedule_entity");
@@ -167,7 +193,7 @@ export default function SchedulePage({ pageState, onNavigate }) {
     if (lesson.type === "individual" && lesson.studentId) {
       const student = students.find(s => s.id === lesson.studentId);
       if (student) {
-        openActionModal({ type: "money", student, count: 1 });
+        openActionModal({ type: "money", student, count: 1, amount: Math.abs(student.balance) || 0 });
       }
     }
   };
@@ -183,7 +209,13 @@ export default function SchedulePage({ pageState, onNavigate }) {
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
-    <PageWrapper
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
+    >
+      <PageWrapper
       title="Рабочий календарь"
       subtitle="Ваше время под контролем"
       icon={CalendarDays}
@@ -370,5 +402,35 @@ export default function SchedulePage({ pageState, onNavigate }) {
         />
       </div>
     </PageWrapper>
+
+      {createPortal(
+        <DragOverlay zIndex={9999} dropAnimation={null}>
+          {activeDragLesson ? (
+            <LessonCardOverlay 
+              lesson={activeDragLesson} 
+              isCopyMode={isCopyMode}
+              dragTimeDelta={dragTimeDelta}
+              width={dragWidth}
+              height={dragHeight}
+              displayData={getLessonDisplayData(activeDragLesson)}
+            />
+          ) : null}
+        </DragOverlay>,
+        document.body
+      )}
+
+      {/* Подсказка drag-and-drop */}
+      {activeDragLesson && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-stone-800/90 text-white px-4 py-2 rounded-full shadow-lg text-sm font-medium z-[10000] pointer-events-none flex items-center gap-2 backdrop-blur-sm transition-all duration-300">
+          {isCopyMode ? (
+            <span className="text-emerald-400 font-bold">Копирование</span>
+          ) : (
+            <span className="text-blue-400 font-bold">Перенос</span>
+          )}
+          <span>урока</span>
+          <span className="text-stone-400 text-xs ml-2 opacity-80">(Ctrl / Alt — изменить режим)</span>
+        </div>
+      )}
+    </DndContext>
   );
 }

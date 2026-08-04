@@ -1066,6 +1066,17 @@ export async function deleteLesson(id) {
     ) {
       await applyLessonBalanceChange(oldData, true);
     }
+    
+    // Финансовый аудит: откатываем встроенные оплаты, если они были привязаны к удаляемому уроку
+    if (oldData.paymentAmount || (oldData.studentPayments && Object.keys(oldData.studentPayments).length > 0)) {
+       await applyLessonIncomeChange(oldData, { 
+         type: oldData.type, 
+         studentId: oldData.studentId, // for individual
+         groupId: oldData.groupId,     // for group
+         paymentAmount: 0, 
+         studentPayments: {} 
+       });
+    }
   }
   await pb.collection("lessons").delete(id);
 }

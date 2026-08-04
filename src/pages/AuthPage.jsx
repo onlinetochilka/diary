@@ -10,6 +10,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -21,6 +22,10 @@ export default function AuthPage() {
     e.preventDefault();
     if (!email || !password) {
       setError("Пожалуйста, заполните все поля");
+      return;
+    }
+    if (mode === "register" && !agreed) {
+      setError("Необходимо принять условия пользовательского соглашения");
       return;
     }
 
@@ -106,28 +111,14 @@ export default function AuthPage() {
     setError("");
     setSuccess("");
     try {
-      const demoId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-      const demoEmail = `demo_${demoId}@tochilka.app`;
-      const demoPassword = `Demo_${Math.random().toString(36).slice(-10)}!1`;
+      setDemoStatus("Загрузка демо-режима...");
+      pb.authStore.clear();
+      localStorage.setItem("isDemoMode", "true");
+      localStorage.removeItem("demo_db"); // force fresh regen
 
-      setDemoStatus("Создаём аккаунт...");
-      await pb.collection("users").create({
-        email: demoEmail,
-        password: demoPassword,
-        passwordConfirm: demoPassword,
-        name: "Демо-репетитор",
-      });
-
-      await pb.collection("users").authWithPassword(demoEmail, demoPassword);
-
-      const tutorId = pb.authStore.record?.id;
-      if (tutorId) {
-        setDemoStatus("Генерируем демо-данные...");
-        await generateDemoData(tutorId);
-      }
-
-      setDemoStatus("Готово! Открываем дашборд...");
-      setTimeout(() => { refreshUser(); }, 300);
+      setTimeout(() => { 
+        window.location.href = "/";
+      }, 300);
     } catch (err) {
       console.error("[AuthPage] Demo login error:", err?.status, err?.message, JSON.stringify(err?.data));
       const msg = err?.message || "";
@@ -284,6 +275,21 @@ export default function AuthPage() {
                 </button>
               </div>
             </div>
+
+            {mode === "register" && (
+              <div className="flex items-start gap-2 pt-2 pb-1">
+                <input 
+                  type="checkbox" 
+                  id="agree" 
+                  className="mt-0.5 rounded text-stone-900 focus:ring-stone-900 border-stone-300 w-4 h-4 shrink-0 cursor-pointer"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                />
+                <label htmlFor="agree" className="text-[11px] text-stone-500 leading-tight cursor-pointer">
+                  Создавая аккаунт, вы принимаете <a href="https://tochilka.app/terms" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Лицензионное соглашение</a>, <a href="https://tochilka.app/privacy" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">Политику конфиденциальности</a> и даете <a href="https://tochilka.app/consent" target="_blank" rel="noreferrer" className="text-stone-700 underline hover:text-stone-900">согласие на обработку данных</a>.
+                </label>
+              </div>
+            )}
 
             <Button
               type="submit"

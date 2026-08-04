@@ -26,6 +26,7 @@ export default function DayActionableGap({ dateStr, startTime, endTime, onClick,
 
   return (
     <button
+      type="button"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => onClick?.({ date: dateStr, startTime, endTime })}

@@ -8,18 +8,7 @@ import { Tooltip } from "../../components/ui/index.js";
 export default function ProgramCard({ program, onOpenEditor }) {
   const c = getEntityColorClasses();
   
-  // Детерминированный seed из program.id для стабильных mock-данных
-  // (не прыгают при каждой перерисовке)
-  const seed = (program.id || "").split("").reduce((acc, ch) => acc * 31 + ch.charCodeAt(0) | 0, 0);
-  const stableRand = (min, max, offset = 0) => {
-    const v = Math.abs((seed * 16807 + offset * 2654435761) % 2147483647);
-    return min + (v % (max - min + 1));
-  };
-  const mockPopularity = stableRand(1, 20, 1);
-  const mockProgress = stableRand(0, 99, 2);
-  const mockRevenue = (stableRand(0, 49, 3) * 1000).toLocaleString('ru-RU');
-  const mockHours = stableRand(0, 99, 4);
-  
+
   const count = program.topics?.length ?? 0;
   // Считаем реальные задания из homeworkBank каждой темы
   const hwCount = program.topics?.reduce((sum, t) => sum + (t.homeworkBank?.length ?? 0), 0) ?? 0;
@@ -87,48 +76,6 @@ export default function ProgramCard({ program, onOpenEditor }) {
         </div>
       </div>
 
-      {/* Статистика */}
-      <div className="grid grid-cols-2 gap-3 mb-5 mt-4">
-        {/* Популярность */}
-        <div className="flex flex-col p-3 bg-blue-50/60 rounded-xl ring-1 ring-blue-100/50">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Users size={14} className="text-blue-500" />
-            <span className="text-xs font-medium text-blue-700/80">Популярность</span>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-lg font-bold text-blue-900">{mockPopularity}</span>
-          </div>
-          <span className="text-[11px] text-blue-600/70 mt-0.5">учеников на курсе</span>
-        </div>
-
-        {/* Прогресс */}
-        <div className="flex flex-col p-3 bg-emerald-50/60 rounded-xl ring-1 ring-emerald-100/50">
-          <div className="flex items-center gap-1.5 mb-2">
-            <TrendingUp size={14} className="text-emerald-500" />
-            <span className="text-xs font-medium text-emerald-700/80">Прогресс</span>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-lg font-bold text-emerald-900">{mockProgress}%</span>
-          </div>
-          <span className="text-[11px] text-emerald-600/70 mt-0.5">среднее прохождение</span>
-        </div>
-      </div>
-
-      {/* Футер */}
-      <div className="flex items-center justify-between mt-auto pt-4 border-t border-stone-100">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider mb-0.5">Общий доход</span>
-          <span className="text-[13px] font-semibold text-stone-700">
-            {mockRevenue} ₽
-          </span>
-        </div>
-        <div className="flex flex-col items-end">
-          <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider mb-0.5">Проведено</span>
-          <span className="text-[13px] font-semibold text-stone-700">
-            {mockHours} ч
-          </span>
-        </div>
-      </div>
     </div>
   );
 }

@@ -7,33 +7,23 @@
  *
  * Manages active page state and passes navigation handlers to children.
  */
-import { useState } from "react";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
 import { cn } from "../../utils/cn.js";
 import Sidebar from "./Sidebar.jsx";
 import BottomTabs from "./BottomTabs.jsx";
 
-/**
- * @param {object} props
- * @param {import("react").ReactNode} props.children  — receives (activePage, onNavigate)
- *        OR pass a render prop: children={(page, nav) => <Pages page={page} />}
- * @param {string} [props.defaultPage] — initial active page id
- */
-export default function AppShell({ children, defaultPage = "dashboard" }) {
-  const [activePage, setActivePage] = useState(defaultPage);
-  const [pageState, setPageState] = useState(null);
+export default function AppShell({ defaultPage = "dashboard" }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Extract the current page from pathname, e.g. "/dashboard" -> "dashboard"
+  const activePage = location.pathname.split("/")[1] || defaultPage;
 
   function handleNavigate(page, state = null) {
-    setActivePage(page);
-    setPageState(state);
+    navigate(`/${page}`, { state });
     // Scroll to top on page change
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-
-  // Support render prop pattern
-  const content =
-    typeof children === "function"
-      ? children(activePage, handleNavigate, pageState)
-      : children;
 
   return (
     <div className="relative min-h-dvh">
@@ -66,7 +56,7 @@ export default function AppShell({ children, defaultPage = "dashboard" }) {
           Перейти к содержимому
         </a>
 
-        {content}
+        <Outlet />
       </main>
 
       {/* ── Mobile Bottom Tabs ── */}
@@ -74,3 +64,4 @@ export default function AppShell({ children, defaultPage = "dashboard" }) {
     </div>
   );
 }
+

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { SideDrawer } from '../ui/index.js';
 import { Send, CheckCircle2, XCircle, Loader2, Clock } from 'lucide-react';
-import { db } from '../../services/firebase.js';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { getLessons } from '../../services/database.js';
 import { cn } from '../../utils/cn.js';
 
 function today()    { return new Date().toISOString().slice(0, 10); }
@@ -40,9 +39,8 @@ export default function LessonHistoryModal({ isOpen, onClose, student }) {
     setDateFrom(monthAgo()); setDateTo(today());
     setLoading(true);
 
-    getDocs(query(collection(db, 'lessons'), where('studentId', '==', student.id)))
-      .then(snap => {
-        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    getLessons({ studentId: student.id })
+      .then(data => {
         data.sort((a, b) => new Date(b.date) - new Date(a.date));
         setLessons(data);
       })

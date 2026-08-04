@@ -37,15 +37,23 @@ import { TaskComposer, TaskCard } from "./TaskComposer.jsx";
 
 // ─── Режим: пустой (статистика программы) ──────────────────────────────────
 function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
+  const [errors, setErrors] = useState({});
+
   const completedPct =
     stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   const handleNameChange = (e) => {
-    onProgramChange((prev) => ({ ...prev, name: e.target.value }));
+    const val = e.target.value;
+    if (!val.trim()) setErrors(prev => ({ ...prev, name: "Обязательное поле" }));
+    else setErrors(prev => { const next = { ...prev }; delete next.name; return next; });
+    onProgramChange((prev) => ({ ...prev, name: val }));
   };
 
   const handleSubjectChange = (e) => {
-    onProgramChange((prev) => ({ ...prev, subject: e.target.value }));
+    const val = e.target.value;
+    if (!val.trim()) setErrors(prev => ({ ...prev, subject: "Обязательное поле" }));
+    else setErrors(prev => { const next = { ...prev }; delete next.subject; return next; });
+    onProgramChange((prev) => ({ ...prev, subject: val }));
   };
 
   return (
@@ -68,9 +76,11 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
               "w-full px-3 py-2 rounded-xl text-sm font-bold text-stone-900",
               "border border-stone-200 bg-white transition-all duration-150",
               "placeholder:text-stone-400 placeholder:font-normal",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
+              errors.name && "border-red-300 ring-2 ring-red-100"
             )}
           />
+          {errors.name && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.name}</p>}
         </div>
         <div>
           <label className="text-xs font-medium text-stone-600 mb-1.5 block">
@@ -86,9 +96,11 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
               "w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-600",
               "border border-stone-200 bg-white transition-all duration-150",
               "placeholder:text-stone-400 placeholder:font-normal",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
+              errors.subject && "border-red-300 ring-2 ring-red-100"
             )}
           />
+          {errors.subject && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.subject}</p>}
         </div>
       </div>
 

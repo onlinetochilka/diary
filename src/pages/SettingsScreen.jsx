@@ -1,105 +1,108 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
-import { Card, Button, Input, Switch, Modal, TagsInput } from "../components/ui/index.js";
+import { Modal } from "../components/ui/index.js";
 import {
-  User, Palette, Globe, Database, AlertTriangle, Bell,
-  Check, Loader2, Download, Link as LinkIcon, LogOut, Trash2,
-  Settings as SettingsIcon, Phone, MessageCircle, BookOpen,
-  ChevronDown, ChevronUp, Search, Clock, DollarSign, Camera,
+  User, Globe, AlertTriangle, Bell,
+  Check, Loader2, LogOut, Trash2,
+  Settings as SettingsIcon, Receipt,
+  ChevronDown, Search, AlertCircle, BookCheck, BarChart3,
+  Users, UserCheck,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
-  getUserConfig, updateUserConfig,
-  getStudents, getPayments, getLessons,
+  getUserConfig, updateUserConfig, getStudents,
 } from "../services/database.js";
-import { auth } from "../services/firebase.js";
-import { signOut } from "firebase/auth";
+import pb from "../services/pocketbase.js";
 import { clearAllTutorData } from "../utils/demoData.js";
 
-// ─── Timezone data ──────────────────────────────────────────────────────────
+// ─── Design tokens ─────────────────────────────────────────────────────────
+// Flat, clean style: bg-gray-50 inputs → bg-white + ring on focus
+// Cards: bg-white border border-gray-200 shadow-sm rounded-2xl
 
-const TIMEZONE_GROUPS = [
-  {
-    label: "Популярные",
-    zones: [
-      { value: "Europe/Moscow",        label: "(GMT+3)  Москва" },
-      { value: "Europe/Minsk",         label: "(GMT+3)  Минск" },
-      { value: "Asia/Almaty",          label: "(GMT+5)  Алматы" },
-      { value: "Europe/Kiev",          label: "(GMT+2)  Киев" },
-    ],
-  },
-  {
-    label: "Россия",
-    zones: [
-      { value: "Europe/Kaliningrad",   label: "(GMT+2)  Калининград" },
-      { value: "Europe/Moscow",        label: "(GMT+3)  Москва" },
-      { value: "Europe/Samara",        label: "(GMT+4)  Самара" },
-      { value: "Asia/Yekaterinburg",   label: "(GMT+5)  Екатеринбург" },
-      { value: "Asia/Omsk",            label: "(GMT+6)  Омск" },
-      { value: "Asia/Novosibirsk",     label: "(GMT+7)  Новосибирск" },
-      { value: "Asia/Krasnoyarsk",     label: "(GMT+7)  Красноярск" },
-      { value: "Asia/Irkutsk",         label: "(GMT+8)  Иркутск" },
-      { value: "Asia/Yakutsk",         label: "(GMT+9)  Якутск" },
-      { value: "Asia/Vladivostok",     label: "(GMT+10) Владивосток" },
-      { value: "Asia/Magadan",         label: "(GMT+11) Магадан" },
-      { value: "Asia/Kamchatka",       label: "(GMT+12) Камчатка" },
-    ],
-  },
-  {
-    label: "СНГ и ближнее зарубежье",
-    zones: [
-      { value: "Europe/Kiev",          label: "(GMT+2)  Киев" },
-      { value: "Europe/Chisinau",      label: "(GMT+2)  Кишинёв" },
-      { value: "Europe/Minsk",         label: "(GMT+3)  Минск" },
-      { value: "Asia/Tbilisi",         label: "(GMT+4)  Тбилиси" },
-      { value: "Asia/Yerevan",         label: "(GMT+4)  Ереван" },
-      { value: "Asia/Baku",            label: "(GMT+4)  Баку" },
-      { value: "Asia/Tashkent",        label: "(GMT+5)  Ташкент" },
-      { value: "Asia/Ashgabat",        label: "(GMT+5)  Ашхабад" },
-      { value: "Asia/Dushanbe",        label: "(GMT+5)  Душанбе" },
-      { value: "Asia/Almaty",          label: "(GMT+5)  Алматы" },
-      { value: "Asia/Bishkek",         label: "(GMT+6)  Бишкек" },
-    ],
-  },
-  {
-    label: "Европа",
-    zones: [
-      { value: "Europe/London",        label: "(GMT+0)  Лондон" },
-      { value: "Europe/Berlin",        label: "(GMT+1)  Берлин" },
-      { value: "Europe/Paris",         label: "(GMT+1)  Париж" },
-      { value: "Europe/Helsinki",      label: "(GMT+2)  Хельсинки" },
-      { value: "Europe/Bucharest",     label: "(GMT+2)  Бухарест" },
-      { value: "Europe/Istanbul",      label: "(GMT+3)  Стамбул" },
-    ],
-  },
-  {
-    label: "Другие",
-    zones: [
-      { value: "America/New_York",     label: "(GMT-5)  Нью-Йорк" },
-      { value: "America/Los_Angeles",  label: "(GMT-8)  Лос-Анджелес" },
-      { value: "Asia/Dubai",           label: "(GMT+4)  Дубай" },
-      { value: "Asia/Shanghai",        label: "(GMT+8)  Пекин" },
-      { value: "Asia/Tokyo",           label: "(GMT+9)  Токио" },
-    ],
-  },
-];
+const INPUT_CLS =
+  "w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 " +
+  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
+  "focus:bg-white focus:border-transparent transition-all duration-200";
 
-// Flat list for search
-const ALL_ZONES = TIMEZONE_GROUPS.flatMap(g => g.zones);
-const findZoneLabel = (value) =>
-  ALL_ZONES.find(z => z.value === value)?.label ?? value;
+const LABEL_CLS =
+  "block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5";
 
-// ─── Helper components ───────────────────────────────────────────────────────
+const BTN_BASE =
+  "inline-flex items-center justify-center font-medium text-sm rounded-xl " +
+  "transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 " +
+  "disabled:opacity-40 disabled:cursor-not-allowed";
 
-function SaveStatus({ status }) {
-  if (status === "saving") return <Loader2 size={13} className="text-stone-400 animate-spin shrink-0" />;
-  if (status === "success") return <Check size={13} className="text-emerald-500 shrink-0" />;
-  return null;
+// ─── Shared micro-components ──────────────────────────────────────────────
+
+function FieldLabel({ children, status }) {
+  return (
+    <label className={`${LABEL_CLS} flex items-center justify-between`}>
+      {children}
+      {status === "saving" && <Loader2 size={12} className="text-gray-400 animate-spin" />}
+      {status === "success" && <Check size={12} className="text-emerald-500" />}
+    </label>
+  );
 }
 
-/** Auto-saves on blur. Shows a save indicator next to the label. */
-function SaveOnBlurInput({ label, value, onSave, multiline, disabled, placeholder, className }) {
-  const [local, setLocal] = useState(value ?? "");
+function SettingsCard({ children, className = "", danger = false }) {
+  return (
+    <div
+      className={
+        "bg-white rounded-2xl shadow-sm p-6 " +
+        (danger ? "border border-red-200 " : "border border-gray-200 ") +
+        className
+      }
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({ icon: Icon, title, description, danger = false, action }) {
+  return (
+    <div className="flex items-start justify-between gap-3 mb-5">
+      <div className="flex items-center gap-3">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0
+          ${danger ? "bg-red-50 text-red-500" : "bg-gray-100 text-gray-500"}`}>
+          <Icon size={18} />
+        </div>
+        <div>
+          <h2 className={`text-base font-semibold ${danger ? "text-red-900" : "text-gray-900"}`}>
+            {title}
+          </h2>
+          {description && (
+            <p className={`text-sm mt-0.5 leading-snug ${danger ? "text-red-500" : "text-gray-500"}`}>
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// Clean toggle — no neumorphism
+function Toggle({ checked, onChange, accent = "blue" }) {
+  const colors = { blue: "bg-blue-600", amber: "bg-amber-500", violet: "bg-violet-600", emerald: "bg-emerald-500" };
+  return (
+    <button
+      type="button" role="switch" aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={
+        `relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent ` +
+        `transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ` +
+        (checked ? colors[accent] : "bg-gray-200")
+      }
+    >
+      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${checked ? "translate-x-5" : "translate-x-0"}`} />
+    </button>
+  );
+}
+
+// Auto-save on blur
+function SaveOnBlurInput({ label, value, onSave, multiline, disabled, placeholder }) {
+  const [local, setLocal]   = useState(value ?? "");
   const [status, setStatus] = useState("idle");
   const timer = useRef(null);
 
@@ -113,164 +116,170 @@ function SaveOnBlurInput({ label, value, onSave, multiline, disabled, placeholde
       setStatus("success");
       clearTimeout(timer.current);
       timer.current = setTimeout(() => setStatus("idle"), 2000);
-    } catch {
-      setStatus("idle");
-    }
+    } catch { setStatus("idle"); }
   };
 
   return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium text-stone-700 ml-1 flex items-center justify-between gap-2">
-        {label}
-        <SaveStatus status={status} />
-      </label>
+    <div>
+      <FieldLabel status={status}>{label}</FieldLabel>
       {multiline ? (
-        <textarea
-          value={local}
-          onChange={e => setLocal(e.target.value)}
-          onBlur={handleBlur}
-          disabled={disabled}
-          placeholder={placeholder}
-          className={`w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-stone-900 text-sm
-            focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-300
-            transition-all min-h-[90px] resize-y ${className ?? ""}`}
-        />
+        <textarea value={local} onChange={e => setLocal(e.target.value)} onBlur={handleBlur}
+          disabled={disabled} placeholder={placeholder}
+          className={`${INPUT_CLS} min-h-[88px] resize-none`} />
       ) : (
-        <Input
-          value={local}
-          onChange={e => setLocal(e.target.value)}
-          onBlur={handleBlur}
-          disabled={disabled}
-          placeholder={placeholder}
-          className={`bg-white ${className ?? ""}`}
-        />
+        <input type="text" value={local} onChange={e => setLocal(e.target.value)} onBlur={handleBlur}
+          disabled={disabled} placeholder={placeholder}
+          className={`${INPUT_CLS} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`} />
       )}
     </div>
   );
 }
 
-/** Card header: icon + title + description */
-function SectionHeader({ icon: Icon, title, description, danger, action }) {
+// ─── Simple tags input ──────────────────────────────────────────────────────
+
+function SimpleTagsInput({ value = [], onChange, placeholder }) {
+  const [input, setInput] = useState("");
+
+  const addTag  = (text) => { const t = text.trim(); if (t && !value.includes(t)) onChange([...value, t]); setInput(""); };
+  const removeTag = (i) => onChange(value.filter((_, idx) => idx !== i));
+
   return (
-    <div className="flex items-center gap-3 mb-5">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0
-        ${danger ? "bg-red-100 text-red-600" : "bg-stone-100 text-stone-600"}`}>
-        <Icon size={20} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h2 className={`text-base font-bold leading-tight ${danger ? "text-red-900" : "text-stone-900"}`}>
-          {title}
-        </h2>
-        {description && (
-          <p className={`text-xs mt-0.5 ${danger ? "text-red-600/80" : "text-stone-400"}`}>
-            {description}
-          </p>
-        )}
-      </div>
-      {action}
+    <div
+      className="flex flex-wrap gap-1.5 w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 min-h-[42px] cursor-text
+        focus-within:ring-2 focus-within:ring-blue-500 focus-within:bg-white focus-within:border-transparent transition-all"
+      onClick={e => e.currentTarget.querySelector("input")?.focus()}
+    >
+      {value.map((tag, i) => (
+        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-blue-100 text-blue-800 text-xs font-medium">
+          {tag}
+          <button type="button" onClick={() => removeTag(i)} className="hover:text-blue-600 ml-0.5">×</button>
+        </span>
+      ))}
+      <input type="text" value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(input); }
+          if (e.key === "Backspace" && !input && value.length) removeTag(value.length - 1);
+        }}
+        onPaste={e => { e.preventDefault(); e.clipboardData.getData("text").split(/[\n,]+/).forEach(t => addTag(t)); }}
+        placeholder={value.length ? "" : placeholder}
+        className="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
+      />
     </div>
   );
 }
 
-// ─── Timezone Combobox ───────────────────────────────────────────────────────
+// ─── Timezone Combobox ──────────────────────────────────────────────────────
+
+const TIMEZONE_GROUPS = [
+  { label: "Популярные", zones: [
+    { value: "Europe/Moscow",  label: "(GMT+3)  Москва" },
+    { value: "Europe/Minsk",   label: "(GMT+3)  Минск" },
+    { value: "Asia/Almaty",    label: "(GMT+5)  Алматы" },
+    { value: "Europe/Kiev",    label: "(GMT+2)  Киев" },
+  ]},
+  { label: "Россия", zones: [
+    { value: "Europe/Kaliningrad", label: "(GMT+2)  Калининград" },
+    { value: "Europe/Moscow",      label: "(GMT+3)  Москва" },
+    { value: "Europe/Samara",      label: "(GMT+4)  Самара" },
+    { value: "Asia/Yekaterinburg", label: "(GMT+5)  Екатеринбург" },
+    { value: "Asia/Omsk",          label: "(GMT+6)  Омск" },
+    { value: "Asia/Novosibirsk",   label: "(GMT+7)  Новосибирск" },
+    { value: "Asia/Krasnoyarsk",   label: "(GMT+7)  Красноярск" },
+    { value: "Asia/Irkutsk",       label: "(GMT+8)  Иркутск" },
+    { value: "Asia/Yakutsk",       label: "(GMT+9)  Якутск" },
+    { value: "Asia/Vladivostok",   label: "(GMT+10) Владивосток" },
+    { value: "Asia/Magadan",       label: "(GMT+11) Магадан" },
+    { value: "Asia/Kamchatka",     label: "(GMT+12) Камчатка" },
+  ]},
+  { label: "СНГ и ближнее зарубежье", zones: [
+    { value: "Europe/Kiev",     label: "(GMT+2)  Киев" },
+    { value: "Europe/Chisinau", label: "(GMT+2)  Кишинёв" },
+    { value: "Europe/Minsk",    label: "(GMT+3)  Минск" },
+    { value: "Asia/Tbilisi",    label: "(GMT+4)  Тбилиси" },
+    { value: "Asia/Yerevan",    label: "(GMT+4)  Ереван" },
+    { value: "Asia/Baku",       label: "(GMT+4)  Баку" },
+    { value: "Asia/Tashkent",   label: "(GMT+5)  Ташкент" },
+    { value: "Asia/Almaty",     label: "(GMT+5)  Алматы" },
+    { value: "Asia/Bishkek",    label: "(GMT+6)  Бишкек" },
+  ]},
+  { label: "Европа", zones: [
+    { value: "Europe/London",   label: "(GMT+0)  Лондон" },
+    { value: "Europe/Berlin",   label: "(GMT+1)  Берлин" },
+    { value: "Europe/Paris",    label: "(GMT+1)  Париж" },
+    { value: "Europe/Helsinki", label: "(GMT+2)  Хельсинки" },
+    { value: "Europe/Istanbul", label: "(GMT+3)  Стамбул" },
+  ]},
+  { label: "Другие", zones: [
+    { value: "America/New_York",    label: "(GMT-5)  Нью-Йорк" },
+    { value: "America/Los_Angeles", label: "(GMT-8)  Лос-Анджелес" },
+    { value: "Asia/Dubai",          label: "(GMT+4)  Дубай" },
+    { value: "Asia/Shanghai",       label: "(GMT+8)  Пекин" },
+    { value: "Asia/Tokyo",          label: "(GMT+9)  Токио" },
+  ]},
+];
+
+const ALL_ZONES    = TIMEZONE_GROUPS.flatMap(g => g.zones);
+const findZoneLabel = (v) => ALL_ZONES.find(z => z.value === v)?.label ?? v;
 
 function TimezoneCombobox({ value, onChange }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]   = useState(false);
   const [query, setQuery] = useState("");
-  const containerRef = useRef(null);
+  const ref      = useRef(null);
   const inputRef = useRef(null);
 
-  // Close on outside click
   useEffect(() => {
-    const handler = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false);
-        setQuery("");
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const fn = e => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setQuery(""); } };
+    document.addEventListener("mousedown", fn);
+    return () => document.removeEventListener("mousedown", fn);
   }, []);
 
   const filtered = query.trim()
-    ? ALL_ZONES.filter(z =>
-        z.label.toLowerCase().includes(query.toLowerCase()) ||
-        z.value.toLowerCase().includes(query.toLowerCase())
-      )
-    : null; // null = show grouped
+    ? ALL_ZONES.filter(z => z.label.toLowerCase().includes(query.toLowerCase()) || z.value.toLowerCase().includes(query.toLowerCase()))
+    : null;
 
-  const select = (zoneValue) => {
-    onChange(zoneValue);
-    setOpen(false);
-    setQuery("");
-  };
+  const select = v => { onChange(v); setOpen(false); setQuery(""); };
 
   return (
-    <div ref={containerRef} className="relative">
-      <label className="text-sm font-medium text-stone-700 ml-1 block mb-1">Часовой пояс</label>
-      <button
-        type="button"
+    <div ref={ref} className="relative">
+      <FieldLabel>Часовой пояс</FieldLabel>
+      <button type="button"
         onClick={() => { setOpen(o => !o); setTimeout(() => inputRef.current?.focus(), 50); }}
-        className="w-full h-11 bg-white border border-stone-200 rounded-xl px-4 text-sm text-stone-900
-          flex items-center justify-between gap-2
-          focus:outline-none focus:ring-2 focus:ring-stone-900/10 hover:border-stone-300 transition-colors"
-      >
+        className={`${INPUT_CLS} flex items-center justify-between gap-2 text-left cursor-pointer
+          ${open ? "ring-2 ring-blue-500 border-transparent bg-white" : ""}`}>
         <span className="truncate">{findZoneLabel(value) || "(GMT+3)  Москва"}</span>
-        <ChevronDown size={16} className={`text-stone-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={15} className={`text-gray-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
-
       {open && (
-        <div className="absolute z-50 top-full mt-1.5 w-full bg-white border border-stone-200 rounded-xl
-          shadow-lg overflow-hidden">
-          {/* Search */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-stone-100">
-            <Search size={14} className="text-stone-400 shrink-0" />
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Поиск города или часового пояса..."
-              className="flex-1 text-sm outline-none bg-transparent placeholder:text-stone-400"
-            />
+        <div className="absolute z-50 top-full mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100">
+            <Search size={13} className="text-gray-400 shrink-0" />
+            <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="Поиск города..." className="flex-1 text-sm outline-none bg-transparent placeholder:text-gray-400" />
           </div>
-          {/* Options */}
-          <div className="max-h-60 overflow-y-auto py-1">
-            {filtered ? (
-              filtered.length === 0 ? (
-                <p className="text-sm text-stone-400 text-center py-4">Ничего не найдено</p>
-              ) : (
-                filtered.map(z => (
-                  <button
-                    key={z.value + z.label}
-                    type="button"
-                    onClick={() => select(z.value)}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-stone-50 transition-colors
-                      ${z.value === value ? "text-stone-900 font-semibold bg-stone-50" : "text-stone-700"}`}
-                  >
-                    {z.label}
-                  </button>
-                ))
-              )
-            ) : (
-              TIMEZONE_GROUPS.map(group => (
+          <div className="max-h-56 overflow-y-auto py-1">
+            {filtered
+              ? (filtered.length === 0
+                  ? <p className="text-sm text-gray-400 text-center py-4">Ничего не найдено</p>
+                  : filtered.map(z => (
+                    <button key={z.value + z.label} type="button" onClick={() => select(z.value)}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors
+                        ${z.value === value ? "font-semibold text-gray-900" : "text-gray-700"}`}>
+                      {z.label}
+                    </button>
+                  )))
+              : TIMEZONE_GROUPS.map(group => (
                 <div key={group.label}>
-                  <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider px-4 py-1.5 mt-1">
-                    {group.label}
-                  </p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 pt-3 pb-1">{group.label}</p>
                   {group.zones.map(z => (
-                    <button
-                      key={z.value + z.label}
-                      type="button"
-                      onClick={() => select(z.value)}
-                      className={`w-full text-left px-4 py-1.5 text-sm hover:bg-stone-50 transition-colors
-                        ${z.value === value ? "text-stone-900 font-semibold" : "text-stone-700"}`}
-                    >
+                    <button key={z.value + z.label} type="button" onClick={() => select(z.value)}
+                      className={`w-full text-left px-4 py-1.5 text-sm hover:bg-gray-50 transition-colors
+                        ${z.value === value ? "font-semibold text-gray-900" : "text-gray-700"}`}>
                       {z.label}
                     </button>
                   ))}
                 </div>
-              ))
-            )}
+              ))}
           </div>
         </div>
       )}
@@ -278,41 +287,7 @@ function TimezoneCombobox({ value, onChange }) {
   );
 }
 
-// ─── Theme picker ────────────────────────────────────────────────────────────
-
-const THEMES = [
-  { id: "tochilka", name: "Точилка", color: "#e0e5ec", border: "#b8c2d1", icon: "text-stone-900" },
-  { id: "dark",     name: "Тёмная",  color: "#1c2433", border: "#263044", icon: "text-white" },
-];
-
-function ThemePicker({ value, onChange }) {
-  return (
-    <div className="flex items-center gap-3">
-      {THEMES.map(t => {
-        const active = value === t.id || (!value && t.id === "tochilka");
-        return (
-          <button
-            key={t.id}
-            onClick={() => onChange(t.id)}
-            className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all
-              ${active ? "bg-stone-100" : "hover:bg-stone-50"}`}
-          >
-            <div
-              className={`w-11 h-11 rounded-full border-2 shadow-sm flex items-center justify-center transition-all
-                ${active ? "ring-2 ring-indigo-500 ring-offset-2 ring-offset-ivory" : ""}`}
-              style={{ backgroundColor: t.color, borderColor: t.border }}
-            >
-              {active && <Check size={18} className={t.icon} />}
-            </div>
-            <span className="text-[11px] font-medium text-stone-600">{t.name}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Working hours ────────────────────────────────────────────────────────────
+// ─── Working Hours ──────────────────────────────────────────────────────────
 
 const DEFAULT_WORKING_HOURS = {
   1: { active: true,  start: "10:00", end: "19:00" },
@@ -323,7 +298,6 @@ const DEFAULT_WORKING_HOURS = {
   6: { active: false, start: "10:00", end: "14:00" },
   0: { active: false, start: "10:00", end: "14:00" },
 };
-
 const DAYS_OF_WEEK = [
   { id: 1, name: "Пн" }, { id: 2, name: "Вт" }, { id: 3, name: "Ср" },
   { id: 4, name: "Чт" }, { id: 5, name: "Пт" }, { id: 6, name: "Сб" },
@@ -331,7 +305,7 @@ const DAYS_OF_WEEK = [
 ];
 
 function WorkingHoursSettings({ value, onSave }) {
-  const [hours, setHours] = useState(value || DEFAULT_WORKING_HOURS);
+  const [hours, setHours]   = useState(value || DEFAULT_WORKING_HOURS);
   const [status, setStatus] = useState("idle");
   const timer = useRef(null);
 
@@ -341,62 +315,46 @@ function WorkingHoursSettings({ value, onSave }) {
     const next = { ...hours, [day]: { ...hours[day], [field]: val } };
     setHours(next);
     setStatus("saving");
-    onSave(next)
-      .then(() => {
-        setStatus("success");
-        clearTimeout(timer.current);
-        timer.current = setTimeout(() => setStatus("idle"), 2000);
-      })
-      .catch(() => setStatus("idle"));
+    onSave(next).then(() => {
+      setStatus("success");
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setStatus("idle"), 2000);
+    }).catch(() => setStatus("idle"));
   };
 
-  const timeCls = (active) =>
-    `text-sm font-medium bg-stone-50 border border-stone-200 rounded-lg px-2 py-1 text-stone-700
-     focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-400
-     transition-all appearance-none
-     ${active ? "opacity-100" : "opacity-30 pointer-events-none"}`;
+  const TIME_CLS =
+    "bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg px-2 py-1.5 " +
+    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent " +
+    "transition-all appearance-none";
 
   return (
-    <div className="border-t border-stone-100 pt-4 mt-4">
+    <div className="border-t border-gray-100 pt-4 mt-4">
       <div className="flex justify-between items-center mb-3">
         <div>
-          <p className="text-sm font-semibold text-stone-800">Рабочий график</p>
-          <p className="text-xs text-stone-400 mt-0.5">Используется для расчёта свободных окон</p>
+          <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">Рабочий график</p>
+          <p className="text-xs text-gray-400 mt-0.5">Для расчёта свободных окон</p>
         </div>
-        <div className="h-5 flex items-center">
-          <SaveStatus status={status} />
+        <div className="h-5 flex items-center gap-1.5 text-xs font-medium">
+          {status === "saving" && <Loader2 size={12} className="text-gray-400 animate-spin" />}
+          {status === "success" && <><Check size={12} className="text-emerald-500" /><span className="text-emerald-500">Сохранено</span></>}
         </div>
       </div>
       <div className="space-y-0.5">
         {DAYS_OF_WEEK.map(day => {
           const h = hours[day.id] ?? DEFAULT_WORKING_HOURS[day.id];
           return (
-            <div
-              key={day.id}
+            <div key={day.id}
               className={`flex items-center justify-between rounded-xl px-3 py-2 transition-colors
-                ${h.active ? "bg-stone-50" : "bg-transparent hover:bg-stone-50/60"}`}
-            >
+                ${h.active ? "bg-gray-50" : "hover:bg-gray-50/60"}`}>
               <div className="flex items-center gap-3 w-16">
-                <Switch
-                  checked={h.active}
-                  onChange={v => handleChange(day.id, "active", v)}
-                  size="sm"
-                  accent="emerald"
-                  aria-label={day.name}
-                />
-                <span className={`text-sm font-medium w-5 ${h.active ? "text-stone-800" : "text-stone-400"}`}>
-                  {day.name}
-                </span>
+                <Toggle checked={h.active} onChange={v => handleChange(day.id, "active", v)} accent="emerald" />
+                <span className={`text-sm font-semibold w-5 ${h.active ? "text-gray-800" : "text-gray-400"}`}>{day.name}</span>
               </div>
-              <div className={`flex items-center gap-2 transition-opacity ${h.active ? "opacity-100" : "opacity-30 pointer-events-none"}`}>
-                <input type="time" value={h.start}
-                  onChange={e => handleChange(day.id, "start", e.target.value)}
-                  className={timeCls(h.active)} />
-                <span className="text-stone-300 text-sm">—</span>
-                <input type="time" value={h.end}
-                  onChange={e => handleChange(day.id, "end", e.target.value)}
-                  className={timeCls(h.active)} />
-                <span className="text-xs text-stone-400 w-10 text-right">
+              <div className={`flex items-center gap-2 ${h.active ? "" : "opacity-30 pointer-events-none"}`}>
+                <input type="time" value={h.start} onChange={e => handleChange(day.id, "start", e.target.value)} className={TIME_CLS} />
+                <span className="text-gray-300">—</span>
+                <input type="time" value={h.end}   onChange={e => handleChange(day.id, "end",   e.target.value)} className={TIME_CLS} />
+                <span className="text-xs text-gray-400 w-9 text-right tabular-nums">
                   {h.active && (() => {
                     const [sh, sm] = h.start.split(":").map(Number);
                     const [eh, em] = h.end.split(":").map(Number);
@@ -413,34 +371,45 @@ function WorkingHoursSettings({ value, onSave }) {
   );
 }
 
-// ─── Notifications ────────────────────────────────────────────────────────────
+// ─── Notifications ──────────────────────────────────────────────────────────
 
 const DAYS_OPTIONS = [
-  { id: 1, name: "Понедельник" }, { id: 2, name: "Вторник" },
-  { id: 3, name: "Среда" },       { id: 4, name: "Четверг" },
-  { id: 5, name: "Пятница" },     { id: 6, name: "Суббота" },
+  { id: 1, name: "Понедельник" }, { id: 2, name: "Вторник" }, { id: 3, name: "Среда" },
+  { id: 4, name: "Четверг" },    { id: 5, name: "Пятница" }, { id: 6, name: "Суббота" },
   { id: 0, name: "Воскресенье" },
 ];
 
 const DEFAULT_NOTIFICATIONS = {
-  debtReminder:     { enabled: false, delayHours: 24, excludedStudentIds: [] },
-  homeworkReminder: { enabled: false, hoursBeforeLesson: 24, excludedStudentIds: [] },
+  debtReminder:     { enabled: false, delayHours: 24,   sendTo: "all", selectedStudentIds: [] },
+  homeworkReminder: { enabled: false,                   sendTo: "all", selectedStudentIds: [] },
   progressReport:   {
     enabled: false, frequency: "weekly", dayOfWeek: 5, dayOfMonth: 1,
     includeTopics: true, includeHomework: true, includeFinancials: true,
-    excludedStudentIds: [],
+    sendTo: "all", selectedStudentIds: [],
   },
 };
 
+const NOTIF_CONFIG = {
+  debtReminder:     { icon: AlertCircle, title: "Напоминание о долге",            hint: "Однократно — через N часов после появления",              iconBg: "bg-amber-50  text-amber-500",   accent: "amber"   },
+  homeworkReminder: { icon: BookCheck,   title: "Напоминание о домашнем задании", hint: "Утром за день до урока, если ДЗ не сдано",                 iconBg: "bg-violet-50 text-violet-500",  accent: "violet"  },
+  progressReport:   { icon: BarChart3,   title: "Отчёт о работе",                 hint: "Уроки, темы, ДЗ и финансы — по расписанию",               iconBg: "bg-emerald-50 text-emerald-600", accent: "emerald" },
+};
+
+const SMALL_SELECT =
+  "h-9 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 " +
+  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent transition-all";
+const SMALL_NUM =
+  "w-14 h-9 bg-gray-50 border border-gray-200 text-gray-900 text-sm text-center rounded-lg px-2 " +
+  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent transition-all";
+
 function NotificationsSettings({ value, onSave, students = [] }) {
   const merge = (def, over) => ({ ...def, ...(over || {}) });
-  const [notif, setNotif] = useState(() => ({
+  const [notif, setNotif]   = useState(() => ({
     debtReminder:     merge(DEFAULT_NOTIFICATIONS.debtReminder,     value?.debtReminder),
     homeworkReminder: merge(DEFAULT_NOTIFICATIONS.homeworkReminder, value?.homeworkReminder),
     progressReport:   merge(DEFAULT_NOTIFICATIONS.progressReport,   value?.progressReport),
   }));
   const [status, setStatus] = useState("idle");
-  const [exclusionOpen, setExclusionOpen] = useState({ debtReminder: false, homeworkReminder: false, progressReport: false });
   const timer = useRef(null);
 
   useEffect(() => {
@@ -452,14 +421,10 @@ function NotificationsSettings({ value, onSave, students = [] }) {
     });
   }, [value]);
 
-  const persist = async (updated) => {
+  const persist = async updated => {
     setStatus("saving");
-    try {
-      await onSave(updated);
-      setStatus("success");
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("idle"); }
+    try { await onSave(updated); setStatus("success"); clearTimeout(timer.current); timer.current = setTimeout(() => setStatus("idle"), 2000); }
+    catch { setStatus("idle"); }
   };
 
   const update = (section, field, val) => {
@@ -468,248 +433,216 @@ function NotificationsSettings({ value, onSave, students = [] }) {
     persist(updated);
   };
 
-  const toggleExclusion = (section, studentId) => {
-    const current = notif[section].excludedStudentIds || [];
-    const excluded = current.includes(studentId)
-      ? current.filter(id => id !== studentId)
-      : [...current, studentId];
-    update(section, "excludedStudentIds", excluded);
+  const toggleStudent = (section, studentId) => {
+    const current = notif[section].selectedStudentIds || [];
+    const next = current.includes(studentId) ? current.filter(id => id !== studentId) : [...current, studentId];
+    update(section, "selectedStudentIds", next);
   };
 
-  const selectCls = "h-9 bg-white border border-stone-200 rounded-lg px-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10";
-  const numCls    = "w-14 h-9 bg-white border border-stone-200 rounded-lg px-2 text-sm text-stone-900 text-center focus:outline-none focus:ring-2 focus:ring-stone-900/10";
-  const clamp     = (v, mn, mx) => Math.max(mn, Math.min(mx, v || mn));
-
-  const ExclusionPanel = ({ section }) => {
-    if (!students.length) return null;
-    const excluded = notif[section].excludedStudentIds || [];
-    const isOpen = exclusionOpen[section];
-    const count = excluded.length;
-
-    return (
-      <div className="mt-3 pt-3 border-t border-stone-100">
-        <button
-          type="button"
-          onClick={() => setExclusionOpen(prev => ({ ...prev, [section]: !prev[section] }))}
-          className="flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-stone-700 transition-colors"
-        >
-          {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          Настроить исключения
-          {count > 0 && (
-            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-stone-200 text-stone-600 text-[10px] font-semibold">
-              {count}
-            </span>
-          )}
-        </button>
-        {isOpen && (
-          <div className="mt-2">
-            <p className="text-[11px] text-stone-400 mb-1.5">Не отправлять:</p>
-            <div className="flex flex-wrap gap-1.5">
-              {students.map(s => {
-                const isOut = excluded.includes(s.id);
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => toggleExclusion(section, s.id)}
-                    title={isOut ? `${s.name}: исключён` : `${s.name}: нажми чтобы исключить`}
-                    className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all
-                      ${isOut
-                        ? "bg-red-50 text-red-400 border-red-200 line-through opacity-70"
-                        : "bg-white text-stone-600 border-stone-200 hover:border-stone-400"
-                      }`}
-                  >
-                    {s.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const TypeRow = ({ section, title, hint, children }) => (
-    <div className="rounded-xl border border-stone-100 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-stone-50">
-        <div>
-          <p className="text-sm font-semibold text-stone-800">{title}</p>
-          <p className="text-xs text-stone-400 mt-0.5">{hint}</p>
-        </div>
-        <Switch
-          checked={notif[section].enabled}
-          onChange={v => update(section, "enabled", v)}
-          size="sm"
-          accent="emerald"
-        />
-      </div>
-      {notif[section].enabled && (
-        <div className="px-4 py-3">
-          {children}
-          <ExclusionPanel section={section} />
-        </div>
-      )}
-    </div>
-  );
+  const clamp = (v, mn, mx) => Math.max(mn, Math.min(mx, v || mn));
 
   return (
-    <div className="space-y-3">
-      <div className="h-4 flex justify-end items-center">
-        <SaveStatus status={status} />
-        {status === "success" && (
-          <span className="text-xs text-emerald-500 font-medium ml-1">Сохранено</span>
-        )}
+    <div>
+      {/* Save indicator */}
+      <div className="h-4 flex justify-end items-center gap-1.5 mb-3">
+        {status === "saving" && <Loader2 size={12} className="text-gray-400 animate-spin" />}
+        {status === "success" && <span className="flex items-center gap-1 text-[11px] text-emerald-500 font-medium"><Check size={11} /> Сохранено</span>}
       </div>
 
-      {/* Долг */}
-      <TypeRow section="debtReminder" title="Напоминание о долге" hint="Однократно — через N часов после появления долга">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-stone-600">Отправить через</span>
-          <input
-            type="number" min="1" max="72"
-            value={notif.debtReminder.delayHours}
-            onChange={e => update("debtReminder", "delayHours", clamp(Number(e.target.value), 1, 72))}
-            className={numCls}
-          />
-          <span className="text-sm text-stone-600">ч после появления долга</span>
-        </div>
-      </TypeRow>
+      <div className="space-y-2">
+        {Object.entries(NOTIF_CONFIG).map(([key, cfg]) => {
+          const IconComp = cfg.icon;
+          const section  = notif[key];
+          const selected = section.selectedStudentIds || [];
 
-      {/* ДЗ */}
-      <TypeRow section="homeworkReminder" title="Напоминание о домашнем задании" hint="Утром за день до урока, если ДЗ не сдано">
-        <p className="text-xs text-stone-400 leading-relaxed">
-          Если ученик не отметил ДЗ как выполненное, напоминание отправится утром накануне урока.
-        </p>
-      </TypeRow>
+          return (
+            <div key={key} className="border border-gray-100 rounded-xl overflow-hidden">
+              {/* Header row */}
+              <div className="flex items-center justify-between p-3.5 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${cfg.iconBg}`}>
+                    <IconComp size={17} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{cfg.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{cfg.hint}</p>
+                  </div>
+                </div>
+                <Toggle checked={section.enabled} onChange={v => update(key, "enabled", v)} accent={cfg.accent} />
+              </div>
 
-      {/* Отчёт */}
-      <TypeRow section="progressReport" title="Отчёт о работе" hint="Уроки, темы, ДЗ и финансы — по расписанию">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <select
-              value={notif.progressReport.frequency}
-              onChange={e => update("progressReport", "frequency", e.target.value)}
-              className={selectCls}
-            >
-              <option value="weekly">Каждую неделю</option>
-              <option value="biweekly">Раз в 2 недели</option>
-              <option value="monthly">Раз в месяц</option>
-            </select>
+              {/* Expanded body */}
+              {section.enabled && (
+                <div className="px-4 pb-4 pt-3 border-t border-gray-100 space-y-4">
 
-            {notif.progressReport.frequency !== "monthly" ? (
-              <>
-                <span className="text-sm text-stone-500">в</span>
-                <select
-                  value={notif.progressReport.dayOfWeek}
-                  onChange={e => update("progressReport", "dayOfWeek", Number(e.target.value))}
-                  className={selectCls}
-                >
-                  {DAYS_OPTIONS.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </>
-            ) : (
-              <>
-                <span className="text-sm text-stone-500">числа</span>
-                <input
-                  type="number" min="1" max="28"
-                  value={notif.progressReport.dayOfMonth}
-                  onChange={e => update("progressReport", "dayOfMonth", clamp(Number(e.target.value), 1, 28))}
-                  className={numCls}
-                />
-              </>
-            )}
-          </div>
+                  {/* Debt: delay hours */}
+                  {key === "debtReminder" && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm text-gray-600">Отправить через</span>
+                      <input type="number" min="1" max="72" value={section.delayHours}
+                        onChange={e => update(key, "delayHours", clamp(Number(e.target.value), 1, 72))}
+                        className={SMALL_NUM} />
+                      <span className="text-sm text-gray-600">ч после появления долга</span>
+                    </div>
+                  )}
 
-          <div className="flex flex-wrap gap-2">
-            {[
-              { key: "includeTopics",     label: "Темы уроков" },
-              { key: "includeHomework",   label: "Домашние задания" },
-              { key: "includeFinancials", label: "Финансы" },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => update("progressReport", key, !notif.progressReport[key])}
-                className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors
-                  ${notif.progressReport[key]
-                    ? "bg-stone-800 text-white border-stone-800"
-                    : "bg-white text-stone-400 border-stone-200 hover:border-stone-300"
-                  }`}
-              >
-                {notif.progressReport[key] ? "✓ " : ""}{label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </TypeRow>
+                  {/* Homework: description */}
+                  {key === "homeworkReminder" && (
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                      Если ученик не отметил ДЗ как выполненное — напоминание придёт утром накануне урока.
+                    </p>
+                  )}
+
+                  {/* Progress report: frequency + content chips */}
+                  {key === "progressReport" && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <select value={section.frequency} onChange={e => update(key, "frequency", e.target.value)} className={SMALL_SELECT}>
+                          <option value="weekly">Каждую неделю</option>
+                          <option value="biweekly">Раз в 2 недели</option>
+                          <option value="monthly">Раз в месяц</option>
+                        </select>
+                        {section.frequency !== "monthly" ? (
+                          <><span className="text-sm text-gray-500">в</span>
+                            <select value={section.dayOfWeek} onChange={e => update(key, "dayOfWeek", Number(e.target.value))} className={SMALL_SELECT}>
+                              {DAYS_OPTIONS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            </select></>
+                        ) : (
+                          <><span className="text-sm text-gray-500">числа</span>
+                            <input type="number" min="1" max="28" value={section.dayOfMonth}
+                              onChange={e => update(key, "dayOfMonth", clamp(Number(e.target.value), 1, 28))}
+                              className={SMALL_NUM} /></>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { k: "includeTopics",     l: "Темы уроков" },
+                          { k: "includeHomework",   l: "Домашние задания" },
+                          { k: "includeFinancials", l: "Финансы" },
+                        ].map(({ k, l }) => (
+                          <button key={k} onClick={() => update(key, k, !section[k])}
+                            className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all
+                              ${section[k]
+                                ? "bg-emerald-600 text-white border-emerald-600"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"}`}>
+                            {section[k] && "✓ "}{l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Recipient selector: all vs selected ── */}
+                  <div className="border-t border-gray-100 pt-3">
+                    <p className={`${LABEL_CLS} mb-2`}>Получатели рассылки</p>
+                    <div className="flex gap-2 mb-3">
+                      {[
+                        { val: "all",      label: "Все ученики",  Icon: Users },
+                        { val: "selected", label: "По выбору",    Icon: UserCheck },
+                      ].map(({ val, label, Icon: Ic }) => (
+                        <button key={val}
+                          onClick={() => update(key, "sendTo", val)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all
+                            ${section.sendTo === val
+                              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                              : "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300"}`}>
+                          <Ic size={13} />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Student picker (only when "selected") */}
+                    {section.sendTo === "selected" && students.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {students.map(s => {
+                          const isSelected = selected.includes(s.id);
+                          return (
+                            <button key={s.id}
+                              onClick={() => toggleStudent(key, s.id)}
+                              className={`text-xs px-3 py-1 rounded-lg border font-medium transition-all
+                                ${isSelected
+                                  ? "bg-blue-100 text-blue-800 border-blue-200"
+                                  : "bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300"}`}>
+                              {isSelected && "✓ "}{s.name}
+                            </button>
+                          );
+                        })}
+                        {students.length === 0 && (
+                          <p className="text-xs text-gray-400 italic">Нет активных учеников</p>
+                        )}
+                      </div>
+                    )}
+
+                    {section.sendTo === "selected" && selected.length === 0 && students.length > 0 && (
+                      <p className="text-xs text-amber-500 mt-1">Выберите хотя бы одного ученика</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// ─── Confirm Modal ────────────────────────────────────────────────────────────
+// ─── Confirm Modal ──────────────────────────────────────────────────────────
 
 function ConfirmModal({ isOpen, onClose, onConfirm, title, description, bullets, confirmLabel, isLoading }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="max-w-sm">
       <div className="space-y-4">
-        {description && <p className="text-sm text-stone-600">{description}</p>}
+        {description && <p className="text-sm text-gray-600">{description}</p>}
         {bullets && (
-          <ul className="space-y-1">
+          <ul className="space-y-1.5 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
             {bullets.map(b => (
-              <li key={b} className="flex items-start gap-2 text-sm text-stone-600">
-                <span className="text-red-400 mt-0.5 shrink-0">•</span>
-                {b}
+              <li key={b} className="flex items-center gap-2 text-sm text-red-700">
+                <span className="text-red-400 shrink-0">•</span>{b}
               </li>
             ))}
           </ul>
         )}
-        <div className="flex gap-3 pt-2">
-          <Button variant="secondary" onClick={onClose} className="flex-1">Отмена</Button>
-          <Button
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700"
-          >
-            {isLoading ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
+        <div className="flex gap-3 pt-1">
+          <button onClick={onClose}
+            className={`${BTN_BASE} flex-1 h-10 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-300`}>
+            Отмена
+          </button>
+          <button onClick={onConfirm} disabled={isLoading}
+            className={`${BTN_BASE} flex-1 h-10 bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm`}>
+            {isLoading && <Loader2 size={14} className="animate-spin mr-1.5" />}
             {confirmLabel}
-          </Button>
+          </button>
         </div>
       </div>
     </Modal>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function SettingsPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const [config, setConfig] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [config,   setConfig]   = useState(null);
+  const [loading,  setLoading]  = useState(true);
   const [students, setStudents] = useState([]);
 
-  // Action state
-  const [isExporting, setIsExporting]       = useState(false);
-  const [icalCopied, setIcalCopied]         = useState(false);
-  const [isResetting, setIsResetting]       = useState(false);
+  const [isResetting,    setIsResetting]    = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm]   = useState("");
-  const [isDeleting, setIsDeleting]         = useState(false);
+  const [deleteConfirm,  setDeleteConfirm]  = useState("");
+  const [isDeleting,     setIsDeleting]     = useState(false);
 
   useEffect(() => {
     async function load() {
       if (authLoading) return;
       try {
-        if (user?.uid) {
-          const [c, s] = await Promise.all([getUserConfig(user.uid), getStudents(user.uid)]);
+        if (user?.id) {
+          const [c, s] = await Promise.all([getUserConfig(user.id), getStudents(user.id)]);
           setConfig(c || {});
           setStudents((s || []).filter(st => !st.isArchived));
-          if (c?.theme) {
-            document.documentElement.setAttribute("data-theme", c.theme);
-            localStorage.setItem("tochilka_theme", c.theme);
-          }
         } else {
           setConfig({});
         }
@@ -726,99 +659,31 @@ export default function SettingsPage() {
   const updateConfig = useCallback(async (key, value) => {
     const next = { ...config, [key]: value };
     setConfig(next);
-    if (user?.uid) await updateUserConfig(user.uid, { [key]: value });
-    if (key === "theme") {
-      document.documentElement.setAttribute("data-theme", value);
-      localStorage.setItem("tochilka_theme", value);
-    }
+    if (user?.id) await updateUserConfig(user.id, { [key]: value });
   }, [config, user]);
-
-  const handleExport = async () => {
-    setIsExporting(true);
-    try {
-      const [studs, lessons, payments] = await Promise.all([
-        getStudents(user.uid),
-        getLessons({ tutorId: user.uid }),
-        getPayments({ tutorId: user.uid }),
-      ]);
-      const rows = [
-        "Тип,ID,Имя/Описание,Дата/Время,Сумма",
-        ...studs.map(s  => `Ученик,${s.id},${s.name},,${s.balance}`),
-        ...lessons.map(l => `Урок,${l.id},${l.subjectName},${l.date} ${l.startTime},${l.price}`),
-        ...payments.map(p => `Платёж,${p.id},${p.studentName},${p.date},${p.amount}`),
-      ];
-      const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href     = url;
-      a.download = `tochilka_export_${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error("Export failed", e);
-    }
-    setIsExporting(false);
-  };
-
-  const handleCopyICal = async () => {
-    const url = `https://api.tochilka.app/ical/${user?.uid}/export.ics`;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      // Fallback for non-secure contexts
-      const ta = document.createElement("textarea");
-      ta.value = url;
-      ta.style.position = "fixed";
-      ta.style.opacity  = "0";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
-    setIcalCopied(true);
-    setTimeout(() => setIcalCopied(false), 2000);
-  };
 
   const handleResetConfirm = async () => {
     setIsResetting(true);
-    try {
-      await clearAllTutorData(user.uid);
-      window.location.reload();
-    } catch (e) {
-      console.error("Reset failed", e);
-      setIsResetting(false);
-      setResetModalOpen(false);
-    }
+    try { await clearAllTutorData(user.id); window.location.reload(); }
+    catch (e) { console.error("Reset failed", e); setIsResetting(false); setResetModalOpen(false); }
   };
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm !== "УДАЛИТЬ") return;
     setIsDeleting(true);
-    try {
-      await clearAllTutorData(user.uid);
-      await signOut(auth);
-    } catch (e) {
-      console.error("Delete account failed", e);
-      setIsDeleting(false);
-    }
+    try { await clearAllTutorData(user.id); pb.authStore.clear(); }
+    catch (e) { console.error("Delete failed", e); setIsDeleting(false); }
   };
 
   if (loading || !config) {
     return (
       <PageWrapper>
-        <div className="flex justify-center items-center h-64 text-stone-400">
+        <div className="flex justify-center items-center h-64 text-gray-400">
           <Loader2 size={24} className="animate-spin" />
         </div>
       </PageWrapper>
     );
   }
-
-  const icalUrl = `https://api.tochilka.app/ical/${user?.uid}/export.ics`;
-  const currency = config.currency || "RUB";
-  const currencySymbol = { RUB: "₽", USD: "$", EUR: "€", BYN: "Br", KZT: "₸" }[currency] || currency;
 
   return (
     <PageWrapper
@@ -828,7 +693,6 @@ export default function SettingsPage() {
       iconBgClass="bg-[#636B74]/10"
       iconTextClass="text-[#636B74]"
     >
-      {/* Confirm modal: reset data */}
       <ConfirmModal
         isOpen={resetModalOpen}
         onClose={() => setResetModalOpen(false)}
@@ -840,89 +704,87 @@ export default function SettingsPage() {
         confirmLabel="Очистить всё"
       />
 
-      {/* ── Bento Grid ── */}
-      <div className="max-w-[1400px] mx-auto pb-12">
+      <div className="max-w-[1400px] mx-auto pb-6">
         {/*
-          Desktop grid (≥1024px): 4 columns
-          Row 1: Profile (col 1–2) | Schedule (col 3–4)
-          Row 2: Account (col 1–2) | Lesson defaults (col 3) | Export (col 4)
-          Row 3: Notifications (col 1–2) | Danger (col 3–4)
+          Layout:
+          ┌─────────────────┬──────────────────────┬────────────────────────┐
+          │  Профиль        │  Ваше время          │  Уведомления           │
+          │  ──────────     │  ──────────          │  ──────────────        │
+          │  Реквизиты      │  (same height as     │  (same height as       │
+          │                 │   left col)          │   other two cols)      │
+          └─────────────────┴──────────────────────┴────────────────────────┘
+          ┌─────────────────────────────────────────────────────────────────┐
+          │  Критические действия (full width)                              │
+          └─────────────────────────────────────────────────────────────────┘
         */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-          {/* ① ПРОФИЛЬ */}
-          <Card className="lg:col-span-2 h-full">
-            <SectionHeader icon={User} title="Профиль" description="Ваши данные для учеников и клиентов" />
+          {/* ── Колонка 1: Профиль + Реквизиты (стопка) ── */}
+          <div className="flex flex-col gap-5">
 
-            {/* Name + contacts row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <SaveOnBlurInput
-                label="Имя репетитора"
-                value={config.displayName || user?.displayName || ""}
-                onSave={v => updateConfig("displayName", v)}
-                placeholder="Как вас называют ученики"
-              />
-              <SaveOnBlurInput
-                label="Телефон"
-                value={config.phone || ""}
-                onSave={v => updateConfig("phone", v)}
-                placeholder="+7 (999) 000-00-00"
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <SaveOnBlurInput
-                label="Telegram"
-                value={config.telegram || ""}
-                onSave={v => updateConfig("telegram", v)}
-                placeholder="@username"
-              />
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-stone-700 ml-1 block">Email аккаунта</label>
-                <Input value={user?.email || ""} disabled className="bg-stone-50 text-stone-500" />
-              </div>
-            </div>
-
-            {/* Subjects */}
-            <div className="mb-4">
-              <label className="text-sm font-medium text-stone-700 ml-1 block mb-1">Предметы</label>
-              <TagsInput
-                value={config.subjects || []}
-                onChange={v => updateConfig("subjects", v)}
-                placeholder="Добавьте предмет и нажмите Enter"
-                helperText="Введите предмет и нажмите Enter или запятую"
-              />
-            </div>
-
-            {/* Тема оформления */}
-            <div className="pt-4 border-t border-stone-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-stone-800 flex items-center gap-2">
-                    <Palette size={14} className="text-stone-500" /> Тема оформления
-                  </p>
-                  <p className="text-xs text-stone-400 mt-0.5">Внешний вид интерфейса</p>
+            {/* ① ПРОФИЛЬ */}
+            <SettingsCard>
+              <SectionHeader icon={User} title="Профиль" description="Данные для учеников и клиентов" />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <SaveOnBlurInput label="Имя репетитора"
+                    value={config.displayName || user?.displayName || ""}
+                    onSave={v => updateConfig("displayName", v)}
+                    placeholder="Как вас называют" />
+                  <SaveOnBlurInput label="Телефон"
+                    value={config.phone || ""}
+                    onSave={v => updateConfig("phone", v)}
+                    placeholder="+7 (999) 000-00-00" />
                 </div>
-                <ThemePicker value={config.theme} onChange={v => updateConfig("theme", v)} />
+                <div className="grid grid-cols-2 gap-3">
+                  <SaveOnBlurInput label="Telegram"
+                    value={config.telegram || ""}
+                    onSave={v => updateConfig("telegram", v)}
+                    placeholder="@username" />
+                  <div>
+                    <FieldLabel>Email аккаунта</FieldLabel>
+                    <input type="text" value={user?.email || ""} disabled
+                      className={`${INPUT_CLS} opacity-50 cursor-not-allowed`} />
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Предметы</FieldLabel>
+                  <SimpleTagsInput
+                    value={config.subjects || []}
+                    onChange={v => updateConfig("subjects", v)}
+                    placeholder="Предмет + Enter" />
+                </div>
               </div>
-            </div>
-          </Card>
+            </SettingsCard>
 
-          {/* ② РАБОЧЕЕ РАСПИСАНИЕ */}
-          <Card className="lg:col-span-2 h-full">
-            <SectionHeader icon={Globe} title="Ваше время и расписание" description="Часовой пояс, валюта, рабочие часы" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <TimezoneCombobox
-                value={config.timezone}
-                onChange={v => updateConfig("timezone", v)}
+            {/* ② РЕКВИЗИТЫ */}
+            <SettingsCard className="flex-1">
+              <SectionHeader
+                icon={Receipt}
+                title="Реквизиты"
+                description="Необязательно — можно добавить и отправлять родителям вместе с отчётом"
+                action={
+                  <button onClick={() => pb.authStore.clear()}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors shrink-0">
+                    <LogOut size={13} /> Выйти
+                  </button>
+                }
               />
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-stone-700 ml-1 block">Валюта</label>
-                <select
-                  value={config.currency}
-                  onChange={e => updateConfig("currency", e.target.value)}
-                  className="w-full h-11 bg-white border border-stone-200 rounded-xl px-4 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-300"
-                >
+              <SaveOnBlurInput label="Шаблон реквизитов" multiline
+                value={config.requisites}
+                onSave={v => updateConfig("requisites", v)}
+                placeholder={"Сбербанк: 0000 0000 0000 0000 (Иванова А.П.)\nСБП по номеру телефона: +7 (999) 000-00-00"} />
+            </SettingsCard>
+          </div>
+
+          {/* ── Колонка 2: Расписание ── */}
+          <SettingsCard className="lg:h-full">
+            <SectionHeader icon={Globe} title="Ваше время и расписание" description="Часовой пояс, валюта, рабочие часы" />
+            <div className="grid grid-cols-2 gap-3 mb-1">
+              <TimezoneCombobox value={config.timezone} onChange={v => updateConfig("timezone", v)} />
+              <div>
+                <FieldLabel>Валюта</FieldLabel>
+                <select value={config.currency} onChange={e => updateConfig("currency", e.target.value)} className={INPUT_CLS}>
                   <option value="RUB">₽ Рубль</option>
                   <option value="BYN">Br Белорусский рубль</option>
                   <option value="USD">$ Доллар</option>
@@ -931,186 +793,64 @@ export default function SettingsPage() {
                 </select>
               </div>
             </div>
+            <WorkingHoursSettings value={config.workingHours} onSave={v => updateConfig("workingHours", v)} />
+          </SettingsCard>
 
-            <WorkingHoursSettings
-              value={config.workingHours}
-              onSave={v => updateConfig("workingHours", v)}
-            />
-          </Card>
-
-          {/* ③ АККАУНТ */}
-          <Card className="lg:col-span-2 h-full">
-            <SectionHeader
-              icon={BookOpen}
-              title="Аккаунт"
-              description="Реквизиты и управление сессией"
-              action={
-                <button
-                  onClick={() => signOut(auth)}
-                  className="flex items-center gap-1.5 text-xs font-medium text-stone-400 hover:text-stone-700 transition-colors"
-                >
-                  <LogOut size={13} />
-                  Выйти
-                </button>
-              }
-            />
-
-            <SaveOnBlurInput
-              label="Шаблон реквизитов"
-              multiline
-              value={config.requisites}
-              onSave={v => updateConfig("requisites", v)}
-              placeholder={"Сбербанк: 0000 0000 0000 0000 (Иван И.)\nПодпись в сообщении ученику"}
-              className="min-h-[80px]"
-            />
-          </Card>
-
-          {/* ④ НАСТРОЙКИ УРОКА */}
-          <Card className="lg:col-span-1 h-full">
-            <SectionHeader icon={Clock} title="Урок" description="Значения по умолчанию" />
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-stone-700 ml-1 block mb-2">Длительность</label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[40, 45, 60, 90].map(min => {
-                    const active = (config.defaultDuration ?? 60) === min;
-                    return (
-                      <button
-                        key={min}
-                        onClick={() => updateConfig("defaultDuration", min)}
-                        className={`py-2 rounded-xl text-sm font-medium border transition-all
-                          ${active
-                            ? "bg-stone-900 text-white border-stone-900"
-                            : "bg-white text-stone-600 border-stone-200 hover:border-stone-400"
-                          }`}
-                      >
-                        {min}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-stone-400 mt-1.5 ml-1">минут</p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-stone-700 ml-1 block">
-                  Стоимость урока
-                </label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min="0"
-                    value={config.defaultPrice ?? ""}
-                    onChange={e => updateConfig("defaultPrice", Number(e.target.value))}
-                    placeholder="1500"
-                    className="bg-white pr-10"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-stone-400 font-medium pointer-events-none">
-                    {currencySymbol}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* ⑤ ЭКСПОРТ И СИНХРОНИЗАЦИЯ */}
-          <Card className="lg:col-span-1 h-full">
-            <SectionHeader icon={Database} title="Экспорт" description="Ваши данные" />
-
-            <div className="space-y-3">
-              {/* CSV */}
-              <div className="p-3 bg-stone-50 rounded-xl border border-stone-100">
-                <p className="text-sm font-semibold text-stone-800">База данных</p>
-                <p className="text-xs text-stone-500 mt-0.5 mb-3">Ученики, уроки и платежи</p>
-                <Button variant="secondary" onClick={handleExport} disabled={isExporting} className="w-full justify-center">
-                  {isExporting ? <Loader2 size={15} className="animate-spin mr-2" /> : <Download size={15} className="mr-2" />}
-                  Скачать CSV
-                </Button>
-              </div>
-
-              {/* iCal */}
-              <div className="p-3 bg-stone-50 rounded-xl border border-stone-100">
-                <p className="text-sm font-semibold text-stone-800">Расписание в календарь</p>
-                <p className="text-xs text-stone-500 mt-0.5 mb-2">Google / Apple Calendar</p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={icalUrl}
-                    className="flex-1 min-w-0 text-xs bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-stone-500 font-mono truncate"
-                  />
-                  <button
-                    onClick={handleCopyICal}
-                    className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-lg border transition-colors
-                      ${icalCopied
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-600"
-                        : "bg-white border-stone-200 text-stone-500 hover:border-stone-400"
-                      }`}
-                  >
-                    {icalCopied ? <Check size={15} /> : <LinkIcon size={15} />}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* ⑥ УВЕДОМЛЕНИЯ */}
-          <Card className="lg:col-span-2 h-full">
+          {/* ── Колонка 3: Уведомления ── */}
+          <SettingsCard className="lg:h-full">
             <SectionHeader icon={Bell} title="Уведомления" description="Авторассылки через Telegram из карточки ученика" />
             <NotificationsSettings
               value={config.notifications}
               onSave={v => updateConfig("notifications", v)}
               students={students}
             />
-          </Card>
+          </SettingsCard>
 
-          {/* ⑦ КРИТИЧЕСКИЕ ДЕЙСТВИЯ */}
-          <Card className="lg:col-span-2 border-red-100 bg-red-50/30">
-            <SectionHeader icon={AlertTriangle} title="Критические действия" description="Очистка данных и удаление профиля" danger />
+          {/* ── Критические действия (полная ширина) ── */}
+          <SettingsCard className="lg:col-span-3" danger>
+            <SectionHeader icon={AlertTriangle} title="Критические действия" danger />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-            <div className="space-y-4">
-              {/* Reset */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-red-100">
+              {/* Сброс данных */}
+              <div className="flex items-start justify-between gap-6">
                 <div>
-                  <p className="text-sm font-bold text-red-900">Сброс данных профиля</p>
-                  <p className="text-xs text-red-600/80 mt-0.5">Удаляет учеников, уроки и финансы. Аккаунт остаётся.</p>
+                  <p className="text-sm font-bold text-red-800 mb-1">Сброс данных профиля</p>
+                  <p className="text-sm text-red-500 leading-relaxed">
+                    Удаляет всех учеников, уроки и финансовые записи.<br/>
+                    Аккаунт и настройки остаются.
+                  </p>
                 </div>
-                <Button
-                  variant="secondary"
-                  className="border-red-200 text-red-600 hover:bg-red-50 shrink-0"
-                  onClick={() => setResetModalOpen(true)}
-                  disabled={isResetting}
-                >
-                  <Trash2 size={15} className="mr-2" />
+                <button onClick={() => setResetModalOpen(true)} disabled={isResetting}
+                  className={`${BTN_BASE} shrink-0 h-10 px-4 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 focus:ring-red-300`}>
+                  <Trash2 size={14} className="mr-2" />
                   Очистить данные
-                </Button>
+                </button>
               </div>
 
-              {/* Delete account */}
-              <div>
-                <p className="text-sm font-bold text-red-900 mb-1">Удаление профиля</p>
-                <p className="text-xs text-red-600/80 mb-3">
-                  Это действие навсегда удалит ваш аккаунт. Отменить невозможно.
-                </p>
-                <div className="flex gap-2 max-w-xs">
-                  <Input
-                    placeholder="Впишите УДАЛИТЬ"
-                    value={deleteConfirm}
-                    onChange={e => setDeleteConfirm(e.target.value)}
-                    className="bg-white border-red-200 focus:ring-red-100"
-                  />
-                  <Button
-                    onClick={handleDeleteAccount}
-                    disabled={deleteConfirm !== "УДАЛИТЬ" || isDeleting}
-                    className="shrink-0 bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 disabled:opacity-40"
-                  >
-                    {isDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
-                  </Button>
+              {/* Удаление аккаунта */}
+              <div className="flex items-start justify-between gap-6">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-red-800 mb-1">Удаление профиля</p>
+                  <p className="text-sm text-red-500 leading-relaxed mb-3">
+                    Навсегда удалит ваш аккаунт. Отменить невозможно.
+                  </p>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="Впишите УДАЛИТЬ"
+                      value={deleteConfirm}
+                      onChange={e => setDeleteConfirm(e.target.value)}
+                      className="flex-1 min-w-0 bg-white border border-red-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 placeholder:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all" />
+                    <button onClick={handleDeleteAccount}
+                      disabled={deleteConfirm !== "УДАЛИТЬ" || isDeleting}
+                      className={`${BTN_BASE} shrink-0 h-10 px-4 bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm`}>
+                      {isDeleting ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Trash2 size={14} className="mr-1.5" />}
+                      Удалить
+                    </button>
+                  </div>
                 </div>
               </div>
+
             </div>
-          </Card>
+          </SettingsCard>
 
         </div>
       </div>

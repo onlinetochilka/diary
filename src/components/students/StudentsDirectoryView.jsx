@@ -6,7 +6,7 @@ import ActionItemModal from '../dashboard/ActionItemModal.jsx';
 import GroupCard from './GroupCard.jsx';
 import { useStudentsFilter } from '../../hooks/useStudentsFilter.js';
 import StudentsEmptyState from './StudentsEmptyState.jsx';
-import { addPayment } from '../../services/database.js';
+import { addPayment, getLessons, updateLesson } from '../../services/database.js';
 
 export default function StudentsDirectoryView({ students = [], groups = [], onEdit, onEditGroup, onCreate, onCreateGroup, highlightStudentId, onHighlightDone, onOpenGuestLink, onOpenReport, onOpenLessonHistory, onOpenGroupLessonHistory, onOpenGroupReport }) {
   // Состояние модалки ДЗ
@@ -60,29 +60,61 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
     setPayModal({ isOpen: true, item: payItem });
   };
 
-  const handleHomeworkClick = (studentId, subjectId) => {
+  const handleHomeworkClick = async (studentId, subjectId) => {
     const student = students.find(s => s.id === studentId);
     if (!student) return;
-    const subject = student.subjects?.find(s => s.id === subjectId) || student.subjects?.[0];
-    const pendingCount = subject?.stats?.pendingHomeworks || 1;
 
-    // Формируем mock item для ActionItemModal
-    const mockItem = {
-      type: 'hw',
-      student: student,
-      count: pendingCount,
-      lessons: Array.from({ length: pendingCount }).map((_, i) => ({
-        id: `mock_hw_${i}`,
-        date: `Долг ${i + 1}`,
-        homework: "Домашнее задание"
-      }))
-    };
+    try {
+      const allLessons = await getLessons({ studentId });
+      // Урок считается с долгом, если у него задано homework, и ученика нет в hwDoneBy
+      const pendingLessons = allLessons.filter(l => 
+        l.homework && (!l.hwDoneBy || !l.hwDoneBy.includes(studentId)) && l.type === 'individual'
+      );
 
-    setHwModal({ isOpen: true, item: mockItem });
+      if (pendingLessons.length === 0) {
+        alert("Нет невыполненного ДЗ для этого ученика!");
+        return;
+      }
+
+      const item = {
+        type: 'hw',
+        student: student,
+        count: pendingLessons.length,
+        lessons: pendingLessons
+      };
+
+      setHwModal({ isOpen: true, item });
+    } catch (err) {
+      console.error("Ошибка загрузки уроков:", err);
+      alert("Не удалось загрузить историю ДЗ");
+    }
   };
 
-  const handleHwConfirm = (item, statuses) => {
-    // TODO: обновление БД статусов ДЗ
+  const handleHwConfirm = async (item, selectedLessons) => {
+    try {
+      const updates = [];
+      if (item.count === 1 && item.lessons) {
+        const l = item.lessons[0];
+        updates.push(updateLesson(l.id, { 
+          hwDoneBy: [...(l.hwDoneBy || []), item.student.id]
+        }));
+      } else if (item.lessons && selectedLessons) {
+        item.lessons.forEach(l => {
+          if (selectedLessons[l.id] === "on_time") {
+            updates.push(updateLesson(l.id, { 
+              hwDoneBy: [...(l.hwDoneBy || []), item.student.id]
+            }));
+          }
+        });
+      }
+      await Promise.all(updates);
+      window.dispatchEvent(new CustomEvent("force-refresh-data"));
+    } catch (err) {
+      console.error("Ошибка при сохранении ДЗ:", err);
+      alert("Не удалось сохранить статусы ДЗ");
+    } finally {
+      setHwModal({ isOpen: false, item: null });
+    }
   };
 
   return (

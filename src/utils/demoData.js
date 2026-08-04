@@ -1,351 +1,464 @@
-import { writeBatch, doc, collection, getDocs, deleteDoc, query, where } from "firebase/firestore";
-import { db } from "../services/firebase.js";
-// Triggering HMR
 import { getNextDistinctColor } from "./colors.js";
 
-// Simple seeded PRNG for deterministic demo data
-function mulberry32(a) {
-  return function() {
-    let t = a += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-}
+// ─── Утилиты ──────────────────────────────────────────────────────────────────
 
-function formatDate(date) {
+function fmtDate(date) {
   const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
 
-export async function generateDemoData(tutorId) {
-  const batch = writeBatch(db);
-  const now = new Date();
-  
-  // Initialize seeded PRNG so data is exactly the same every time
-  const rng = mulberry32(12345);
-
-  const refs = {
-    students: collection(db, "students"),
-    groups: collection(db, "groups"),
-    lessons: collection(db, "lessons"),
-    payments: collection(db, "payments"),
-    programs: collection(db, "programs")
-  };
-
-  // --- Students ---
-  const studentNames = [
-    "Исаак Ньютон", "Александр Пушкин", "Мария Кюри", "Лев Толстой", "Альберт Эйнштейн", 
-    "Анна Ахматова", "Галилео Галилей", "Уильям Шекспир", "Леонардо да Винчи", "Федор Достоевский", 
-    "Ада Лавлейс", "Сергей Есенин", "Ричард Фейнман", "Михаил Булгаков", "Пифагор"
-  ];
-  
-  const studentGenders = [
-    "male", "male", "female", "male", "male",
-    "female", "male", "male", "male", "male",
-    "female", "male", "male", "male", "male"
-  ];
-  
-  const subjects = ["Физика", "Литература", "Химия", "Русский язык", "Физика", "Литература", "Астрономия", "Английский язык", "Математика", "Литература", "Информатика", "Русский язык", "Физика", "Литература", "Геометрия"];
-
-  const allUsedColors = [];
-  
-  // --- Programs ---
-  const p1Oklch = getNextDistinctColor(allUsedColors);
-  allUsedColors.push(p1Oklch);
-  const p1Ref = doc(refs.programs);
-  const p1Data = {
-    name: "Интенсив Механика", colorOklch: p1Oklch, tutorId, createdAt: new Date(),
-    topics: [
-      { id: "1", title: "Кинематика", isCompleted: false },
-      { id: "2", title: "Динамика", isCompleted: false },
-      { id: "3", title: "Законы сохранения", isCompleted: false },
-      { id: "4", title: "Статика", isCompleted: false }
-    ]
-  };
-  batch.set(p1Ref, p1Data);
-  const p1Snapshot = { id: p1Ref.id, name: p1Data.name, topics: p1Data.topics };
-
-  const p2Oklch = getNextDistinctColor(allUsedColors);
-  allUsedColors.push(p2Oklch);
-  const p2Ref = doc(refs.programs);
-  const p2Data = {
-    name: "Подготовка к ЕГЭ (профиль)", colorOklch: p2Oklch, tutorId, createdAt: new Date(),
-    topics: [
-      { id: "1", title: "Тригонометрия", isCompleted: false },
-      { id: "2", title: "Производная", isCompleted: false },
-      { id: "3", title: "Стереометрия", isCompleted: false },
-      { id: "4", title: "Параметры", isCompleted: false },
-      { id: "5", title: "Теория чисел", isCompleted: false }
-    ]
-  };
-  batch.set(p2Ref, p2Data);
-  const p2Snapshot = { id: p2Ref.id, name: p2Data.name, topics: p2Data.topics };
-
-  // --- Students ---
-  const students = [];
-  for (let i = 0; i < studentNames.length; i++) {
-    const hue = getNextDistinctColor(allUsedColors);
-    allUsedColors.push(hue);
-    const r = doc(refs.students);
-        // Hardcode debts for demo clarity:
-    // i=0: Both Fin and HW debt
-    // i=1: Only HW debt
-    // i=2: Only Fin debt
-    // i=3+: No debts
-    const balance = (i === 1 || i === 2) ? -2500 : 5000;
-    
-    let assignedPrograms = [];
-    let notes = "";
-    if (subjects[i] === "Физика" || subjects[i] === "Математика") {
-      const isMath = subjects[i] === "Математика";
-      const baseProg = isMath ? p2Data : p1Data;
-      notes = isMath ? "Готовится к ЕГЭ. Западает тема тригонометрии." : "Нужно подтянуть решение задач по динамике.";
-      
-      // Give them a program with a 70% chance
-      if (rng() > 0.3) {
-        // Randomize progress
-        const completedCount = Math.floor(rng() * baseProg.topics.length);
-        const customTopics = baseProg.topics.map((t, idx) => ({
-          ...t,
-          isCompleted: idx < completedCount
-        }));
-        
-        assignedPrograms.push({
-          id: isMath ? p2Ref.id : p1Ref.id,
-          name: baseProg.name,
-          colorOklch: baseProg.colorOklch,
-          topics: customTopics
-        });
-      }
-    } else {
-      notes = "Подготовка к контрольным и повышение общего уровня успеваемости.";
-    }
-
-    batch.set(r, { 
-      name: studentNames[i], 
-      studentGender: studentGenders[i],
-      subjects: [{ name: subjects[i], price: 1000, programs: assignedPrograms }], 
-      phone: `+790012345${String(i).padStart(2, '0')}`, 
-      active: true, 
-      colorOklch: hue, 
-      balance, 
-      notes,
-      tutorId,
-      createdAt: new Date() 
-    });
-    students.push({ id: r.id, name: studentNames[i], subject: subjects[i] });
-  }
-
-  // --- Groups ---
-  const groupNames = ["Олимпиадная Физика", "Подготовка к ЕГЭ", "Разговорный клуб"];
-  const groupSubjects = ["Физика", "Математика", "Английский язык"];
-  const groups = [];
-  
-  for (let i = 0; i < groupNames.length; i++) {
-    const hue = getNextDistinctColor(allUsedColors);
-    allUsedColors.push(hue);
-    const r = doc(refs.groups);
-    // Assign 3-4 random students to each group
-    // Ensure students 0, 1, 2 (our debtors) are not in groups to keep debts sparse
-    const grStudents = [
-      students[i + 5].id,
-      students[i + 8].id,
-      students[i + 11].id
-    ];
-    let assignedPrograms = [];
-    if (groupSubjects[i] === "Физика" || groupSubjects[i] === "Математика") {
-      const isMath = groupSubjects[i] === "Математика";
-      const baseProg = isMath ? p2Data : p1Data;
-      
-      const completedCount = Math.floor(rng() * baseProg.topics.length);
-      const customTopics = baseProg.topics.map((t, idx) => ({
-        ...t,
-        isCompleted: idx < completedCount
-      }));
-      
-      assignedPrograms.push({
-        id: isMath ? p2Ref.id : p1Ref.id,
-        name: baseProg.name,
-        colorOklch: baseProg.colorOklch,
-        topics: customTopics
-      });
-    }
-
-    batch.set(r, {
-      name: groupNames[i],
-      subject: groupSubjects[i],
-      studentIds: grStudents,
-      colorOklch: hue,
-      programs: assignedPrograms,
-      active: true,
-      tutorId,
-      createdAt: new Date()
-    });
-    groups.push({ id: r.id, name: groupNames[i], subject: groupSubjects[i], studentIds: grStudents });
-  }
-
-  // --- Lessons (Scattered across 45 days) ---
-  const lessonTimes = [
-    ["10:00", "11:00"], ["11:30", "12:30"], ["14:00", "15:30"], 
-    ["16:00", "17:00"], ["17:30", "18:30"], ["19:00", "20:30"]
-  ];
-
-  // We loop from -30 days to +14 days
-  for (let offset = -30; offset <= 14; offset++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() + offset);
-    const dateStr = formatDate(d);
-    
-    // Skip 1 day a week deterministically (every 7th day relative to offset)
-    // We use Math.abs(offset) % 7 === 3 to spread it out.
-    if (Math.abs(offset) % 7 === 3) continue;
-
-    // Generate 3-5 lessons per day
-    const lessonsCount = Math.floor(rng() * 3) + 3; 
-    for (let i = 0; i < lessonsCount; i++) {
-      let isGroup = rng() > 0.8;
-      const timePair = lessonTimes[i];
-      const isPast = offset < 0;
-      const isToday = offset === 0;
-
-      const lRef = doc(refs.lessons);
-      
-      let status = "scheduled";
-      let homework = "";
-      let hwDoneBy = [];
-
-      let gr = null;
-      let st = null;
-      
-      let forceStIndex = -1;
-      
-      // Inject past debts (to ensure they appear in the debt lists)
-      if (offset === -1 && i === 0) forceStIndex = 0; // Missed HW
-      else if (offset === -2 && i === 0) forceStIndex = 2; // Missed HW
-      
-      // Inject perfect future distribution (offsets 1, 2, 4, 5, 8, 9 - skipping 3, 10 which are dropped by modulo)
-      else if (offset >= 0 && i === 0) {
-        if (offset === 1) forceStIndex = 2; // BOTH
-        else if (offset === 2 || offset === 5 || offset === 9) forceStIndex = 0; // BLUE
-        else if (offset === 4 || offset === 8) forceStIndex = 1; // RED
-      }
-      
-      if (forceStIndex !== -1) isGroup = false;
-
-      if (isGroup) {
-        gr = groups[i % groups.length];
-      } else {
-        if (forceStIndex !== -1) {
-          st = students[forceStIndex];
-        } else {
-          // SAFE students for ALL other lessons (past and future)
-          // This guarantees absolutely no stray dots anywhere.
-          st = students[3 + Math.floor(rng() * 12)];
-        }
-      }
-
-      if (isPast) {
-        if (forceStIndex !== -1) {
-          status = "conducted";
-          homework = "Выполнить тест";
-          hwDoneBy = []; // forced debtor doesn't do it
-        } else {
-          status = rng() > 0.1 ? "conducted" : "cancelled";
-          if (status === "conducted" && rng() > 0.3) {
-             homework = "Выполнить тест";
-             // 80% chance they did the homework
-             // Students 0 and 2 never do homework, others always do.
-             const st0 = students[0].id;
-             const st2 = students[2].id;
-             if (isGroup) {
-               hwDoneBy = [...gr.studentIds];
-               if (hwDoneBy.includes(st0)) hwDoneBy = hwDoneBy.filter(id => id !== st0);
-               if (hwDoneBy.includes(st2)) hwDoneBy = hwDoneBy.filter(id => id !== st2);
-             } else {
-               hwDoneBy = (st.id === st0 || st.id === st2) ? [] : [st.id];
-             }
-          }
-        }
-      }
-
-      if (isGroup) {
-        batch.set(lRef, {
-          tutorId, date: dateStr, startTime: timePair[0], endTime: timePair[1],
-          type: "group", groupId: gr.id, displayName: gr.name, subjectName: gr.subject,
-          price: 2500, status, homework, hwDoneBy
-        });
-      } else {
-
-        batch.set(lRef, {
-          tutorId, date: dateStr, startTime: timePair[0], endTime: timePair[1],
-          type: "individual", studentId: st.id, displayName: st.name, subjectName: st.subject,
-          price: 1500, status, homework, hwDoneBy
-        });
-      }
-    }
-  }
-
-  // --- Payments (Scattered across last 6 months to build chart) ---
-  for (let mOffset = 0; mOffset <= 5; mOffset++) {
-    // 5-8 payments per month
-    const payCount = Math.floor(rng() * 4) + 5;
-    for (let i = 0; i < payCount; i++) {
-      const pRef = doc(refs.payments);
-      const st = students[Math.floor(rng() * students.length)];
-      const amount = (Math.floor(rng() * 4) + 1) * 5000; // 5000, 10000, 15000, 20000
-      
-      // Random day in that month
-      const payDate = new Date(now.getFullYear(), now.getMonth() - mOffset, Math.floor(rng() * 28) + 1);
-      
-      batch.set(pRef, {
-        tutorId,
-        studentId: st.id,
-        studentName: st.name,
-        amount,
-        paidAt: payDate.toISOString(),
-        comment: "Оплата за занятия"
-      });
-    }
-  }
-
-  await batch.commit();
+function getMondayOf(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
-export async function clearAllTutorData(tutorId) {
-  if (!tutorId) return;
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
 
-  const refs = {
-    students: collection(db, "students"),
-    groups: collection(db, "groups"),
-    lessons: collection(db, "lessons"),
-    payments: collection(db, "payments"),
-    programs: collection(db, "programs")
+function genId(prefix = "") {
+  return prefix + Math.random().toString(36).slice(2, 11);
+}
+
+function rnd(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ─── Основная функция генерации ───────────────────────────────────────────────
+
+/**
+ * Генерирует полную базу данных для демо-режима в виде JSON-объекта.
+ * @returns {Object} { programs, students, groups, lessons, payments, users, user_config }
+ */
+export function generateDemoData(tutorId = "demo_tutor") {
+  const now = new Date();
+  const todayStr = fmtDate(now);
+  const monday = getMondayOf(now);
+  const usedColors = [];
+
+  const db = {
+    programs: [],
+    students: [],
+    groups: [],
+    lessons: [],
+    payments: [],
+    users: [
+      {
+        id: tutorId,
+        email: "demo@tochilka.app",
+        name: "Демо-репетитор",
+        avatar: "",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString()
+      }
+    ],
+    user_config: [
+      {
+        id: genId("cfg_"),
+        user: tutorId,
+        onboardingCompleted: true,
+        defaultLessonDuration: 60,
+        currency: "RUB",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString()
+      }
+    ]
   };
 
-  let b = writeBatch(db);
-  let count = 0;
-  const batches = [];
+  const getCol = () => {
+    const c = getNextDistinctColor(usedColors);
+    usedColors.push(c);
+    return c;
+  };
 
-  for (const collectionName of Object.keys(refs)) {
-    const q = query(refs[collectionName], where("tutorId", "==", tutorId));
-    const snap = await getDocs(q);
-    snap.forEach((docSnap) => {
-      b.delete(docSnap.ref);
-      count++;
-      if (count === 400) {
-        batches.push(b.commit());
-        b = writeBatch(db);
-        count = 0;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1. ПРОГРАММЫ (5 штук)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const progDefs = [
+    {
+      name: "ЕГЭ Математика Профиль",
+      subject: "Математика",
+      topics: [
+        { id: genId(), title: "Алгебраические выражения", homework: "Решить варианты 1-3 из сборника" },
+        { id: genId(), title: "Уравнения и неравенства", homework: "Задачи с параметром, номера 15-25" },
+        { id: genId(), title: "Планиметрия: треугольники", homework: "Доказать теорему синусов, 5 задач" },
+        { id: genId(), title: "Стереометрия: сечения", homework: "Построить сечения призмы" },
+        { id: genId(), title: "Тригонометрия", homework: "Выучить формулы приведения, решить тест" },
+        { id: genId(), title: "Производная", homework: "Найти экстремумы функций из файла" },
+        { id: genId(), title: "Финансовая математика", homework: "Задачи на аннуитетный платеж" },
+        { id: genId(), title: "Теория вероятностей", homework: "Решить сложные вероятностные задачи" }
+      ],
+    },
+    {
+      name: "Физика: Классическая механика",
+      subject: "Физика",
+      topics: [
+        { id: genId(), title: "Кинематика материальной точки", homework: "Иродов 1.1-1.10" },
+        { id: genId(), title: "Динамика и законы Ньютона", homework: "Иродов 1.20-1.30" },
+        { id: genId(), title: "Закон сохранения импульса", homework: "Решить задачи на абсолютно упругий удар" },
+        { id: genId(), title: "Закон сохранения энергии", homework: "Подборка задач на потенциальную энергию" },
+        { id: genId(), title: "Статика", homework: "Правило моментов, задачи 5-10" },
+        { id: genId(), title: "Гидростатика", homework: "Закон Архимеда, варианты ОГЭ" },
+        { id: genId(), title: "Кинематика твердого тела", homework: "Сложные задачи из методички" },
+        { id: genId(), title: "Колебания и волны", homework: "Математический и пружинный маятники" }
+      ],
+    },
+    {
+      name: "Литература Золотого века",
+      subject: "Литература",
+      topics: [
+        { id: genId(), title: "Творчество А.С. Пушкина", homework: "Выучить отрывок из 'Евгения Онегина'" },
+        { id: genId(), title: "М.Ю. Лермонтов", homework: "Анализ стихотворения 'Смерть поэта'" },
+        { id: genId(), title: "Н.В. Гоголь 'Мертвые души'", homework: "Характеристика помещиков" },
+        { id: genId(), title: "И.С. Тургенев", homework: "Проблема отцов и детей" },
+        { id: genId(), title: "Ф.М. Достоевский", homework: "Теория Раскольникова" },
+        { id: genId(), title: "Л.Н. Толстой", homework: "Мысль семейная в романе" },
+        { id: genId(), title: "А.П. Чехов", homework: "Анализ рассказов 'Ионыч', 'Крыжовник'" },
+        { id: genId(), title: "Поэзия Тютчева и Фета", homework: "Сравнительный анализ пейзажной лирики" }
+      ],
+    },
+    {
+      name: "Информатика ОГЭ/ЕГЭ",
+      subject: "Информатика",
+      topics: [
+        { id: genId(), title: "Системы счисления", homework: "Перевод из 2-й в 10-ю и 16-ю, 20 примеров" },
+        { id: genId(), title: "Алгебра логики", homework: "Построение таблиц истинности" },
+        { id: genId(), title: "Графы и пути", homework: "Задание 13 из ЕГЭ, 5 вариантов" },
+        { id: genId(), title: "Электронные таблицы", homework: "ВПР, СУММЕСЛИ, работа со строками" },
+        { id: genId(), title: "Основы Python", homework: "Циклы for/while, списки" },
+        { id: genId(), title: "Строки в Python", homework: "Обработка символов, срезы" },
+        { id: genId(), title: "Рекурсия", homework: "Вычисление факториала и чисел Фибоначчи" },
+        { id: genId(), title: "Черепашка и алгоритмы", homework: "Задачи на исполнителей" }
+      ],
+    }
+  ];
+
+  for (const def of progDefs) {
+    const p = {
+      id: genId("p_"),
+      tutorId,
+      name: def.name,
+      subject: def.subject,
+      topics: def.topics,
+      colorOklch: getCol(),
+      colorVersion: 2,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString()
+    };
+    db.programs.push(p);
+  }
+
+  const [pMath, pPhys, pLit, pInfo] = db.programs;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2. УЧЕНИКИ (Знаменитости)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Требования:
+  // - 1-2 только долг по ДЗ (hw)
+  // - 1-2 только долг по деньгам (fin)
+  // - 1-2 долг и по ДЗ, и по деньгам (both)
+  // - Остальные чистые (clean)
+  
+  const studentDefs = [
+    // ── Чистые ──
+    { name: "Альберт Эйнштейн",  subject: "Физика",      prog: pPhys, tops: 5, role: "clean" },
+    { name: "Исаак Ньютон",      subject: "Физика",      prog: pPhys, tops: 4, role: "clean" },
+    { name: "Никола Тесла",      subject: "Информатика", prog: pInfo, tops: 3, role: "clean" },
+    { name: "Мария Кюри",        subject: "Физика",      prog: pPhys, tops: 7, role: "clean" },
+    { name: "Леонард Эйлер",     subject: "Математика",  prog: pMath, tops: 6, role: "clean" },
+    { name: "Рене Декарт",       subject: "Математика",  prog: pMath, tops: 2, role: "clean" },
+    { name: "Карл Гаусс",        subject: "Математика",  prog: pMath, tops: 4, role: "clean" },
+    { name: "Алан Тьюринг",      subject: "Информатика", prog: pInfo, tops: 5, role: "clean" },
+    { name: "Ада Лавлейс",       subject: "Информатика", prog: pInfo, tops: 2, role: "clean" },
+    { name: "Александр Пушкин",  subject: "Литература",  prog: pLit,  tops: 3, role: "clean" },
+    { name: "Михаил Лермонтов",  subject: "Литература",  prog: pLit,  tops: 1, role: "clean" },
+    { name: "Антон Чехов",       subject: "Литература",  prog: pLit,  tops: 4, role: "clean" },
+    // ── Долги по ДЗ ──
+    { name: "Михаил Булгаков",   subject: "Литература",  prog: pLit,  tops: 2, role: "hw" },
+    { name: "Стивен Хокинг",     subject: "Физика",      prog: pPhys, tops: 3, role: "hw" },
+    // ── Финансовые должники ──
+    { name: "Федор Достоевский", subject: "Литература",  prog: pLit,  tops: 2, role: "fin" },
+    { name: "Джон фон Нейман",   subject: "Математика",  prog: pMath, tops: 4, role: "fin" },
+    // ── Долги по всему ──
+    { name: "Галилео Галилей",   subject: "Физика",      prog: pPhys, tops: 1, role: "both" },
+    { name: "Лев Толстой",       subject: "Литература",  prog: pLit,  tops: 3, role: "both" }
+  ];
+
+  for (const def of studentDefs) {
+    const programSnap = {
+      id: def.prog.id,
+      name: def.prog.name,
+      colorOklch: def.prog.colorOklch,
+      topics: def.prog.topics.map((t, idx) => ({
+        ...t,
+        isCompleted: idx < def.tops,
+      })),
+    };
+
+    const isFemale = def.name === "Мария Кюри" || def.name === "Ада Лавлейс";
+    
+    const s = {
+      id: genId("s_"),
+      tutorId,
+      name: def.name,
+      studentGender: isFemale ? "female" : "male",
+      grade: Math.random() > 0.5 ? "11 класс" : "10 класс",
+      subjects: [{
+        id: genId(),
+        name: def.subject,
+        price: 2000,
+        duration: 60,
+        paymentType: "per_lesson",
+        subscriptionLessons: null,
+        programs: [programSnap]
+      }],
+      phone: `+7${String(9001000000 + Math.floor(Math.random() * 1000000)).slice(0, 10)}`,
+      active: true,
+      colorOklch: getCol(),
+      colorVersion: 2,
+      balance: 0, 
+      notes: "Студент сгенерирован в демо-режиме",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      _role: def.role, 
+      _price: 2000
+    };
+    db.students.push(s);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3. ГРУППЫ (3 штуки)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const getStudentsBySubj = (subj, limit) => db.students.filter(s => s.subjects[0].name === subj).slice(0, limit);
+  
+  const mathGroupStudents = getStudentsBySubj("Математика", 3);
+  const physGroupStudents = getStudentsBySubj("Физика", 3);
+  const infoGroupStudents = getStudentsBySubj("Информатика", 3);
+
+  const groupDefs = [
+    { name: "Высшая математика", subject: "Математика", students: mathGroupStudents, prog: pMath },
+    { name: "Олимпиадная физика", subject: "Физика", students: physGroupStudents, prog: pPhys },
+    { name: "Алгоритмы Python", subject: "Информатика", students: infoGroupStudents, prog: pInfo },
+  ];
+
+  for (const def of groupDefs) {
+    const g = {
+      id: genId("g_"),
+      tutorId,
+      name: def.name,
+      subject: def.subject,
+      studentIds: def.students.map(s => s.id),
+      colorOklch: getCol(),
+      colorVersion: 2,
+      programs: [{ id: def.prog.id, name: def.prog.name, colorOklch: def.prog.colorOklch, topics: def.prog.topics }],
+      active: true,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      _price: 1500,
+      _students: def.students
+    };
+    db.groups.push(g);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. РАСПИСАНИЕ (Прошлая, Текущая, Будущая недели)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const balanceTracker = {};
+  for (const s of db.students) balanceTracker[s.id] = { conducted: 0, payments: 0 };
+
+  function makeLesson(entity, isGroup, dateStr, timeArr, status, homework, hwDoneBy) {
+    const base = {
+      id: genId("l_"),
+      tutorId,
+      date: dateStr,
+      startTime: timeArr[0],
+      endTime: timeArr[1],
+      price: entity._price,
+      status,
+      homework,
+      hwDoneBy,
+      notes: status === 'conducted' ? "Отлично поработали!" : "",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString()
+    };
+    if (isGroup) {
+      return {
+        ...base,
+        type: "group",
+        groupId: entity.id,
+        groupStudentIds: entity.studentIds,
+        displayName: entity.name,
+        subjectName: entity.subject,
+      };
+    }
+    return {
+      ...base,
+      type: "individual",
+      studentId: entity.id,
+      displayName: entity.name,
+      subjectName: entity.subjects[0].name,
+    };
+  }
+
+  // Простая сетка уроков для распределения
+  const schedulePattern = [
+    // Пн
+    [ { e: db.students[0], g: false, t: ["09:00","10:00"] }, { e: db.students[1], g: false, t: ["10:30","11:30"] }, { e: db.groups[0], g: true, t: ["17:00","18:30"] } ],
+    // Вт
+    [ { e: db.students[2], g: false, t: ["11:00","12:00"] }, { e: db.students[3], g: false, t: ["13:00","14:00"] }, { e: db.groups[1], g: true, t: ["16:00","17:30"] } ],
+    // Ср
+    [ { e: db.students[4], g: false, t: ["10:00","11:00"] }, { e: db.students[5], g: false, t: ["12:00","13:00"] }, { e: db.groups[2], g: true, t: ["18:00","19:30"] } ],
+    // Чт
+    [ { e: db.students[6], g: false, t: ["09:00","10:00"] }, { e: db.students[7], g: false, t: ["14:00","15:00"] }, { e: db.students[8], g: false, t: ["15:30","16:30"] } ],
+    // Пт
+    [ { e: db.students[9], g: false, t: ["11:00","12:00"] }, { e: db.students[10], g: false, t: ["13:00","14:00"] }, { e: db.students[11], g: false, t: ["16:00","17:00"] } ],
+    // Сб
+    [ { e: db.students[12], g: false, t: ["10:00","11:00"] }, { e: db.students[13], g: false, t: ["11:30","12:30"] }, { e: db.students[14], g: false, t: ["13:00","14:00"] } ],
+    // Вс
+    [ { e: db.students[15], g: false, t: ["12:00","13:00"] }, { e: db.students[16], g: false, t: ["14:00","15:00"] }, { e: db.students[17], g: false, t: ["16:00","17:00"] } ]
+  ];
+
+  // Генерируем 3 недели: прошлая, текущая, будущая (только ближайшие 3-4 дня)
+  for (let weekOffset = -1; weekOffset <= 1; weekOffset++) {
+    const weekStart = addDays(monday, weekOffset * 7);
+    
+    for (let dow = 0; dow < 7; dow++) {
+      const lessonDate = addDays(weekStart, dow);
+      const dateStr = fmtDate(lessonDate);
+      
+      // Для будущей недели берем только первые 4 дня
+      if (weekOffset === 1 && dow > 3) continue;
+
+      const isPast = dateStr < todayStr;
+      const isToday = dateStr === todayStr;
+
+      for (const slot of schedulePattern[dow]) {
+        let status = "scheduled";
+        if (isPast) status = "conducted";
+        else if (isToday) {
+          const lessonHour = parseInt(slot.t[0].split(":")[0]);
+          if (lessonHour <= now.getHours()) status = "conducted";
+        }
+
+        // Логика домашек: если урок проведен, есть домашка.
+        let hwText = "";
+        let hwDoneBy = [];
+        
+        if (status === "conducted") {
+          hwText = "Сделать задания в рабочей тетради, стр 12-15.";
+          
+          if (slot.g) {
+            hwDoneBy = slot.e.studentIds.filter(sid => {
+              const studentRole = db.students.find(s => s.id === sid)?._role;
+              return studentRole !== "hw" && studentRole !== "both";
+            });
+          } else {
+            if (slot.e._role !== "hw" && slot.e._role !== "both") {
+              hwDoneBy = [slot.e.id];
+            }
+          }
+
+          // Финансовый учет
+          const cost = slot.e._price;
+          if (slot.g) {
+            slot.e.studentIds.forEach(sid => balanceTracker[sid].conducted += cost);
+          } else {
+            balanceTracker[slot.e.id].conducted += cost;
+          }
+        }
+
+        db.lessons.push(makeLesson(slot.e, slot.g, dateStr, slot.t, status, hwText, hwDoneBy));
       }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 5. ПЛАТЕЖИ И БАЛАНСЫ
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function addPay(student, amount, dateStr) {
+    if (amount <= 0) return;
+    balanceTracker[student.id].payments += amount;
+    db.payments.push({
+      id: genId("pay_"),
+      tutorId,
+      studentId: student.id,
+      studentName: student.name,
+      amount,
+      paidAt: new Date(`${dateStr}T12:00:00Z`).toISOString(),
+      comment: "Оплата за занятия",
+      currency: "RUB",
+      created: new Date().toISOString(),
+      updated: new Date().toISOString()
     });
   }
 
-  if (count > 0) {
-    batches.push(b.commit());
+  const lastWeekPayDate = fmtDate(addDays(monday, -4));
+
+  for (const s of db.students) {
+    const owes = balanceTracker[s.id].conducted;
+    
+    if (s._role === "fin" || s._role === "both") {
+      // Должник: оплатил меньше, чем должен
+      // Пусть должен за 2 урока (баланс отрицательный)
+      addPay(s, Math.max(0, owes - 4000), lastWeekPayDate);
+    } else {
+      // Обычный ученик: баланс ноль или в плюсе (аванс)
+      const prepay = Math.random() > 0.7 ? 4000 : 0; 
+      addPay(s, owes + prepay, lastWeekPayDate);
+    }
   }
 
-  await Promise.all(batches);
+  // Корректировка балансов в профилях студентов
+  for (const s of db.students) {
+    const t = balanceTracker[s.id];
+    s.balance = t.payments - t.conducted;
+    delete s._role;
+    delete s._price;
+  }
+  for (const g of db.groups) {
+    delete g._price;
+    delete g._students;
+  }
+
+  // Подсчет долгов по ДЗ
+  const hwDebtMap = {};
+  for (const lesson of db.lessons) {
+    if (lesson.status !== "conducted" || !lesson.homework) continue;
+    
+    if (lesson.type === "individual") {
+      if (!(lesson.hwDoneBy || []).includes(lesson.studentId)) {
+        hwDebtMap[lesson.studentId] = (hwDebtMap[lesson.studentId] || 0) + 1;
+      }
+    } else {
+      for (const sid of (lesson.groupStudentIds || [])) {
+        if (!(lesson.hwDoneBy || []).includes(sid)) {
+          hwDebtMap[sid] = (hwDebtMap[sid] || 0) + 1;
+        }
+      }
+    }
+  }
+
+  for (const s of db.students) {
+    if (hwDebtMap[s.id]) {
+      s.hwDebtCount = hwDebtMap[s.id];
+    }
+  }
+
+  return db;
+}
+
+export function clearAllTutorData() {
+  localStorage.removeItem("demo_db");
 }

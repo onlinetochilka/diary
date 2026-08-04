@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, Button, Tooltip } from "../components/ui/index.js";
-import { db } from "../services/firebase.js";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import pb from "../services/pocketbase.js";
 import { getEntityStyle } from "../utils/colors.js";
 import { Phone, BookOpen, LogOut, Loader2 } from "lucide-react";
 
@@ -14,15 +13,12 @@ export default function GuestPortalView({ hash }) {
     // В реальном приложении мы бы искали по хешу, 
     // но сейчас для демо просто найдем любого ученика, 
     // если хеша нет в базе (мокируем).
+    // TODO: В продакшене — кастомный PocketBase endpoint для гостевого доступа по hash.
     const fetchStudent = async () => {
       try {
-        const studentsRef = collection(db, "students");
-        // Замокаем успешную загрузку первого попавшегося, если нет реального UUID.
-        // В проде: query(studentsRef, where("guestHash", "==", hash))
-        const snapshot = await getDocs(studentsRef);
-        if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
-          setStudent({ id: doc.id, ...doc.data() });
+        const records = await pb.collection("students").getList(1, 1);
+        if (records.items.length > 0) {
+          setStudent(records.items[0]);
         } else {
           setError("Ученик не найден");
         }

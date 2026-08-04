@@ -347,6 +347,7 @@ export default function StudentFormDrawer({
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 error={errors.name}
+                maxLength={500}
                 required
                 disabled={isSubmitting}
               />
@@ -368,6 +369,7 @@ export default function StudentFormDrawer({
                   label="Класс / Возраст"
                   value={formData.grade}
                   onChange={(e) => handleChange("grade", e.target.value)}
+                  maxLength={50}
                   required
                   disabled={isSubmitting}
                   list={gradeListId}
@@ -423,6 +425,7 @@ export default function StudentFormDrawer({
                 value={formData.studentContact}
                 onChange={(e) => handleChange("studentContact", e.target.value)}
                 error={errors.studentContact}
+                maxLength={100}
                 disabled={isSubmitting}
               />
               
@@ -437,6 +440,7 @@ export default function StudentFormDrawer({
                       label="Имя родителя"
                       value={formData.parentName}
                       onChange={(e) => handleChange("parentName", e.target.value)}
+                      maxLength={150}
                       disabled={isSubmitting}
                     />
                     <Select
@@ -454,6 +458,7 @@ export default function StudentFormDrawer({
                       value={formData.parentContact}
                       onChange={(e) => handleChange("parentContact", e.target.value)}
                       error={errors.parentContact}
+                      maxLength={100}
                       disabled={isSubmitting}
                     />
                   </div>

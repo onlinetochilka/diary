@@ -180,11 +180,24 @@ export default function LessonInspector({
     e.preventDefault();
     if (isSubmitting) return;
     
+    const newErrors = {};
+    if (formData.type === "individual" && !formData.studentId) newErrors.studentId = "Выберите ученика";
+    if (formData.type === "group" && !formData.groupId) newErrors.groupId = "Выберите группу";
+    if (!formData.subjectName) newErrors.subjectName = "Укажите предмет";
+    if (!formData.date) newErrors.date = "Укажите дату";
+    if (!formData.startTime) newErrors.startTime = "Укажите время начала";
+    if (!formData.endTime) newErrors.endTime = "Укажите время окончания";
+    if (formData.isRecurring && !formData.repeatUntil) newErrors.repeatUntil = "Укажите дату окончания повторений";
+
     // Validate Time Inversion
     const startObj = new Date(`1970-01-01T${formData.startTime}:00Z`);
     const endObj = new Date(`1970-01-01T${formData.endTime}:00Z`);
     if (startObj >= endObj) {
-      setErrors({ time: "Время начала должно быть раньше времени окончания" });
+      newErrors.time = "Время начала должно быть раньше времени окончания";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -300,29 +313,29 @@ export default function LessonInspector({
                   <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Ученик</p>
                   <select
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.studentId && "border-red-300 ring-2 ring-red-100")}
                     value={formData.studentId}
                     onChange={(e) => handleChange("studentId", e.target.value)}
-                    required
                     disabled={isSubmitting}
                   >
                     <option value="" disabled>Выберите ученика</option>
                     {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
+                  {errors.studentId && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.studentId}</p>}
                 </div>
                 ) : (
                   <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Группа</p>
                   <select
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.groupId && "border-red-300 ring-2 ring-red-100")}
                     value={formData.groupId}
                     onChange={(e) => handleChange("groupId", e.target.value)}
-                    required
                     disabled={isSubmitting}
                   >
                     <option value="" disabled>Выберите группу</option>
                     {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                   </select>
+                  {errors.groupId && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.groupId}</p>}
                 </div>
                 )}
 
@@ -330,12 +343,13 @@ export default function LessonInspector({
                   <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Предмет</p>
                   <input
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.subjectName && "border-red-300 ring-2 ring-red-100")}
                     value={formData.subjectName}
                     onChange={(e) => handleChange("subjectName", e.target.value)}
-                    required
+                    maxLength={100}
                     disabled={isSubmitting}
                   />
+                  {errors.subjectName && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.subjectName}</p>}
                 </div>
                   <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Статус</p>
@@ -389,13 +403,13 @@ export default function LessonInspector({
                 <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Дата</p>
                   <input
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.date && "border-red-300 ring-2 ring-red-100")}
                     type="date"
-                  value={formData.date}
-                  onChange={(e) => handleChange("date", e.target.value)}
-                  required
-                  disabled={isSubmitting}
+                    value={formData.date}
+                    onChange={(e) => handleChange("date", e.target.value)}
+                    disabled={isSubmitting}
                   />
+                  {errors.date && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.date}</p>}
                 </div>
                 {!initialData?.id && (
                   <div className="space-y-3 pt-1 border-t border-stone-100/50">
@@ -418,13 +432,13 @@ export default function LessonInspector({
                         <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">До какой даты?</p>
                   <input
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.repeatUntil && "border-red-300 ring-2 ring-red-100")}
                     type="date"
-                          value={formData.repeatUntil}
-                          onChange={(e) => handleChange("repeatUntil", e.target.value)}
-                          required={formData.isRecurring}
-                          disabled={isSubmitting}
+                    value={formData.repeatUntil}
+                    onChange={(e) => handleChange("repeatUntil", e.target.value)}
+                    disabled={isSubmitting}
                   />
+                  {errors.repeatUntil && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.repeatUntil}</p>}
                 </div>
                       </div>
                     )}
@@ -435,24 +449,24 @@ export default function LessonInspector({
                     <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Начало</p>
                   <input
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.startTime && "border-red-300 ring-2 ring-red-100")}
                     type="time"
-                      value={formData.startTime}
-                      onChange={(e) => handleChange("startTime", e.target.value)}
-                      required
-                      disabled={isSubmitting}
+                    value={formData.startTime}
+                    onChange={(e) => handleChange("startTime", e.target.value)}
+                    disabled={isSubmitting}
                   />
+                  {errors.startTime && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.startTime}</p>}
                 </div>
                     <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Конец</p>
                   <input
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.endTime && "border-red-300 ring-2 ring-red-100")}
                     type="time"
-                      value={formData.endTime}
-                      onChange={(e) => handleChange("endTime", e.target.value)}
-                      required
-                      disabled={isSubmitting}
+                    value={formData.endTime}
+                    onChange={(e) => handleChange("endTime", e.target.value)}
+                    disabled={isSubmitting}
                   />
+                  {errors.endTime && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.endTime}</p>}
                 </div>
                   </div>
                   {errors.time && (
@@ -539,6 +553,7 @@ export default function LessonInspector({
                     value={formData.homework}
                     onChange={(e) => handleChange("homework", e.target.value)}
                     placeholder="Опишите задание для ученика..."
+                    maxLength={1000}
                     className="w-full min-h-[150px] p-3 text-sm text-stone-800 bg-stone-50 rounded-xl border border-stone-200/60 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition-all outline-none resize-y"
                     disabled={isSubmitting}
                   />
@@ -691,6 +706,7 @@ export default function LessonInspector({
                 value={formData.notes}
                 onChange={(e) => handleChange("notes", e.target.value)}
                 placeholder="Как прошел урок? Что повторить? (видны только вам)"
+                maxLength={1000}
                 className="w-full min-h-[250px] p-3 text-sm text-stone-800 bg-stone-50 rounded-xl border border-stone-200/60 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition-all outline-none resize-y"
                 disabled={isSubmitting}
               />

@@ -137,6 +137,11 @@ export default function GroupFormDrawer({
     e.preventDefault();
     if (isSubmitting) return;
     
+    if (!formData.name || !formData.name.trim()) {
+      setErrors({ name: "Укажите название группы" });
+      return;
+    }
+    
     if (!formData.subjectName || !formData.subjectName.trim()) {
       setErrors({ subjectName: "Укажите предмет для группы" });
       return;
@@ -230,7 +235,8 @@ export default function GroupFormDrawer({
               value={formData.name}
               onChange={(e) => handleChange("name", e.target.value)}
               placeholder="Например: ОГЭ Интенсив"
-              required
+              error={errors.name}
+              maxLength={150}
               disabled={isSubmitting}
             />
             
@@ -241,7 +247,7 @@ export default function GroupFormDrawer({
                   value={formData.subjectName}
                   onChange={(e) => handleChange("subjectName", e.target.value)}
                   error={errors.subjectName}
-                  required
+                  maxLength={100}
                   disabled={isSubmitting}
                   list={datalistId}
                   autoComplete="off"

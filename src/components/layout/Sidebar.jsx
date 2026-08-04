@@ -73,7 +73,7 @@ export const NAV_ITEMS = [
 export default function Sidebar({ activePage, onNavigate }) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
-  const isAnonymous = pb.authStore.record?.email?.startsWith("demo_");
+  const isAnonymous = localStorage.getItem("isDemoMode") === "true";
 
   const handleToggleDemo = async () => {
     if (isLoading) return;
@@ -81,39 +81,23 @@ export default function Sidebar({ activePage, onNavigate }) {
 
     try {
       if (isAnonymous) {
-        // Exit demo: sign out immediately (don't wait for data cleanup)
-        const tutorId = pb.authStore.record?.id;
+        localStorage.removeItem("isDemoMode");
+        localStorage.removeItem("demo_db");
         pb.authStore.clear();
-        window.location.reload();
-        // Cleanup happens before reload call returns (fire and forget)
-        if (tutorId) {
-          clearAllTutorData(tutorId).catch((err) => {
-            console.warn("Demo data cleanup failed (non-critical):", err);
-          });
-        }
+        window.location.href = "/";
       } else {
-        // Enter demo: confirm, sign out, sign in anonymously, generate data
         if (!window.confirm("Это выведет вас из текущего аккаунта и запустит изолированный демо-режим. Продолжить?")) {
           setIsLoading(false);
           return;
         }
         pb.authStore.clear();
-        const demoId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-        const demoEmail = `demo_${demoId}@tochilka.app`;
-        const demoPassword = `Demo_${Math.random().toString(36).slice(-10)}!1`;
-        setLoadingMsg("Создаём аккаунт...");
-        await pb.collection("users").create({ email: demoEmail, password: demoPassword, passwordConfirm: demoPassword, name: "Демо-репетитор" });
-        await pb.collection("users").authWithPassword(demoEmail, demoPassword);
-        // AWAIT data generation — don't reload until data is ready!
-        setLoadingMsg("Данные...");
-        await generateDemoData(pb.authStore.record?.id);
-        window.location.reload();
+        localStorage.setItem("isDemoMode", "true");
+        localStorage.removeItem("demo_db");
+        window.location.href = "/";
       }
     } catch (err) {
-      console.error("[Sidebar] demo toggle error:", err?.status, err?.message);
-      alert(`Произошла ошибка: ${err?.message || "неизвестная"}`);
+      console.error("[Sidebar] demo toggle error:", err);
       setIsLoading(false);
-      setLoadingMsg("");
     }
   };
 
