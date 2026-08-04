@@ -9,7 +9,6 @@
 import { cn } from "../../utils/cn.js";
 import { NAV_ITEMS } from "./Sidebar.jsx";
 import pb from "../../services/pocketbase.js";
-import { clearAllTutorData } from "../../utils/demoData.js";
 import { useState } from "react";
 
 const activeColors = {
@@ -37,18 +36,16 @@ const activeIconColors = {
  */
 export default function BottomTabs({ activePage, onNavigate }) {
   const [isExiting, setIsExiting] = useState(false);
-  const isAnonymous = pb.authStore.record?.email?.startsWith("demo_");
+  const isAnonymous = localStorage.getItem("isDemoMode") === "true";
 
   const handleExitDemo = async () => {
     if (isExiting) return;
     setIsExiting(true);
     try {
-      const tutorId = pb.authStore.record?.id;
+      localStorage.removeItem("isDemoMode");
+      localStorage.removeItem("demo_db");
       pb.authStore.clear();
-      window.location.reload();
-      if (tutorId) {
-        clearAllTutorData(tutorId).catch(() => {});
-      }
+      window.location.href = "/";
     } catch (err) {
       console.error("Exit demo error:", err);
       setIsExiting(false);
