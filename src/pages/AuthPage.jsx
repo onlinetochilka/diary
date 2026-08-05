@@ -17,15 +17,56 @@ export default function AuthPage() {
   const [success, setSuccess] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [searchParams] = useSearchParams();
   
   const token = searchParams.get("token");
-  const [mode, setMode] = useState(token ? "reset" : (searchParams.get("mode") === "register" ? "register" : "login"));
+  const action = searchParams.get("action"); // 'reset-password' | 'verify-email' | 'confirm-email-change'
+  
+  const getInitialMode = () => {
+    if (token) {
+      if (action === "verify-email") return "verify";
+      if (action === "confirm-email-change") return "confirm-email";
+      return "reset"; // default for backwards compatibility
+    }
+    return searchParams.get("mode") === "register" ? "register" : "login";
+  };
+  
+  const [mode, setMode] = useState(getInitialMode());
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Automatically execute verification actions when component mounts with token
+    if (token && (mode === "verify" || mode === "confirm-email")) {
+      handleAutoActions();
+    }
+  }, [token, mode]);
+
+  const handleAutoActions = async () => {
+    setIsLoading(true);
+    try {
+      if (mode === "verify") {
+        await pb.collection("users").confirmVerification(token);
+        setSuccess("Ваш email успешно подтвержден! Теперь вы можете войти.");
+      } else if (mode === "confirm-email") {
+        await pb.collection("users").confirmEmailChange(token);
+        setSuccess("Ваш email успешно изменён! Войдите с новым адресом.");
+      }
+      setMode("login");
+    } catch (err) {
+      console.error("[AuthPage] auto action error:", err);
+      setError("Ссылка недействительна или устарела. Попробуйте запросить её снова.");
+      setMode("login");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (mode === "verify" || mode === "confirm-email") return; // Handled automatically
+
+    if (mode !== "reset" && (!email || !password)) {
       setError("Пожалуйста, заполните все поля");
       return;
     }
@@ -57,6 +98,8 @@ export default function AuthPage() {
         return;
       } else if (mode === "login") {
         await pb.collection("users").authWithPassword(email, password);
+        if (!rememberMe) localStorage.setItem("dont_remember_me", "true");
+        else localStorage.removeItem("dont_remember_me");
       } else {
         // Register: create user, then authenticate
         await pb.collection("users").create({
@@ -65,6 +108,8 @@ export default function AuthPage() {
           passwordConfirm: password,
         });
         await pb.collection("users").authWithPassword(email, password);
+        if (!rememberMe) localStorage.setItem("dont_remember_me", "true");
+        else localStorage.removeItem("dont_remember_me");
       }
       refreshUser();
     } catch (err) {
@@ -274,6 +319,21 @@ export default function AuthPage() {
             </button>
           </div>
         </div>
+
+        {mode === "login" && (
+          <div className="flex items-center gap-2 pt-1 pb-1">
+            <input 
+              type="checkbox" 
+              id="remember" 
+              className="rounded text-stone-900 focus:ring-stone-900 border-stone-300 w-4 h-4 shrink-0 cursor-pointer"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            />
+            <label htmlFor="remember" className="text-[13px] text-stone-600 cursor-pointer select-none">
+              Запомнить меня на этом устройстве
+            </label>
+          </div>
+        )}
 
         {mode === "reset" && (
           <div className="space-y-1">

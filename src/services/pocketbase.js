@@ -13,6 +13,13 @@ const pb = new PocketBase(
   import.meta.env.VITE_POCKETBASE_URL || "https://api.tochilka.app"
 );
 
+if (typeof window !== "undefined") {
+  if (localStorage.getItem("dont_remember_me") === "true" && sessionStorage.getItem("session_active") !== "true") {
+    pb.authStore.clear();
+  }
+  sessionStorage.setItem("session_active", "true");
+}
+
 // Disable auto-cancellation so concurrent requests from different
 // components don't cancel each other.
 pb.autoCancellation(false);
