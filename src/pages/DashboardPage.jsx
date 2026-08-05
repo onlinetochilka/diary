@@ -168,10 +168,10 @@ export default function DashboardPage() {
             Левая колонка: список «Рабочие моменты»
             Правая колонка: «На острие пера» — sticky при скролле
       ─────────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 pb-4 lg:pb-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-6 flex-1 min-h-0 pb-4 lg:pb-0">
 
         {/* LEFT COLUMN — Action Items */}
-        <section className="lg:col-span-2 flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 h-fit max-h-full self-start w-full min-h-0 relative">
+        <section className="lg:col-span-2 flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 h-fit max-h-[500px] lg:max-h-full self-start w-full min-h-0 relative">
           <div className="flex items-center gap-2 mb-5 shrink-0">
             <AlertCircle size={20} className="text-stone-400" />
             <h2 className="text-lg font-bold text-stone-800">Что нужно проконтролировать</h2>
