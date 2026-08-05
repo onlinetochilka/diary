@@ -9,6 +9,7 @@ import { Input, Button } from "../components/ui/index.js";
 export default function AuthPage() {
   const { refreshUser } = useAuth();
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -104,6 +105,7 @@ export default function AuthPage() {
         // Register: create user, then authenticate
         await pb.collection("users").create({
           email,
+          name,
           password,
           passwordConfirm: password,
         });
@@ -270,6 +272,20 @@ export default function AuthPage() {
         </div>
 
         {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center">{error}</div>}
+
+        {mode === "register" && (
+          <div className="space-y-1 mb-4">
+            <label className="text-sm font-medium text-stone-700 ml-1">Как к вам обращаться?</label>
+            <Input
+              type="text"
+              placeholder="Ваше имя (по желанию)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-12"
+              disabled={isLoading}
+            />
+          </div>
+        )}
 
         {mode !== "reset" && (
           <div className="space-y-1">
