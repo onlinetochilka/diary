@@ -30,23 +30,23 @@ function useReveal(threshold = 0.15) {
 const SITUATIONS = [
   {
     emoji: "💸",
-    question: "«Кто мне должен за уроки? Не помню, кто платил»",
-    answer: "Автоматический баланс каждого ученика. Экран должников — видно сразу, кому пора напомнить.",
+    question: "Забудьте о путанице с оплатой!",
+    answer: "Больше не нужно вспоминать, кто уже переводил деньги за урок. Удобный дашборд покажет актуальный баланс каждого ученика и сразу подсветит тех, кому пора напомнить об оплате.",
   },
   {
     emoji: "📊",
-    question: "«Родители просят отчёт о прогрессе ребёнка»",
-    answer: "PDF-отчёт формируется за секунды. Или отправьте гостевую ссылку — родители увидят прогресс сами, без регистрации.",
+    question: "Отчеты об успеваемости — это просто!",
+    answer: "Делитесь результатами учеников за пару секунд. Скачайте красивый PDF-отчет или отправьте родителям персональную ссылку для доступа к статистике — всё наглядно и без лишних регистраций.",
   },
   {
     emoji: "📚",
-    question: "«Учебные планы в голове, блокноте и трёх файлах»",
-    answer: "Редактор курсов: модули → темы → задания. Привяжите программу к ученику и следите, сколько пройдено.",
+    question: "Все учебные планы в идеальном порядке!",
+    answer: "Попрощайтесь с хаосом в блокнотах и разрозненных файлах. Создавайте структурированные курсы, привязывайте их к ученикам и наглядно отслеживайте прогресс шаг за шагом.",
   },
   {
     emoji: "😰",
-    question: "«Неловко напоминать об оплате»",
-    answer: "Автоматическая рассылка вежливых напоминаний по гибкому расписанию — и о долгах, и о несданных ДЗ.",
+    question: "Никаких неловких разговоров!",
+    answer: "Доверьте рутину автоматике. Система сама отправит вежливые напоминания об оплате или забытой «домашке» точно в срок и по настроенному вами расписанию.",
   },
 ];
 
@@ -54,28 +54,28 @@ const FEATURES = [
   {
     icon: Calendar,
     title: "Расписание, которое работает на вас",
-    description: "Перенесите урок на другой день за секунду — просто перетащите карточку мышкой. Отслеживайте свободные окна в расписании. Отметьте проведённый урок в одно касание — баланс пересчитается автоматически.",
+    description: "Перенесите урок на другой день одним движением. Отслеживайте свободные окна в расписании и отмечайте проведённые занятия в одно касание — баланс пересчитается автоматически.",
     image: "/landing_schedule.jpg",
     color: "#B36A5E",
   },
   {
     icon: BarChart3,
     title: "Финансы под контролем",
-    description: "Баланс каждого ученика считается автоматически. Должники вынесены на отдельный экран. Автоматическая рассылка напоминаний об оплате — настройте расписание, и Точилка сама отправит вежливое сообщение.",
+    description: "Баланс каждого ученика автоматизирован, поэтому должникам от Вас не скрыться 😎 Просто настройте своё расписание — и «Точилка» сама отправит вежливое напоминание ученику или его представителю.",
     image: "/landing_finance.jpg",
     color: "#426B5C",
   },
   {
     icon: Users,
     title: "Портал для родителей",
-    description: "Отправьте родителям гостевую ссылку — они увидят прогресс ребёнка без регистрации: пройденные темы, статус ДЗ, баланс. Настройте автоматическую рассылку отчётов по расписанию.",
+    description: "Отправляйте родителям гостевую ссылку — и они увидят прогресс ребёнка: пройденные темы, статус д/з, баланс. Настраивайте автоматическую рассылку отчётов по расписанию.",
     image: "/landing_portal.jpg",
     color: "#1B4F72",
   },
   {
     icon: BookOpen,
     title: "Программы обучения",
-    description: "Создайте структуру курса: модули, темы, задания. Привяжите программу к ученику — и видите процент освоения. Импортируйте существующую программу из Excel за минуту.",
+    description: "Создавайте структуру курса: модули, темы, задания. Следите за прохождением программы и процентом её освоения. По желанию импортируйте существующую программу из Excel за минуту!",
     image: "/landing_programs.jpg",
     color: "#735B7A",
   },
@@ -83,8 +83,8 @@ const FEATURES = [
 
 const FREE_FEATURES = [
   "Расписание (месяц / неделя / день)",
-  "Перетаскивание уроков между днями",
-  "До 5 активных учеников",
+  "Перенос уроков",
+  "До 5-и активных учеников",
   "Финансы: баланс, долги",
   "Все KPI-метрики на дашборде",
   "Деморежим",
@@ -99,22 +99,22 @@ const FREE_MISSING = [
 
 const PRO_FEATURES = [
   "Всё из тарифа «Старт»",
-  "Ученики без ограничений",
+  "Добавление учеников без ограничений",
   "Группы",
   "Программы / курсы",
   "Портал для родителей",
   "PDF-отчёты об успеваемости",
   "Авторассылка отчётов родителям",
-  "Авторассылка напоминаний о долгах",
-  "Авторассылка напоминаний о ДЗ",
+  "Авторассылка напоминаний о задолженностях",
+  "Авторассылка напоминаний о д/з",
   "Excel-импорт/экспорт программ",
   "Поддержка в Telegram-сообществе",
 ];
 
 const FAQ_ITEMS = [
   {
-    q: "Что такое Точилка?",
-    a: "Рабочее пространство для репетитора: расписание, финансы, учебные программы и связь с родителями в одном окне.",
+    q: "Что такое «Точилка»?",
+    a: "Рабочее пространство для репетитора: расписание, финансы, учебные программы и связь с родителями в одном месте.",
   },
   {
     q: "Сколько стоит?",
@@ -130,15 +130,15 @@ const FAQ_ITEMS = [
   },
   {
     q: "Мои данные в безопасности?",
-    a: "Да. Данные хранятся на серверах в России (152-ФЗ). Точилка не использует ИИ и не передаёт данные третьим лицам.",
+    a: "Да. Данные хранятся на серверах в России (152-ФЗ). «Точилка» не использует ИИ и не передаёт данные третьим лицам.",
   },
   {
     q: "Работает ли на телефоне?",
-    a: "Да. Точилка — веб-приложение, адаптированное под любой экран. Работает в браузере телефона, планшета и компьютера.",
+    a: "Да. «Точилка» — веб-приложение, адаптированное под любой экран. Работает в браузере телефона, планшета и компьютера.",
   },
   {
     q: "Есть ли сообщество?",
-    a: "Да — Telegram-сообщество «Лайфхаки от Точилки». Там можно задать вопрос, предложить идею и обсудить с коллегами.",
+    a: "Да — Telegram-сообщество «Лайфхаки от «Точилки»». Задать вопрос, предложить идею и обсудить новости образования с коллегами.",
   },
 ];
 
@@ -164,10 +164,10 @@ function Navbar({ onLogin, onDemo }) {
         <div className="landing-nav__brand">
           <img
             src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg"
-            alt="Точилка"
+            alt="«Точилка»"
             className="landing-nav__logo"
           />
-          <span className="landing-nav__name">Точилка<span className="landing-nav__dot">.</span> Ежедневник</span>
+          <span className="landing-nav__name">«Точилка»<span className="landing-nav__dot">.</span> Ежедневник</span>
         </div>
 
         <div className={`landing-nav__links ${mobileOpen ? "landing-nav__links--open" : ""}`}>
@@ -207,7 +207,7 @@ function Hero({ onRegister, onDemo }) {
           Ведите учеников,<br />а не таблицы
         </h1>
         <p className="landing-hero__subtitle">
-          Расписание, финансы, программы обучения и отчёты родителям — всё в&nbsp;одном рабочем пространстве репетитора. Без&nbsp;ИИ&nbsp;— только ваши реальные данные.
+          Расписание, программа курса и отчёты для родителей — все в одном приложении!
         </p>
         <div className="landing-hero__actions">
           <button onClick={onRegister} className="landing-btn landing-btn--primary landing-btn--lg">
@@ -219,7 +219,7 @@ function Hero({ onRegister, onDemo }) {
         </div>
       </div>
       <div className={`landing-hero__visual ${vis ? "landing-reveal landing-reveal--delay-1" : "landing-reveal--hidden"}`}>
-        <img src="/landing_schedule.jpg" alt="Расписание Точилки" className="landing-hero__image" />
+        <img src="/landing_schedule.jpg" alt="Расписание «Точилки»" className="landing-hero__image" />
         <div className="landing-hero__image-glow" />
       </div>
     </section>
@@ -233,7 +233,7 @@ function Situations() {
     <section className="landing-section" ref={ref}>
       <div className={`landing-section__header ${vis ? "landing-reveal" : "landing-reveal--hidden"}`}>
         <h2 className="landing-section__title">Знакомые ситуации?</h2>
-        <p className="landing-section__subtitle">Точилка решает их за вас</p>
+        <p className="landing-section__subtitle">«Точилка» решает их за вас</p>
       </div>
       <div className="landing-situations">
         {SITUATIONS.map((s, i) => {
@@ -261,7 +261,7 @@ function Features() {
   return (
     <section className="landing-section landing-section--alt" id="features">
       <div className="landing-section__header">
-        <h2 className="landing-section__title">Что умеет Точилка</h2>
+        <h2 className="landing-section__title">Что умеет «Точилка»</h2>
         <p className="landing-section__subtitle">Четыре модуля, которые заменяют десяток приложений</p>
       </div>
       <div className="landing-features">
@@ -305,7 +305,7 @@ function NoAiBlock() {
         <div className="landing-noai__content">
           <h3 className="landing-noai__title">Без ИИ — только факты</h3>
           <p className="landing-noai__text">
-            В Точилке нет искусственного интеллекта. Все данные — ваши реальные цифры.
+            В «Точилке» нет искусственного интеллекта. Все данные — ваши реальные цифры.
             Отчёты формируются из фактических записей: проведённые уроки, полученные оплаты,
             пройденные темы. Никаких «умных» догадок, галлюцинаций и выдуманной статистики.
             Только то, что было на самом деле.
@@ -325,7 +325,7 @@ function Pricing({ onRegister }) {
     <section className="landing-section" id="pricing" ref={ref}>
       <div className={`landing-section__header ${vis ? "landing-reveal" : "landing-reveal--hidden"}`}>
         <h2 className="landing-section__title">Тарифы</h2>
-        <p className="landing-section__subtitle">Начните бесплатно, растите с нами</p>
+        <p className="landing-section__subtitle">Начинайте бесплатно, растите с нами!</p>
         <div className="landing-pricing-toggle">
           <span className={!annual ? "landing-pricing-toggle__active" : ""}>Месяц</span>
           <button
@@ -350,7 +350,7 @@ function Pricing({ onRegister }) {
               <span className="landing-pricing-card__amount">0 ₽</span>
               <span className="landing-pricing-card__period">навсегда</span>
             </div>
-            <p className="landing-pricing-card__desc">Для знакомства с Точилкой</p>
+            <p className="landing-pricing-card__desc">Для знакомства с «Точилкой»</p>
           </div>
           <ul className="landing-pricing-card__features">
             {FREE_FEATURES.map((f, i) => (
@@ -438,7 +438,7 @@ function CtaBanner({ onRegister, onDemo }) {
   return (
     <section className={`landing-cta ${vis ? "landing-reveal" : "landing-reveal--hidden"}`} ref={ref}>
       <h2 className="landing-cta__title">Готовы навести порядок в&nbsp;работе?</h2>
-      <p className="landing-cta__text">Присоединяйтесь к репетиторам, которые уже используют Точилку</p>
+      <p className="landing-cta__text">Присоединяйтесь к репетиторам, которые уже используют «Точилку»</p>
       <div className="landing-cta__actions">
         <button onClick={onRegister} className="landing-btn landing-btn--white landing-btn--lg">
           Начать бесплатно <ArrowRight size={18} />
@@ -459,10 +459,10 @@ function Footer() {
         <div className="landing-footer__brand">
           <img
             src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg"
-            alt="Точилка"
+            alt="«Точилка»"
             className="landing-footer__logo"
           />
-          <span className="landing-footer__name">Точилка<span className="landing-nav__dot">.</span> Ежедневник</span>
+          <span className="landing-footer__name">«Точилка»<span className="landing-nav__dot">.</span> Ежедневник</span>
         </div>
         <div className="landing-footer__links">
           <a href="/docs/terms.html" target="_blank" rel="noreferrer">Лицензионное соглашение</a>
@@ -472,7 +472,7 @@ function Footer() {
         <div className="landing-footer__contacts">
           <a href="mailto:info@tochilka.app">info@tochilka.app</a>
           <a href="https://t.me/tochilka_online" target="_blank" rel="noreferrer" className="landing-footer__tg">
-            <MessageCircle size={16} /> Лайфхаки от Точилки
+            <MessageCircle size={16} /> Лайфхаки от «Точилки»
           </a>
         </div>
         <p className="landing-footer__copy">© 2026 Докторова С.В.</p>
