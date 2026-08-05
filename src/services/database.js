@@ -1493,6 +1493,7 @@ export async function updateUserConfig(uid, data) {
     }
   } catch (err) {
     console.error("[updateUserConfig] Error:", err);
+    throw err;
   }
 }
 

@@ -16,16 +16,14 @@ import pb from "../services/pocketbase.js";
 import { clearAllTutorData } from "../utils/demoData.js";
 
 // ─── Design tokens ─────────────────────────────────────────────────────────
-// Flat, clean style: bg-gray-50 inputs → bg-white + ring on focus
-// Cards: bg-white border border-gray-200 shadow-sm rounded-2xl
-
+// Flat, clean style matching the global UI Kit (stone palette, #006584 accents)
 const INPUT_CLS =
-  "w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 " +
-  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
-  "focus:bg-white focus:border-transparent transition-all duration-200";
+  "w-full bg-stone-50 border border-stone-200/80 text-stone-900 text-sm rounded-xl px-3.5 py-3 " +
+  "placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#006584]/20 " +
+  "focus:bg-white focus:border-[#006584]/50 transition-all duration-200 hover:border-stone-300";
 
 const LABEL_CLS =
-  "block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5";
+  "block text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-1.5";
 
 const BTN_BASE =
   "inline-flex items-center justify-center font-medium text-sm rounded-xl " +
@@ -38,7 +36,7 @@ function FieldLabel({ children, status }) {
   return (
     <label className={`${LABEL_CLS} flex items-center justify-between`}>
       {children}
-      {status === "saving" && <Loader2 size={12} className="text-gray-400 animate-spin" />}
+      {status === "saving" && <Loader2 size={12} className="text-stone-400 animate-spin" />}
       {status === "success" && <Check size={12} className="text-emerald-500" />}
     </label>
   );
@@ -49,7 +47,7 @@ function SettingsCard({ children, className = "", danger = false }) {
     <div
       className={
         "bg-white rounded-2xl shadow-sm p-6 " +
-        (danger ? "border border-red-200 " : "border border-gray-200 ") +
+        (danger ? "border border-red-200 " : "border border-stone-200/80 ") +
         className
       }
     >
@@ -58,101 +56,147 @@ function SettingsCard({ children, className = "", danger = false }) {
   );
 }
 
-function SectionHeader({ icon: Icon, title, description, danger = false, action }) {
+function SectionHeader({ icon: Icon, title, description }) {
   return (
-    <div className="flex items-start justify-between gap-3 mb-5">
-      <div className="flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0
-          ${danger ? "bg-red-50 text-red-500" : "bg-gray-100 text-gray-500"}`}>
-          <Icon size={18} />
-        </div>
-        <div>
-          <h2 className={`text-base font-semibold ${danger ? "text-red-900" : "text-gray-900"}`}>
-            {title}
-          </h2>
-          {description && (
-            <p className={`text-sm mt-0.5 leading-snug ${danger ? "text-red-500" : "text-gray-500"}`}>
-              {description}
-            </p>
-          )}
-        </div>
+    <div className="flex items-start gap-3 mb-5 pb-4 border-b border-stone-100">
+      <div className="p-2 bg-stone-100/80 rounded-xl text-stone-600">
+        <Icon size={18} strokeWidth={2.5} />
       </div>
-      {action}
+      <div>
+        <h3 className="text-base font-bold text-stone-900 leading-tight">{title}</h3>
+        {description && <p className="text-sm text-stone-500 mt-1">{description}</p>}
+      </div>
     </div>
   );
 }
 
-// Clean toggle — no neumorphism
-function Toggle({ checked, onChange, accent = "blue" }) {
-  const colors = { blue: "bg-blue-600", amber: "bg-amber-500", violet: "bg-violet-600", emerald: "bg-emerald-500" };
-  return (
-    <button
-      type="button" role="switch" aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={
-        `relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent ` +
-        `transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ` +
-        (checked ? colors[accent] : "bg-gray-200")
-      }
-    >
-      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${checked ? "translate-x-5" : "translate-x-0"}`} />
-    </button>
-  );
-}
+// ─── Editable Components ──────────────────────────────────────────────────
 
-// Auto-save on blur
-function SaveOnBlurInput({ label, value, onSave, multiline, disabled, placeholder }) {
-  const [local, setLocal]   = useState(value ?? "");
+function SaveOnBlurInput({ label, value, onSave, multiline = false, placeholder, type = "text", ...props }) {
+  const [local, setLocal] = useState(value || "");
   const [status, setStatus] = useState("idle");
-  const timer = useRef(null);
 
-  useEffect(() => { setLocal(value ?? ""); }, [value]);
+  useEffect(() => { setLocal(value || ""); }, [value]);
 
   const handleBlur = async () => {
-    if (local === (value ?? "")) return;
+    if (local === value) return;
     setStatus("saving");
-    try {
-      await onSave(local);
-      setStatus("success");
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("idle"); }
+    await onSave(local);
+    setStatus("success");
+    setTimeout(() => setStatus("idle"), 2000);
+  };
+
+  const commonProps = {
+    value: local,
+    onChange: e => setLocal(e.target.value),
+    onBlur: handleBlur,
+    placeholder,
+    className: INPUT_CLS,
+    ...props
   };
 
   return (
-    <div>
+    <div className="mb-4 last:mb-0">
       <FieldLabel status={status}>{label}</FieldLabel>
       {multiline ? (
-        <textarea value={local} onChange={e => setLocal(e.target.value)} onBlur={handleBlur}
-          disabled={disabled} placeholder={placeholder}
-          className={`${INPUT_CLS} min-h-[88px] resize-none`} />
+        <textarea {...commonProps} rows={3} className={`${INPUT_CLS} resize-none min-h-[80px]`} />
       ) : (
-        <input type="text" value={local} onChange={e => setLocal(e.target.value)} onBlur={handleBlur}
-          disabled={disabled} placeholder={placeholder}
-          className={`${INPUT_CLS} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`} />
+        <input type={type} {...commonProps} />
       )}
     </div>
   );
 }
 
-// ─── Simple tags input ──────────────────────────────────────────────────────
+function SaveOnBlurPhoneInput({ label, value, onSave, ...props }) {
+  const [local, setLocal] = useState(value || "");
+  const [status, setStatus] = useState("idle");
+  const inputRef = useRef(null);
 
-function SimpleTagsInput({ value = [], onChange, placeholder }) {
+  useEffect(() => { setLocal(value || ""); }, [value]);
+
+  const formatPhone = (val) => {
+    const raw = val.replace(/\D/g, "");
+    if (!raw) return "";
+    
+    // Check if it's a Russian number starting with 7 or 8
+    if (raw.length > 0 && (raw[0] === "7" || raw[0] === "8")) {
+      const parts = [];
+      parts.push("+7");
+      if (raw.length > 1) parts.push(`(${raw.substring(1, 4)}`);
+      if (raw.length > 4) parts.push(`) ${raw.substring(4, 7)}`);
+      if (raw.length > 7) parts.push(`-${raw.substring(7, 9)}`);
+      if (raw.length > 9) parts.push(`-${raw.substring(9, 11)}`);
+      return parts.join("");
+    }
+    
+    // For other numbers, just add a plus if not present
+    return val.startsWith("+") ? val : `+${raw}`;
+  };
+
+  const handleChange = (e) => {
+    const input = e.target;
+    const oldVal = local;
+    const newVal = e.target.value;
+    
+    // Simple logic: if deleting, just update. If typing, format.
+    if (newVal.length < oldVal.length) {
+      setLocal(newVal);
+    } else {
+      setLocal(formatPhone(newVal));
+    }
+  };
+
+  const handleBlur = async () => {
+    if (local === value) return;
+    setStatus("saving");
+    await onSave(local);
+    setStatus("success");
+    setTimeout(() => setStatus("idle"), 2000);
+  };
+
+  return (
+    <div className="mb-4 last:mb-0">
+      <FieldLabel status={status}>{label}</FieldLabel>
+      <input 
+        ref={inputRef}
+        type="tel" 
+        value={local}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        placeholder="+7 (900) 000-00-00"
+        className={INPUT_CLS} 
+        {...props} 
+      />
+    </div>
+  );
+}
+
+// ─── Tags Input ───────────────────────────────────────────────────────────
+
+function TagsInput({ value = [], onChange, placeholder }) {
   const [input, setInput] = useState("");
 
-  const addTag  = (text) => { const t = text.trim(); if (t && !value.includes(t)) onChange([...value, t]); setInput(""); };
-  const removeTag = (i) => onChange(value.filter((_, idx) => idx !== i));
+  const addTag = (tag) => {
+    const t = tag.trim();
+    if (t && !value.includes(t)) onChange([...value, t]);
+    setInput("");
+  };
+
+  const removeTag = (idx) => {
+    const next = [...value];
+    next.splice(idx, 1);
+    onChange(next);
+  };
 
   return (
     <div
-      className="flex flex-wrap gap-1.5 w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 min-h-[42px] cursor-text
-        focus-within:ring-2 focus-within:ring-blue-500 focus-within:bg-white focus-within:border-transparent transition-all"
+      className={`${INPUT_CLS} flex flex-wrap gap-2 items-center cursor-text`}
       onClick={e => e.currentTarget.querySelector("input")?.focus()}
     >
       {value.map((tag, i) => (
-        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-blue-100 text-blue-800 text-xs font-medium">
+        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#006584]/10 text-[#006584] text-xs font-semibold">
           {tag}
-          <button type="button" onClick={() => removeTag(i)} className="hover:text-blue-600 ml-0.5">×</button>
+          <button type="button" onClick={() => removeTag(i)} className="hover:text-[#004e66] ml-0.5">×</button>
         </span>
       ))}
       <input type="text" value={input}
@@ -163,7 +207,7 @@ function SimpleTagsInput({ value = [], onChange, placeholder }) {
         }}
         onPaste={e => { e.preventDefault(); e.clipboardData.getData("text").split(/[\n,]+/).forEach(t => addTag(t)); }}
         placeholder={value.length ? "" : placeholder}
-        className="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
+        className="flex-1 min-w-[120px] bg-transparent outline-none text-[13px] text-stone-900 placeholder:text-stone-400"
       />
     </div>
   );
@@ -246,36 +290,38 @@ function TimezoneCombobox({ value, onChange }) {
       <button type="button"
         onClick={() => { setOpen(o => !o); setTimeout(() => inputRef.current?.focus(), 50); }}
         className={`${INPUT_CLS} flex items-center justify-between gap-2 text-left cursor-pointer
-          ${open ? "ring-2 ring-blue-500 border-transparent bg-white" : ""}`}>
+          ${open ? "bg-white border-[#006584]/50 ring-2 ring-[#006584]/20 ring-offset-0" : ""}`}>
         <span className="truncate">{findZoneLabel(value) || "(GMT+3)  Москва"}</span>
-        <ChevronDown size={15} className={`text-gray-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={18} className={`text-stone-400 shrink-0 transition-transform duration-300 ${open ? "rotate-180 text-[#006584]" : ""}`} strokeWidth={2} />
       </button>
       {open && (
-        <div className="absolute z-50 top-full mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100">
-            <Search size={13} className="text-gray-400 shrink-0" />
+        <div className="absolute z-50 top-[calc(100%+4px)] left-0 w-full bg-white border border-stone-200 rounded-xl shadow-xl overflow-hidden animate-fade-in origin-top">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-stone-100">
+            <Search size={13} className="text-stone-400 shrink-0" />
             <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Поиск города..." className="flex-1 text-sm outline-none bg-transparent placeholder:text-gray-400" />
+              placeholder="Поиск города..." className="flex-1 text-[13px] outline-none bg-transparent placeholder:text-stone-400" />
           </div>
-          <div className="max-h-56 overflow-y-auto py-1">
+          <div className="max-h-60 overflow-y-auto py-1.5">
             {filtered
               ? (filtered.length === 0
-                  ? <p className="text-sm text-gray-400 text-center py-4">Ничего не найдено</p>
+                  ? <p className="text-[13px] text-stone-400 text-center py-4">Ничего не найдено</p>
                   : filtered.map(z => (
                     <button key={z.value + z.label} type="button" onClick={() => select(z.value)}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors
-                        ${z.value === value ? "font-semibold text-gray-900" : "text-gray-700"}`}>
-                      {z.label}
+                      className={`w-[calc(100%-8px)] mx-1 text-left px-3 py-2 text-[13px] rounded-lg transition-colors flex items-center justify-between
+                        ${z.value === value ? "bg-[#006584]/5 text-[#006584] font-semibold" : "text-stone-700 hover:bg-stone-100"}`}>
+                      <span className="truncate">{z.label}</span>
+                      {z.value === value && <Check size={16} strokeWidth={2.5} />}
                     </button>
                   )))
               : TIMEZONE_GROUPS.map(group => (
                 <div key={group.label}>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 pt-3 pb-1">{group.label}</p>
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest px-4 pt-3 pb-1">{group.label}</p>
                   {group.zones.map(z => (
                     <button key={z.value + z.label} type="button" onClick={() => select(z.value)}
-                      className={`w-full text-left px-4 py-1.5 text-sm hover:bg-gray-50 transition-colors
-                        ${z.value === value ? "font-semibold text-gray-900" : "text-gray-700"}`}>
-                      {z.label}
+                      className={`w-[calc(100%-8px)] mx-1 text-left px-3 py-2 text-[13px] rounded-lg transition-colors flex items-center justify-between
+                        ${z.value === value ? "bg-[#006584]/5 text-[#006584] font-semibold" : "text-stone-700 hover:bg-stone-100"}`}>
+                      <span className="truncate">{z.label}</span>
+                      {z.value === value && <Check size={16} strokeWidth={2.5} />}
                     </button>
                   ))}
                 </div>
@@ -788,13 +834,20 @@ export default function SettingsPage() {
               <TimezoneCombobox value={config.timezone} onChange={v => updateConfig("timezone", v)} />
               <div>
                 <FieldLabel>Валюта</FieldLabel>
-                <Select value={config.currency} onChange={e => updateConfig("currency", e.target.value)}>
-                  <option value="RUB">₽ Рубль</option>
-                  <option value="BYN">Br Белорусский рубль</option>
-                  <option value="USD">$ Доллар</option>
-                  <option value="EUR">€ Евро</option>
-                  <option value="KZT">₸ Тенге</option>
-                </Select>
+                <div className="relative">
+                  <select
+                    value={config.currency}
+                    onChange={e => updateConfig("currency", e.target.value)}
+                    className={`${INPUT_CLS} appearance-none pr-10 cursor-pointer`}
+                  >
+                    <option value="RUB">₽ Рубль</option>
+                    <option value="BYN">Br Белорусский рубль</option>
+                    <option value="USD">$ Доллар</option>
+                    <option value="EUR">€ Евро</option>
+                    <option value="KZT">₸ Тенге</option>
+                  </select>
+                  <ChevronDown size={18} className="absolute right-3 z-10 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none transition-transform" strokeWidth={2} />
+                </div>
               </div>
             </div>
             <WorkingHoursSettings value={config.workingHours} onSave={v => updateConfig("workingHours", v)} />

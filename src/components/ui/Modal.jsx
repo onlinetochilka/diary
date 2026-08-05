@@ -63,7 +63,7 @@ export default function Modal({
         "backdrop:bg-stone-900/40 backdrop:backdrop-blur-sm",
         "bg-white shadow-2xl ring-1 ring-slate-200/50 w-full p-0 overflow-visible",
         /* Mobile: bottom sheet, Desktop: centered modal */
-        "fixed inset-x-0 bottom-0 mb-0 mt-auto rounded-t-[24px] rounded-b-none sm:relative sm:inset-auto sm:m-auto sm:rounded-[24px]",
+        "fixed inset-x-0 bottom-0 mb-0 mt-auto rounded-t-[24px] rounded-b-none sm:inset-0 sm:m-auto sm:rounded-[24px]",
         "open:animate-in open:fade-in-0 open:slide-in-from-bottom-8 sm:open:slide-in-from-bottom-0 sm:open:zoom-in-95 open:duration-300",
         maxWidth,
         className

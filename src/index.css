@@ -102,10 +102,10 @@
 
   /* ── Focus Visible Glow System ──
      NEVER suppress focus outlines without a visible replacement.
-     We use a glowing shadow in the primary brand-blue color. */
+     We use a crisp, modern ring in the primary brand-blue color instead of a bloated glow. */
   :focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px rgb(var(--ivory)), 0 0 0 4px #006584, 0 0 15px 4px rgba(0, 101, 132, 0.4) !important;
+    box-shadow: 0 0 0 2px rgb(var(--ivory)), 0 0 0 4px #006584 !important;
     border-radius: inherit;
   }
 

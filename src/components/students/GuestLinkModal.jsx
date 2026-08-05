@@ -43,8 +43,12 @@ function getContactMeta(channel) {
 export default function GuestLinkModal({ isOpen, onClose, student }) {
   const [copied, setCopied] = useState(false);
   const [videoCopied, setVideoCopied] = useState(false);
+  const [botCopied, setBotCopied] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const { showToast } = useToast();
+
+  const botUsername = "tochilka_mail_bot";
+  const botLink = `https://t.me/${botUsername}?start=student_${student?.id || ''}`;
 
   const hash = student?.linkHash || (student ? `guest-${student.id}` : 'unknown');
   const url = `${window.location.origin}/?guest=${hash}`;
@@ -73,6 +77,18 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
       setTimeout(() => setVideoCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy video link: ', err);
+    }
+  };
+
+  const handleBotCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(botLink);
+      setBotCopied(true);
+      setTimeout(() => setBotCopied(false), 2000);
+      showToast({ message: 'Ссылка на бота скопирована', type: 'success' });
+    } catch (e) {
+      console.error(e);
+      showToast({ message: 'Ошибка при копировании', type: 'error' });
     }
   };
 
@@ -179,6 +195,45 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
             </div>
           </div>
         )}
+
+        <div className="pt-3 border-t border-stone-100 mt-2">
+          <p className="text-sm font-semibold text-stone-700 mb-1">
+            Подключить уведомления (Telegram)
+          </p>
+          <p className="text-xs text-stone-500 mb-3 leading-relaxed">
+            Отправьте эту ссылку ученику. Как только он нажмет «Старт» в боте, он начнет получать напоминания об оплате и ДЗ.
+          </p>
+          <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 mb-2">
+            <input
+              type="text"
+              readOnly
+              value={botLink}
+              className="flex-1 bg-transparent border-none outline-none text-xs text-blue-800 font-mono min-w-0"
+            />
+            <Tooltip text="Открыть бота">
+              <a
+                href={botLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-700 transition-colors shrink-0"
+              >
+                <ExternalLink size={14} />
+              </a>
+            </Tooltip>
+          </div>
+          <Button
+            onClick={handleBotCopy}
+            className={cn(
+              "w-full h-9 text-xs font-semibold transition-all",
+              botCopied
+                ? "bg-blue-500 hover:bg-blue-600 text-white border-transparent"
+                : "bg-white text-blue-600 border border-blue-200 hover:bg-blue-50"
+            )}
+          >
+            {botCopied ? <Check size={14} className="mr-2" /> : <Copy size={14} className="mr-2" />}
+            {botCopied ? 'Скопировано' : 'Копировать ссылку на бота'}
+          </Button>
+        </div>
 
         {/* Отправить контакту */}
         {contactMeta && contactMeta.shareText && (

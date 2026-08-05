@@ -180,8 +180,31 @@ function SectionInspector({ section, topics, programId, onProgramChange }) {
   const savedTitle          = useRef(section.title);
   const inputId             = useId();
 
-  // При смене выбранного раздела — сбрасываем форму
+  const stateRef = useRef({ title, sectionId: section.id, savedTitle: section.title, programId, onProgramChange });
   useEffect(() => {
+    stateRef.current = { title, sectionId: section.id, savedTitle: savedTitle.current, programId, onProgramChange };
+  }, [title, section.id, savedTitle.current, programId, onProgramChange]);
+
+  useEffect(() => {
+    return () => {
+      const { title: t, sectionId: sId, savedTitle: sTitle, programId: pId } = stateRef.current;
+      const trimmed = t.trim();
+      if (trimmed && trimmed !== sTitle) {
+        renameSection(pId, sId, trimmed).catch(e => console.error("Unmount save failed", e));
+      }
+    };
+  }, []);
+
+  // При смене выбранного раздела — сохраняем старый и сбрасываем форму
+  useEffect(() => {
+    const { title: t, sectionId: sId, savedTitle: sTitle, programId: pId, onProgramChange: onPC } = stateRef.current;
+    const trimmed = t.trim();
+    if (trimmed && trimmed !== sTitle && sId !== section.id) {
+      renameSection(pId, sId, trimmed).then(res => {
+        onPC(prev => ({ ...prev, sections: res.sections }));
+      }).catch(e => console.error("Switch save failed", e));
+    }
+
     setTitle(section.title);
     savedTitle.current = section.title;
     setStatus("idle");

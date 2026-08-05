@@ -347,8 +347,8 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                 <div className="w-full md:w-2/3 flex gap-2">
                   <div className="flex-1 relative">
                     <Label>Куда писать</Label>
-                    <div className="flex items-center">
-                      <Input
+                    <div className="relative flex items-stretch bg-white rounded-xl shadow-sm border border-stone-200 focus-within:border-academic-blue focus-within:ring-1 focus-within:ring-academic-blue focus-within:shadow-md transition-all overflow-hidden">
+                      <input
                         placeholder="Телефон или Telegram"
                         value={channel.value}
                         onChange={e => {
@@ -356,9 +356,9 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                           newChannels[idx] = { ...newChannels[idx], value: e.target.value };
                           handleContactChange('studentChannels', newChannels);
                         }}
-                        className="rounded-r-none"
+                        className="flex-1 bg-transparent border-0 px-4 py-2.5 text-stone-900 placeholder:text-stone-400 !outline-none !ring-0 !shadow-none focus:ring-0 focus:shadow-none focus:outline-none w-full min-w-0"
                       />
-                      <Tooltip text={channel.isPrimary ? "Основной канал связи" : "Сделать основным"} position="top" wrapperClassName="shrink-0 h-[42px] z-10 flex">
+                      <Tooltip text={channel.isPrimary ? "Основной канал связи" : "Сделать основным"} position="top" wrapperClassName="shrink-0 flex">
                         <button
                           type="button"
                           onClick={() => {
@@ -369,7 +369,7 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                             handleContactChange('studentChannels', newChannels);
                           }}
                           className={cn(
-                            "px-3 border border-l-0 border-slate-200 h-full flex items-center justify-center rounded-r-xl transition-colors",
+                            "px-3 border-l border-stone-200 h-full flex items-center justify-center transition-colors outline-none",
                             channel.isPrimary ? "bg-[#7A404D]/10 text-[#7A404D] border-[#7A404D]/20" : "bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600"
                           )}
                         >
