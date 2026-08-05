@@ -168,12 +168,12 @@ const StudentCard = memo(({
               <Link2 size={18} strokeWidth={1.5} />
             </Button>
           </Tooltip>
-          <Tooltip text="Сводный отчет">
+          <Tooltip text="Сводный отчёт">
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => onOpenReport && onOpenReport(student)}
-              aria-label="Отчет"
+              aria-label="Отчёт"
               className="text-stone-400 hover:text-emerald-600 hover:bg-emerald-50"
             >
               <FileText size={18} strokeWidth={1.5} />

@@ -30,7 +30,7 @@ export const renderStatusIcon = (status) => {
   switch(status) {
     case "conducted": 
       return (
-        <Tooltip text="Проведен" position="bottom">
+        <Tooltip text="Проведён" position="bottom">
           <div className="p-1 -m-1 cursor-help flex items-center justify-center">
             <CheckCircle2 size={12} className="text-emerald-500" />
           </div>
@@ -38,7 +38,7 @@ export const renderStatusIcon = (status) => {
       );
     case "cancelled": 
       return (
-        <Tooltip text="Отменен" position="bottom">
+        <Tooltip text="Отменён" position="bottom">
           <div className="p-1 -m-1 cursor-help flex items-center justify-center">
             <XCircle size={12} className="text-red-500" />
           </div>

@@ -28,7 +28,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
       }
       return `Привет, ${name}! Напоминаю об оплате занятий. Сумма к оплате: ${item.amount} ₽.`;
     } else {
-      return `Привет, ${name}! Жду твое домашнее задание 📚`;
+      return `Привет, ${name}! Жду твоё домашнее задание 📚`;
     }
   };
 

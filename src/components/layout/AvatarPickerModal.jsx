@@ -4,9 +4,8 @@ import { Check } from 'lucide-react';
 import pb from '../../services/pocketbase.js';
 import { cn } from '../../utils/cn.js';
 
-const PENCILS = [
-  ...Array.from({ length: 9 }, (_, i) => `/avatars/pencil_pack1_${i + 1}.png`),
-  ...Array.from({ length: 9 }, (_, i) => `/avatars/pencil_pack2_${i + 1}.png`)
+const AVATARS = [
+  ...Array.from({ length: 35 }, (_, i) => `/avatars/preset_${i + 1}.png`)
 ];
 
 const MONOGRAM_GRADIENTS = [
@@ -19,7 +18,7 @@ const MONOGRAM_GRADIENTS = [
 ];
 
 export default function AvatarPickerModal({ isOpen, onClose, currentAvatar, onSelect }) {
-  const [activeTab, setActiveTab] = useState('pencils');
+  const [activeTab, setActiveTab] = useState('avatars');
 
   const renderGrid = (images) => (
     <div className="grid grid-cols-4 sm:grid-cols-4 gap-3 mt-2">
@@ -53,17 +52,17 @@ export default function AvatarPickerModal({ isOpen, onClose, currentAvatar, onSe
           value={activeTab}
           onChange={setActiveTab}
           options={[
-            { value: 'pencils', label: 'Карандаши' },
+            { value: 'avatars', label: 'Аватары' },
             { value: 'monograms', label: 'Монограммы' }
           ]}
         />
       </div>
 
       <div className="overflow-y-auto max-h-[500px] pr-2 scrollbar-thin">
-        {activeTab === 'pencils' && (
+        {activeTab === 'avatars' && (
           <div className="pb-2">
-            <p className="text-sm font-medium text-stone-500 mb-3">Забавные карандашики</p>
-            {renderGrid(PENCILS)}
+            <p className="text-sm font-medium text-stone-500 mb-3">Выберите аватар</p>
+            {renderGrid(AVATARS)}
           </div>
         )}
         

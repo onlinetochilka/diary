@@ -13,7 +13,7 @@ import { createPortal } from "react-dom";
 import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 
 const STATUS_OPTIONS = [
-  { status: "conducted",    label: "Проведен",            Icon: CheckCircle2, colors: { active: "bg-emerald-100 text-emerald-800 font-bold", idle: "text-emerald-700 hover:bg-emerald-50" } },
+  { status: "conducted",    label: "Проведён",            Icon: CheckCircle2, colors: { active: "bg-emerald-100 text-emerald-800 font-bold", idle: "text-emerald-700 hover:bg-emerald-50" } },
   { status: "skipped_paid", label: "Оплаченный пропуск",  Icon: AlertCircle,  colors: { active: "bg-amber-100 text-amber-800 font-bold",   idle: "text-amber-700 hover:bg-amber-50"   } },
   { status: "skipped_free", label: "Неоплаченный пропуск",Icon: AlertCircle,  colors: { active: "bg-stone-200 text-stone-800 font-bold",   idle: "text-stone-700 hover:bg-stone-50"   } },
   { status: "cancelled",    label: "Отменён",             Icon: XCircle,      colors: { active: "bg-red-100 text-red-800 font-bold",        idle: "text-red-700 hover:bg-red-50"       } },

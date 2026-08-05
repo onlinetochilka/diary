@@ -702,10 +702,10 @@ export default function SettingsPage() {
         onClose={() => setResetModalOpen(false)}
         onConfirm={handleResetConfirm}
         isLoading={isResetting}
-        title="Стереть базу с концами?"
+        title="Безвозвратное удаление данных"
         description="Действие нельзя отменить. Это удалит:"
         bullets={["Всех учеников", "Все уроки и расписание", "Все финансовые записи", "Все программы"]}
-        confirmLabel="Да, я уверен"
+        confirmLabel="Подтвердить удаление"
       />
 
       <div className="max-w-[1400px] mx-auto pb-6">
@@ -810,51 +810,49 @@ export default function SettingsPage() {
             />
           </SettingsCard>
 
-          {/* ── Критические действия (полная ширина) ── */}
-          <SettingsCard className="lg:col-span-3" danger>
-            <SectionHeader icon={AlertTriangle} title="Критические действия" danger />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-              {/* Сброс данных */}
-              <div className="flex items-start justify-between gap-6">
-                <div>
-                  <p className="text-sm font-bold text-red-800 mb-1">Удалить все данные</p>
-                  <p className="text-sm text-red-500 leading-relaxed">
-                    Это удалит: Всех учеников, уроки и финансовые записи.<br/>
-                    Действие нельзя отменить.
-                  </p>
-                </div>
-                <button onClick={() => setResetModalOpen(true)} disabled={isResetting}
-                  className={`${BTN_BASE} shrink-0 h-10 px-4 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 focus:ring-red-300`}>
-                  <Trash2 size={14} className="mr-2" />
-                  Удалить
-                </button>
-              </div>
-
-              {/* Удаление аккаунта */}
-              <div className="flex items-start justify-between gap-6">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-red-800 mb-1">Удаление профиля</p>
-                  <p className="text-sm text-red-500 leading-relaxed mb-3">
-                    Навсегда удалит ваш аккаунт. Отменить невозможно.
-                  </p>
-                  <div className="flex gap-2">
-                    <input type="text" placeholder="Впишите УДАЛИТЬ"
-                      value={deleteConfirm}
-                      onChange={e => setDeleteConfirm(e.target.value)}
-                      className="flex-1 min-w-0 bg-white border border-red-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 placeholder:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all" />
-                    <button onClick={handleDeleteAccount}
-                      disabled={deleteConfirm !== "УДАЛИТЬ" || isDeleting}
-                      className={`${BTN_BASE} shrink-0 h-10 px-4 bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm`}>
-                      {isDeleting ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Trash2 size={14} className="mr-1.5" />}
-                      Удалить
-                    </button>
-                  </div>
+          {/* ── Критические действия (два бенто-контейнера) ── */}
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5">
+            
+            {/* Сброс данных */}
+            <SettingsCard danger className="flex flex-col h-full">
+              <SectionHeader icon={AlertTriangle} title="Удалить все данные" danger />
+              <div className="flex-1 flex flex-col">
+                <p className="text-sm text-red-500 leading-relaxed mb-4">
+                  Это удалит всех учеников, расписание уроков и финансовые записи. Действие нельзя отменить.
+                </p>
+                <div className="mt-auto">
+                  <button onClick={() => setResetModalOpen(true)} disabled={isResetting}
+                    className={`${BTN_BASE} w-full h-10 px-4 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 focus:ring-red-300`}>
+                    <Trash2 size={14} className="mr-2" />
+                    Удалить данные
+                  </button>
                 </div>
               </div>
+            </SettingsCard>
 
-            </div>
-          </SettingsCard>
+            {/* Удаление аккаунта */}
+            <SettingsCard danger className="flex flex-col h-full">
+              <SectionHeader icon={AlertTriangle} title="Удаление профиля" danger />
+              <div className="flex-1 flex flex-col">
+                <p className="text-sm text-red-500 leading-relaxed mb-4">
+                  Навсегда удалит ваш аккаунт. Отменить невозможно.
+                </p>
+                <div className="mt-auto flex gap-2">
+                  <input type="text" placeholder="Впишите УДАЛИТЬ"
+                    value={deleteConfirm}
+                    onChange={e => setDeleteConfirm(e.target.value)}
+                    className="flex-1 min-w-0 bg-white border border-red-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 placeholder:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all" />
+                  <button onClick={handleDeleteAccount}
+                    disabled={deleteConfirm !== "УДАЛИТЬ" || isDeleting}
+                    className={`${BTN_BASE} shrink-0 h-10 px-4 bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}>
+                    {isDeleting ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Trash2 size={14} className="mr-1.5" />}
+                    Удалить профиль
+                  </button>
+                </div>
+              </div>
+            </SettingsCard>
+
+          </div>
 
         </div>
       </div>

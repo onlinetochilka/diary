@@ -647,7 +647,7 @@ export default function StudentFormDrawer({
             disabled={isSubmitting}
           >
             <Plus size={16} strokeWidth={1.5} className="mr-1" />
-            Добавить еще предмет
+            Добавить ещё предмет
           </Button>
           
         </div>

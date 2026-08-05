@@ -12,7 +12,7 @@ export default function StudentsEmptyState({
   onCreate
 }) {
   let title = "Учеников пока нет";
-  let description = "Добавьте первого ученика, чтобы начать вести расписание и учет финансов.";
+  let description = "Добавьте первого ученика, чтобы начать вести расписание и учёт финансов.";
   let action = null;
   let Icon = UserPlus;
   let iconTheme = "bg-[#7A404D]/10 text-[#7A404D]";

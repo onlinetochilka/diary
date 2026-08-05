@@ -30,7 +30,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
     if (isMoney) {
       setText(`Привет, ${name}! Напоминаю об оплате занятий. Сумма к оплате: ${item.amount} ₽.`);
     } else {
-      setText(`Привет, ${name}! Жду твое домашнее задание 📚`);
+      setText(`Привет, ${name}! Жду твоё домашнее задание 📚`);
     }
   }, [item, isMoney]);
 

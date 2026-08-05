@@ -85,10 +85,10 @@ function channelLabel(type) {
 function StatusBlock({ formData, onPatch }) {
   const STATUS_OPTIONS = [
     { value: 'scheduled',      label: 'Запланирован' },
-    { value: 'conducted',    label: 'Проведен' },
+    { value: 'conducted',    label: 'Проведён' },
     { value: 'skipped_paid', label: 'Оплаченный пропуск' },
     { value: 'skipped_free', label: 'Бесплатный пропуск' },
-    { value: 'cancelled',    label: 'Отменен' },
+    { value: 'cancelled',    label: 'Отменён' },
   ];
 
   const activeColors = {

@@ -415,10 +415,10 @@ export default function LessonInspector({
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       { value: 'scheduled', label: 'Запланирован' },
-                      { value: 'conducted', label: 'Проведен' },
+                      { value: 'conducted', label: 'Проведён' },
                       { value: 'skipped_paid', label: 'Оплаченный пропуск' },
                       { value: 'skipped_free', label: 'Бесплатный пропуск' },
-                      { value: 'cancelled', label: 'Отменен' }
+                      { value: 'cancelled', label: 'Отменён' }
                     ].map(opt => {
                       const STATUS_COLORS = {
                         scheduled: "bg-[#006584]/10 text-[#006584] ring-1 ring-[#006584]/30 shadow-sm",

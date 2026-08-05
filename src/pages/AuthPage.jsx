@@ -48,7 +48,7 @@ export default function AuthPage() {
     try {
       if (mode === "verify") {
         await pb.collection("users").confirmVerification(token);
-        setSuccess("Ваш email успешно подтвержден! Теперь вы можете войти.");
+        setSuccess("Ваш email успешно подтверждён! Теперь вы можете войти.");
       } else if (mode === "confirm-email") {
         await pb.collection("users").confirmEmailChange(token);
         setSuccess("Ваш email успешно изменён! Войдите с новым адресом.");
@@ -267,7 +267,7 @@ export default function AuthPage() {
             {mode === "reset" ? "Новый пароль" : (mode === "login" ? "С возвращением" : "Добро пожаловать!")}
           </h1>
           <p className="text-stone-500 mt-1 text-sm text-center">
-            {mode === "reset" ? "Придумайте новый пароль для аккаунта" : (mode === "login" ? "Войдите в свою учетную запись" : "Создайте аккаунт, чтобы навести порядок в расписании")}
+            {mode === "reset" ? "Придумайте новый пароль для аккаунта" : (mode === "login" ? "Войдите в свою учётную запись" : "Создайте аккаунт, чтобы навести порядок в расписании")}
           </p>
         </div>
 

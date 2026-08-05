@@ -44,7 +44,7 @@ export default function StudentsPage() {
   // Модалка истории уроков
   const [lessonHistoryStudent, setLessonHistoryStudent] = useState(null);
 
-  // Модалка билдера отчетов
+  // Модалка билдера отчётов
   const [reportBuilderStudent, setReportBuilderStudent] = useState(null);
   const [reportConfig, setReportConfig] = useState(null);
 
@@ -273,7 +273,7 @@ export default function StudentsPage() {
         onGenerate={(config) => {
           // Групповой отчёт — пока заглушка, в будущем отдельный ReportTemplateView для групп
           console.log('Group report config:', config);
-          showToast({ message: "Функция генерации группового отчета в разработке", type: "error" });
+          showToast({ message: "Функция генерации группового отчёта в разработке", type: "error" });
           setReportBuilderGroup(null);
         }}
       />

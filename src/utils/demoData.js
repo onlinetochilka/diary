@@ -94,7 +94,7 @@ export function generateDemoData(tutorId = "demo_tutor") {
         { id: genId(), title: "Стереометрия: сечения", homework: "Построить сечения призмы" },
         { id: genId(), title: "Тригонометрия", homework: "Выучить формулы приведения, решить тест" },
         { id: genId(), title: "Производная", homework: "Найти экстремумы функций из файла" },
-        { id: genId(), title: "Финансовая математика", homework: "Задачи на аннуитетный платеж" },
+        { id: genId(), title: "Финансовая математика", homework: "Задачи на аннуитетный платёж" },
         { id: genId(), title: "Теория вероятностей", homework: "Решить сложные вероятностные задачи" }
       ],
     },
@@ -351,7 +351,7 @@ export function generateDemoData(tutorId = "demo_tutor") {
           if (lessonHour <= now.getHours()) status = "conducted";
         }
 
-        // Логика домашек: если урок проведен, есть домашка.
+        // Логика домашек: если урок проведён, есть домашка.
         let hwText = "";
         let hwDoneBy = [];
         
@@ -369,7 +369,7 @@ export function generateDemoData(tutorId = "demo_tutor") {
             }
           }
 
-          // Финансовый учет
+          // Финансовый учёт
           const cost = slot.e._price;
           if (slot.g) {
             slot.e.studentIds.forEach(sid => balanceTracker[sid].conducted += cost);

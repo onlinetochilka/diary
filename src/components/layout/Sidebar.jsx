@@ -273,7 +273,7 @@ export default function Sidebar({ activePage, onNavigate }) {
               <img 
                 src={avatar} 
                 alt="Аватар" 
-                className="w-9 h-9 rounded-full shrink-0 shadow-sm border border-stone-200 object-cover bg-stone-50" 
+                className="w-11 h-11 rounded-full shrink-0 shadow-sm border border-stone-200 object-cover bg-stone-50" 
               />
             ) : (
               (() => {
@@ -291,7 +291,7 @@ export default function Sidebar({ activePage, onNavigate }) {
                 }
                 const initial = pb.authStore.model?.name?.charAt(0) || pb.authStore.model?.email?.charAt(0) || 'U';
                 return (
-                  <div className={cn("relative w-9 h-9 rounded-full flex items-center justify-center font-bold text-[15px] shrink-0 uppercase shadow-sm border overflow-hidden", css.match(/border-\S+/)?.[0] || 'border-[#006584]/10')}>
+                  <div className={cn("relative w-11 h-11 rounded-full flex items-center justify-center font-bold text-[17px] shrink-0 uppercase shadow-sm border overflow-hidden", css.match(/border-\S+/)?.[0] || 'border-[#006584]/10')}>
                     <div className={cn("absolute inset-0 bg-gradient-to-br opacity-80", css.split(' text-')[0])} />
                     <span className={cn("relative z-10", css.match(/text-\S+/)?.[0] || 'text-[#006584]')}>
                       {initial}
