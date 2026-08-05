@@ -145,7 +145,7 @@ const FAQ_ITEMS = [
     a: (
       <>
         Да — <a href="https://t.me/tochilka_online" target="_blank" rel="noreferrer" style={{color: 'var(--brand-blue)', textDecoration: 'none'}}>Telegram-сообщество «Лайфхаки от «Точилки»»</a>. 
-        Задать вопрос, предложить идею и обсудить новости образования с коллегами можно там, или написав нам на почту <a href="mailto:info@tochilka.app" style={{color: 'var(--brand-blue)', textDecoration: 'none'}}>info@tochilka.app</a>.
+        Задать вопрос, предложить идею и обсудить новости образования с коллегами можно там, или написав нам на почту <a href="mailto:help@tochilka.app" style={{color: 'var(--brand-blue)', textDecoration: 'none'}}>help@tochilka.app</a>.
       </>
     ),
   },
@@ -486,7 +486,7 @@ function Footer() {
           <a href="/docs/consent.html" target="_blank" rel="noreferrer">Согласие на обработку данных</a>
         </div>
         <div className="landing-footer__contacts">
-          <a href="mailto:info@tochilka.app">info@tochilka.app</a>
+          <a href="mailto:help@tochilka.app">help@tochilka.app</a>
           <a href="https://t.me/tochilka_online" target="_blank" rel="noreferrer" className="landing-footer__tg">
             <MessageCircle size={16} /> Лайфхаки от «Точилки»
           </a>
