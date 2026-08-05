@@ -171,7 +171,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-6 flex-1 min-h-0 pb-4 lg:pb-0">
 
         {/* LEFT COLUMN — Action Items */}
-        <section className="lg:col-span-2 flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 h-fit max-h-[500px] lg:max-h-full self-start w-full min-h-0 relative">
+        <section className="lg:col-span-2 flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 h-fit lg:max-h-full self-start w-full lg:min-h-0 relative">
           <div className="flex items-center gap-2 mb-5 shrink-0">
             <AlertCircle size={20} className="text-stone-400" />
             <h2 className="text-lg font-bold text-stone-800">Что нужно проконтролировать</h2>
@@ -194,9 +194,9 @@ export default function DashboardPage() {
               <span className="text-sm font-semibold text-emerald-900">Идеальный баланс! Ученики всё оплатили, а домашние задания сданы</span>
             </div>
           ) : (
-            /* Single-column list with internal scroll */
+            /* Single-column list with internal scroll on desktop */
             <>
-              <div className="flex flex-col gap-3 relative z-0 flex-1 min-h-0 overflow-y-auto hide-scrollbar pb-6">
+              <div className="flex flex-col gap-3 relative z-0 flex-1 lg:min-h-0 lg:overflow-y-auto hide-scrollbar pb-6">
                 {actionItems.map(item => (
                   <ActionItemCard
                     key={item.id}
@@ -224,16 +224,16 @@ export default function DashboardPage() {
                   />
                 ))}
               </div>
-              {/* Bottom scroll shadow cue */}
+              {/* Bottom scroll shadow cue (only visible on desktop where internal scroll is active) */}
               {actionItems.length > 3 && (
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-[28px] z-10" />
+                <div className="hidden lg:block absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-[28px] z-10" />
               )}
             </>
           )}
         </section>
 
         {/* RIGHT COLUMN — Community News (sticky) */}
-        <aside className="lg:col-span-1 flex flex-col min-h-0 overflow-y-auto hide-scrollbar">
+        <aside className="lg:col-span-1 flex flex-col lg:min-h-0 lg:overflow-y-auto hide-scrollbar">
           <div className="flex items-center gap-2 mb-5">
             <TelegramIcon size={20} className="text-[#1B4F72]" />
             <h2 className="text-lg font-bold text-stone-800">Лайфхаки от «Точилки»</h2>
