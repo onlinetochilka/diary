@@ -3,8 +3,9 @@
  * Props: { payments, students }
  */
 import React, { useState, useMemo } from "react";
-import { ChevronDown, ChevronUp, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, Wallet } from "lucide-react";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
+import { EmptyState } from "../ui/index.js";
 
 export default function PaymentsTab({ payments, students }) {
   const [visibleCount, setVisibleCount] = useState(20);
@@ -50,8 +51,16 @@ export default function PaymentsTab({ payments, students }) {
           <tbody className="divide-y divide-stone-100">
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan="5" className="py-12 text-center text-stone-400 text-sm">
-                  Пока нет операций.
+                <td colSpan="5" className="p-0">
+                  <div className="py-12 border-b border-stone-100 bg-stone-50/30">
+                    <EmptyState
+                      icon={Wallet}
+                      title="Нет операций"
+                      description="Здесь будут отображаться все ваши платежи"
+                      iconTheme="bg-emerald-100 text-emerald-600"
+                      size="sm"
+                    />
+                  </div>
                 </td>
               </tr>
             ) : (

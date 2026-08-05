@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ArrowLeft, Plus, Calendar } from 'lucide-react';
+import { Button, EmptyState } from '../ui/index.js';
 import { ymd } from './scheduleUtils.jsx';
 import DayLessonCard from './DayLessonCard.jsx';
 import DayActionableGap from './DayActionableGap.jsx';
@@ -18,21 +19,23 @@ function isLessonNow(lesson, dateStr, todayStr) {
 // ── Empty state ───────────────────────────────────────────────────────────────
 function DayEmptyState({ dateStr, onCreateLesson }) {
   return (
-    <div className="col-span-2 flex flex-col items-center justify-center py-24 px-8 text-center">
-      <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-stone-100 to-stone-50 flex items-center justify-center mb-6 shadow-sm">
-        <Calendar size={32} className="text-stone-300" />
-      </div>
-      <h3 className="text-xl font-bold text-stone-700 mb-2">Свободный день</h3>
-      <p className="text-sm text-stone-400 mb-8 max-w-[260px] leading-relaxed">
-        Нет запланированных занятий.
-      </p>
-      <button
-        onClick={() => onCreateLesson({ date: dateStr })}
-        className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-[#006584] hover:bg-[#005470] text-white text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-px"
-      >
-        <Plus size={16} strokeWidth={2.5} />
-        Запланировать урок
-      </button>
+    <div className="col-span-2 mt-4">
+      <EmptyState
+        icon={Calendar}
+        title="Свободный день"
+        description="Нет запланированных занятий."
+        iconTheme="bg-stone-100 text-stone-300"
+        size="lg"
+        action={
+          <Button
+            onClick={() => onCreateLesson({ date: dateStr })}
+            className="bg-[#006584] hover:bg-[#005470] text-white shadow-md hover:shadow-lg"
+          >
+            <Plus size={16} strokeWidth={2.5} className="mr-2" />
+            Запланировать урок
+          </Button>
+        }
+      />
     </div>
   );
 }

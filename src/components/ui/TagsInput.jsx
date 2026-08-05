@@ -71,12 +71,12 @@ export default function TagsInput({
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div 
         className={cn(
-          "relative flex flex-wrap items-center w-full rounded-xl bg-ivory px-3.5 py-2.5 text-sm",
+          "relative flex flex-wrap items-center w-full rounded-xl bg-stone-50 px-3.5 py-2.5 text-sm",
           "transition-all duration-300 ease-out-quart",
-          "border-2 border-transparent shadow-neu-sm-inset cursor-text",
-          "hover:border-stone-300/30",
-          "focus-within:bg-ivory focus-within:border-transparent focus-within:ring-2 focus-within:ring-brand-teal focus-within:ring-offset-2 focus-within:ring-offset-ivory focus-within:shadow-neu-sm-inset",
-          hasError && "ring-2 ring-brand-red ring-offset-2 ring-offset-ivory",
+          "border border-stone-200/80 shadow-sm cursor-text",
+          "hover:border-stone-300",
+          "focus-within:bg-white focus-within:border-stone-300 focus-within:ring-2 focus-within:ring-academic-blue/20 focus-within:ring-offset-0",
+          hasError && "border-brand-red focus-within:ring-brand-red/20",
           disabled && "opacity-60 cursor-not-allowed",
         )}
         onClick={() => inputRef.current?.focus()}

@@ -86,7 +86,7 @@
   body {
     background-color: rgb(var(--ivory));
     color: theme("colors.stone.800");
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     line-height: 1.5;
     min-height: 100dvh;
@@ -234,28 +234,6 @@
   /* Text balance for headings */
   .text-balance { text-wrap: balance; }
 
-  /* Neumorphism Shadows (added here for bulletproof HMR) */
-  .shadow-neu-sm {
-    box-shadow: 4px 4px 10px var(--shadow-dark-color), -4px -4px 10px var(--shadow-light-color) !important;
-  }
-  .shadow-neu-sm-inset {
-    box-shadow: inset 3px 3px 8px var(--shadow-dark-color), inset -3px -3px 8px var(--shadow-light-color) !important;
-  }
-  .shadow-neu-md {
-    box-shadow: 6px 6px 16px var(--shadow-dark-color), -6px -6px 16px var(--shadow-light-color) !important;
-  }
-  .shadow-neu-md-inset {
-    box-shadow: inset 5px 5px 12px var(--shadow-dark-color), inset -5px -5px 12px var(--shadow-light-color) !important;
-  }
-  .shadow-neu-lg {
-    box-shadow: 14px 14px 36px var(--shadow-dark-color), -14px -14px 36px var(--shadow-light-color) !important;
-  }
-  .shadow-neu-lg-inset {
-    box-shadow: inset 10px 10px 24px var(--shadow-dark-color), inset -10px -10px 24px var(--shadow-light-color) !important;
-  }
-  .shadow-neu-xl {
-    box-shadow: 20px 20px 60px var(--shadow-dark-color), -20px -20px 60px var(--shadow-light-color) !important;
-  }
 
   /* Brand Colors (added here for bulletproof HMR since config changes are cached) */
   .text-brand-blue { color: #006584 !important; }
@@ -552,4 +530,15 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 @keyframes spin-gear {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+/* ── Utilities ───────────────────────────────────────────────────────── */
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

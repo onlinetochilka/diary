@@ -160,14 +160,13 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
           )}
         >
           <FileSpreadsheet size={15} strokeWidth={2} />
-          Скачать в Excel
+          Скачать как таблицу Excel
         </button>
       </div>
 
       {/* Подсказка */}
       <p className="px-4 pt-4 text-[11px] text-stone-400 leading-relaxed">
-        Выберите тему слева, чтобы открыть библиотеку заданий, или раздел — для
-        его переименования.
+        Нажмите на раздел, чтобы переименовать его, или на тему — чтобы добавить ДЗ.
       </p>
     </div>
   );
@@ -434,7 +433,7 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
               strokeWidth={2}
               className={theme.isCompleted ? "text-emerald-500" : "text-stone-400"}
             />
-            <span>{theme.isCompleted ? "Тема завершена" : "Отметить как завершённую"}</span>
+            <span>{theme.isCompleted ? "Тема пройдена" : "Отметить пройденной"}</span>
           </button>
         </div>
       </div>
@@ -446,7 +445,7 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
         <div className="flex items-center gap-2">
           <ListChecks size={14} strokeWidth={2} className="text-[#1B4F72]" />
           <span className="text-xs font-semibold text-stone-700">
-            Библиотека заданий
+            Копилка ДЗ
           </span>
           {bank.length > 0 && (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#1B4F72]/10 text-[#1B4F72]">
@@ -467,9 +466,9 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
           <div className="py-6 text-center">
             <BookOpen size={28} strokeWidth={1} className="mx-auto text-stone-200 mb-2" />
             <p className="text-xs text-stone-400">
-              Здесь пока пусто.
+              Тут пока пусто.
               <br />
-              Добавьте первое задание ↓
+              Добавьте пару заданий — они останутся здесь навсегда, чтобы не писать их заново.
             </p>
           </div>
         )}

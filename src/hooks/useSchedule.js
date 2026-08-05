@@ -3,9 +3,11 @@ import {
   getLessons, updateLesson, addLesson, deleteLesson,
   getStudents, getGroups 
 } from "../services/database.js";
+import { useConfirm } from '../contexts/ConfirmContext.jsx';
 
 export function useSchedule() {
   const [lessons, setLessons] = useState([]);
+  const confirm = useConfirm();
   const [students, setStudents] = useState([]);
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,9 +93,12 @@ export function useSchedule() {
     // Check if this lesson was conducted/paid — warn that balance will be reverted
     const lesson = lessons.find(l => l.id === id);
     if (lesson && (lesson.status === 'conducted' || lesson.status === 'skipped_paid')) {
-      const confirmed = window.confirm(
-        'Этот урок уже проведён и деньги списаны. Если вы удалите его, стоимость вернётся на баланс ученика. Продолжить?'
-      );
+      const confirmed = await confirm({
+        title: "Удаление проведенного урока",
+        message: 'Этот урок уже проведён и деньги списаны. Если вы удалите его, стоимость вернётся на баланс ученика. Продолжить?',
+        confirmText: "Удалить",
+        intent: "danger"
+      });
       if (!confirmed) return;
     }
     await deleteLesson(id);

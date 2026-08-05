@@ -216,8 +216,8 @@ export default function SchedulePage() {
       onDragEnd={handleDragEnd}
     >
       <PageWrapper
-      title="Рабочий календарь"
-      subtitle="Ваше время под контролем"
+      title="План занятий"
+      subtitle="Расписание и материалы"
       icon={CalendarDays}
       iconBgClass="bg-[#1B4F72]/10"
       iconTextClass="text-[#1B4F72]"
@@ -325,7 +325,27 @@ export default function SchedulePage() {
         </div>
 
           {/* Правая панель (Dynamic Context Panel) */}
-          <div className={`${view === 'day' ? 'hidden' : 'hidden xl:flex flex-[0_0_320px] xl:flex-[0_0_380px]'} flex-col min-w-0 overflow-hidden relative`}>
+          <div 
+            className={`
+              flex-col min-w-0 overflow-hidden relative transition-all duration-300
+              ${view === 'day' 
+                ? (rightPanelMode === 'inspector' || rightPanelMode === 'create' 
+                    ? 'fixed inset-x-0 bottom-0 z-[100] h-[85vh] rounded-t-[32px] bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.2)] flex xl:hidden' 
+                    : 'hidden') 
+                : (rightPanelMode === 'inspector' || rightPanelMode === 'create'
+                    ? 'fixed inset-x-0 bottom-0 z-[100] h-[85vh] rounded-t-[32px] bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.2)] flex xl:relative xl:h-auto xl:inset-auto xl:rounded-[28px] xl:bg-white xl:shadow-sm xl:border xl:border-stone-100/50 xl:flex-[0_0_320px] 2xl:flex-[0_0_380px]'
+                    : 'hidden xl:flex xl:flex-[0_0_320px] 2xl:flex-[0_0_380px] xl:rounded-[28px] xl:bg-white xl:shadow-sm xl:border xl:border-stone-100/50')
+              }
+            `}
+          >
+            {/* Backdrop for mobile */}
+            {(rightPanelMode === 'inspector' || rightPanelMode === 'create') && (
+              <div 
+                className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm -z-10 xl:hidden"
+                onClick={handleCloseDrawer}
+                style={{ top: '-100vh', height: '200vh' }}
+              />
+            )}
             {rightPanelMode === 'students' ? (
               <ScheduleSidebar
                 lessons={selectedDateStr ? periodLessons.filter(l => l.date === selectedDateStr) : periodLessons}

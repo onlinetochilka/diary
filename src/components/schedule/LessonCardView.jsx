@@ -67,8 +67,8 @@ export const LessonCardView = forwardRef(({
         </div>
         
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span className={`font-bold tabular-nums text-stone-700 bg-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] leading-none`}>
-            {lesson.startTime} — {lesson.endTime}
+          <span className={`whitespace-nowrap font-bold tabular-nums text-stone-700 bg-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] leading-none`}>
+            {lesson.startTime}
           </span>
           {topic && <span className="line-clamp-1 text-[9px] sm:text-[10px] text-stone-500 font-medium leading-tight">{topic}</span>}
         </div>
@@ -128,8 +128,8 @@ export const LessonCardView = forwardRef(({
       </div>
       
       <div className="flex items-center gap-1.5 mt-1.5">
-        <span className={`font-bold tabular-nums text-stone-700 bg-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-1.5 py-0.5 rounded ${compact ? 'text-[8px]' : 'text-[8.5px] sm:text-[9px]'} leading-none`}>
-          {lesson.startTime} — {lesson.endTime}
+        <span className={`whitespace-nowrap font-bold tabular-nums text-stone-700 bg-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-1.5 py-0.5 rounded ${compact ? 'text-[8px]' : 'text-[8.5px] sm:text-[9px]'} leading-none`}>
+          {lesson.startTime}
         </span>
       </div>
     </div>

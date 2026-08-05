@@ -23,6 +23,7 @@ import { generateDemoData, clearAllTutorData } from "../../utils/demoData.js";
 import { useState, useRef, useEffect } from "react";
 import { useAvatar } from "../../hooks/useAvatar.js";
 import AvatarPickerModal from "./AvatarPickerModal.jsx";
+import { useConfirm } from "../../contexts/ConfirmContext.jsx";
 
 export const NAV_ITEMS = [
   {
@@ -48,7 +49,7 @@ export const NAV_ITEMS = [
   },
   {
     id:     "students",
-    label:  "Ученики",
+    label:  "Мои ученики",
     icon:   Users,
     activeBg: "bg-[#7A404D]/10",
     activeText: "text-[#7A404D]",
@@ -90,6 +91,7 @@ export default function Sidebar({ activePage, onNavigate }) {
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const { avatar, updateAvatar } = useAvatar();
   const profileRef = useRef(null);
+  const confirm = useConfirm();
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -112,7 +114,12 @@ export default function Sidebar({ activePage, onNavigate }) {
         pb.authStore.clear();
         window.location.href = "/";
       } else {
-        if (!window.confirm("Это выведет вас из текущего аккаунта и запустит изолированный демо-режим. Продолжить?")) {
+        const proceed = await confirm({
+          title: "Внимание",
+          message: "Это выведет вас из текущего аккаунта и запустит изолированный деморежим. Продолжить?",
+          confirmText: "Продолжить"
+        });
+        if (!proceed) {
           setIsLoading(false);
           return;
         }
@@ -127,8 +134,13 @@ export default function Sidebar({ activePage, onNavigate }) {
     }
   };
 
-  const handleLogout = () => {
-    if (window.confirm("Выйти из аккаунта?")) {
+  const handleLogout = async () => {
+    const proceed = await confirm({
+      title: "Уже уходите?",
+      message: "Завершить сеанс?",
+      confirmText: "Выйти"
+    });
+    if (proceed) {
       pb.authStore.clear();
       window.location.href = "/";
     }

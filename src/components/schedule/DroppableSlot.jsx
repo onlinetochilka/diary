@@ -12,7 +12,7 @@ export default function DroppableSlot({ id, date, isToday, children, className, 
       ref={setNodeRef} 
       onClick={onClick}
       onDoubleClick={onDoubleClick}
-      className={`${className} transition-all duration-300 ${isOver ? 'shadow-neu-sm-inset bg-stone-200/20' : ''}`}
+      className={`${className} transition-all duration-300 ${isOver ? 'bg-stone-200/20' : ''}`}
       style={style}
     >
       {children}

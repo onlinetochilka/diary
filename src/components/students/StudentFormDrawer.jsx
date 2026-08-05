@@ -1,5 +1,6 @@
 import { useState, useEffect, useId } from "react";
-import { Loader2, Plus, X, Trash2 } from "lucide-react";
+import { Loader2, Plus, X, Trash2, ArrowRight } from "lucide-react";
+import { useConfirm } from "../../contexts/ConfirmContext.jsx";
 
 import { 
   SideDrawer, Button, Input, SegmentedControl, 
@@ -27,6 +28,7 @@ export default function StudentFormDrawer({
   availablePrograms = [],
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const confirm = useConfirm();
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     name: "",
@@ -181,20 +183,27 @@ export default function StudentFormDrawer({
     });
   };
 
-  const handleRemoveProgram = (subjIndex, progIndex) => {
+  const handleRemoveProgram = async (subjIndex, progIndex) => {
+    const subj = formData.subjects[subjIndex];
+    if (!subj) return;
+    const prog = subj.programs[progIndex];
+    if (!prog) return;
+    
+    const hasCompleted = prog.topics?.some(t => t.isCompleted);
+    if (hasCompleted) {
+      const proceed = await confirm({
+        title: "Внимание",
+        message: `Удалить программу "${prog.name}" и сбросить весь пройденный прогресс?`,
+        confirmText: "Удалить",
+        intent: "danger"
+      });
+      if (!proceed) return;
+    }
+
     setFormData(prev => {
       const newSubjects = [...prev.subjects];
-      const subj = newSubjects[subjIndex];
-      const prog = subj.programs[progIndex];
-      
-      const hasCompleted = prog.topics?.some(t => t.isCompleted);
-      if (hasCompleted) {
-        if (!window.confirm(`Удалить программу "${prog.name}" и сбросить весь пройденный прогресс?`)) {
-          return prev;
-        }
-      }
-
-      subj.programs = subj.programs.filter((_, i) => i !== progIndex);
+      const targetSubj = newSubjects[subjIndex];
+      targetSubj.programs = targetSubj.programs.filter((_, i) => i !== progIndex);
       return { ...prev, subjects: newSubjects };
     });
   };

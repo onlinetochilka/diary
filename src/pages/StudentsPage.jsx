@@ -12,10 +12,12 @@ import ReportTemplateView from "../components/students/ReportTemplateView.jsx";
 import { getPrograms, addGroup, updateGroup, deleteGroup, getGroups, deleteStudent } from "../services/database.js";
 import { fetchStudents, createStudent, patchStudent } from "../services/studentsAdapter.js";
 import pb from "../services/pocketbase.js";
+import { useToast } from "../components/ui/Toast.jsx";
 
 export default function StudentsPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
   const onNavigate = (path, state) => navigate(`/${path}`, { state });
   const pageState = location.state;
 
@@ -271,7 +273,7 @@ export default function StudentsPage() {
         onGenerate={(config) => {
           // Групповой отчёт — пока заглушка, в будущем отдельный ReportTemplateView для групп
           console.log('Group report config:', config);
-          alert("Функция генерации группового отчета в разработке");
+          showToast({ message: "Функция генерации группового отчета в разработке", type: "error" });
           setReportBuilderGroup(null);
         }}
       />

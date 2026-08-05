@@ -365,10 +365,15 @@ export async function getGroup(id) {
 }
 
 export async function addGroup(data) {
+  const tutorId = data.tutorId || pb.authStore.model?.id;
   if (!data.colorOklch) {
-    const usedColors = await getAllUsedColors(data.tutorId);
+    const usedColors = await getAllUsedColors(tutorId);
     data.colorOklch = getNextDistinctColor(usedColors);
     delete data.colorHue;
+  }
+  
+  if (!data.tutorId) {
+    data.tutorId = tutorId;
   }
 
   invalidateCache("groups");
@@ -468,10 +473,15 @@ export async function getProgram(id) {
 }
 
 export async function addProgram(data) {
+  const tutorId = data.tutorId || pb.authStore.model?.id;
   if (!data.colorOklch) {
-    const usedColors = await getAllUsedColors(data.tutorId);
+    const usedColors = await getAllUsedColors(tutorId);
     data.colorOklch = getNextDistinctColor(usedColors);
     delete data.colorHue;
+  }
+
+  if (!data.tutorId) {
+    data.tutorId = tutorId;
   }
 
   invalidateCache("programs");
@@ -828,6 +838,10 @@ export async function getLesson(id) {
  * @returns {Promise<string>} new record ID
  */
 export async function addLesson(data) {
+  if (!data.tutorId) {
+    data.tutorId = pb.authStore.model?.id;
+  }
+  
   invalidateCache("lessons");
   if (data.isRecurring && data.repeatUntil) {
     const seriesId = `series_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -1154,6 +1168,10 @@ export async function getPayments({ tutorId, studentId } = {}) {
  * @returns {Promise<string>} new record ID
  */
 export async function addPayment(data) {
+  if (!data.tutorId) {
+    data.tutorId = pb.authStore.model?.id;
+  }
+
   invalidateCache("payments");
   invalidateCache("students");
   const record = await pb.collection("payments").create({

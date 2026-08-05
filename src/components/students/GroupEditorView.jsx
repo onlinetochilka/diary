@@ -6,13 +6,15 @@
  */
 import { useState, useEffect, useId } from 'react';
 import { ArrowLeft, Save, Loader2, Trash2, Plus, Archive, ArchiveRestore } from 'lucide-react';
+import { useConfirm } from "../../contexts/ConfirmContext.jsx";
 import { cn } from '../../utils/cn.js';
 import { Label, Input, Select, SegmentedToggle, SectionHeading } from './StudentFormAtoms.jsx';
+import { useToast } from '../ui/Toast.jsx';
 
 // ── Атом: Segmented toggle для формата/оплаты ────────────────────────────────
 function SegmentedControl({ options, value, onChange }) {
   return (
-    <div className="flex p-1 bg-stone-100 rounded-xl ring-1 ring-slate-200 shadow-inner">
+    <div className="flex p-1 bg-stone-100 rounded-xl ring-1 ring-slate-200">
       {options.map((opt) => {
         const isActive = value === opt.value;
         return (
@@ -113,6 +115,8 @@ export default function GroupEditorView({
 }) {
   const isEditMode = !!groupId;
   const subjectsDatalistId = useId() + '-group-subjects';
+  const confirm = useConfirm();
+  const { showToast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -208,10 +212,16 @@ export default function GroupEditorView({
     setFormData(prev => ({ ...prev, programs: [...prev.programs, snapshot] }));
   };
 
-  const handleRemoveProgram = (idx) => {
+  const handleRemoveProgram = async (idx) => {
     const prog = formData.programs[idx];
     if (prog.topics?.some(t => t.isCompleted)) {
-      if (!window.confirm(`Удалить программу «${prog.name}» и сбросить прогресс?`)) return;
+      const proceed = await confirm({
+        title: "Внимание",
+        message: `Удалить программу «${prog.name}» и сбросить прогресс?`,
+        confirmText: "Удалить",
+        intent: "danger"
+      });
+      if (!proceed) return;
     }
     setFormData(prev => ({ ...prev, programs: prev.programs.filter((_, i) => i !== idx) }));
   };
@@ -250,8 +260,11 @@ export default function GroupEditorView({
 
     try {
       await onSubmit(payload, groupId);
+      showToast({ message: "Группа сохранена", type: "success" });
+      onBack();
     } catch (err) {
       console.error(err);
+      showToast({ message: "Ошибка при сохранении", type: "error" });
       setIsSaving(false);
     }
   };
@@ -260,12 +273,12 @@ export default function GroupEditorView({
     onBack();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const hasHistory = !!initialData && initialData.stats?.conductedLessons > 0;
     const isArchived = !!initialData?.isArchived;
 
     if (hasHistory && !isArchived) {
-      alert('Группу с историей проведенных уроков можно удалить только из архива. Пожалуйста, сначала перенесите её в архив.');
+      showToast({ message: 'Группу с историей можно удалить только из архива', type: 'error' });
       return;
     }
 
@@ -273,16 +286,31 @@ export default function GroupEditorView({
       ? 'ВНИМАНИЕ! Вместе с группой будут безвозвратно удалены ВСЕ её уроки. Вы уверены?'
       : 'Удалить группу? Это действие нельзя отменить.';
 
-    if (!window.confirm(message)) return;
+    const proceed = await confirm({
+      title: "Удаление группы",
+      message,
+      confirmText: "Удалить",
+      intent: "danger"
+    });
+    if (!proceed) return;
+    
     onDelete?.(groupId);
   };
 
-  const handleArchive = () => {
+  const handleArchive = async () => {
     const isCurrentlyArchived = initialData?.isArchived;
     const message = isCurrentlyArchived
       ? 'Восстановить группу из архива?'
       : 'Перенести группу в архив?';
-    if (!window.confirm(message)) return;
+      
+    const proceed = await confirm({
+      title: isCurrentlyArchived ? "Восстановление" : "Архивация",
+      message,
+      confirmText: isCurrentlyArchived ? "Восстановить" : "В архив",
+      intent: isCurrentlyArchived ? "info" : "warning"
+    });
+    if (!proceed) return;
+    
     onArchive?.(groupId, !isCurrentlyArchived);
   };
 

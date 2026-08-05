@@ -15,11 +15,11 @@
  *   isDirty      — boolean  (shows "unsaved changes" confirm on close)
  *   className    — string
  */
-import { useEffect, useRef, useState } from "react";
-import { X, AlertTriangle, Trash2 } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { X, Trash2 } from "lucide-react";
 import { cn } from "../../utils/cn.js";
-import Button from "./Button.jsx";
-import Modal from "./Modal.jsx";
+import { Button, Tooltip } from "./index.js";
+import { useConfirm } from "../../contexts/ConfirmContext.jsx";
 import { useToast } from "./Toast.jsx";
 
 const UNDO_DELAY_MS = 5000;
@@ -37,7 +37,7 @@ export default function SideDrawer({
   isDirty = false,
 }) {
   const dialogRef = useRef(null);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const confirm = useConfirm();
   const { showToast } = useToast();
 
   /* ── Open / close dialog ──────────────────────────────── */
@@ -48,7 +48,6 @@ export default function SideDrawer({
     if (isOpen) {
       if (!dialog.open) {
         dialog.showModal();
-        setShowConfirm(false);
       }
       document.body.style.overflow = "hidden";
     } else {
@@ -62,17 +61,21 @@ export default function SideDrawer({
   }, [isOpen]);
 
   /* ── Close attempt (respects isDirty) ────────────────── */
-  const handleCloseAttempt = () => {
+  const handleCloseAttempt = async () => {
     if (isDirty) {
-      setShowConfirm(true);
+      const proceed = await confirm({
+        title: "Несохраненные изменения",
+        message: "Вы внесли изменения, но не сохранили их. Закрыть без сохранения?",
+        confirmText: "Не сохранять",
+        cancelText: "Вернуться к редактированию",
+        intent: "danger"
+      });
+      if (proceed) {
+        onClose();
+      }
     } else {
       onClose();
     }
-  };
-
-  const handleConfirmClose = () => {
-    setShowConfirm(false);
-    onClose();
   };
 
   /* ── Backdrop click ───────────────────────────────────── */
@@ -86,7 +89,6 @@ export default function SideDrawer({
     if (!dialog) return;
 
     const handleBackdropClick = (e) => {
-      if (showConfirm) return;
       const rect = dialog.getBoundingClientRect();
       const isInDialog =
         rect.top    <= e.clientY && e.clientY <= rect.top  + rect.height &&
@@ -96,7 +98,7 @@ export default function SideDrawer({
 
     dialog.addEventListener("click", handleBackdropClick);
     return () => dialog.removeEventListener("click", handleBackdropClick);
-  }, [showConfirm]);
+  }, []);
 
   /* ── Optimistic delete with Undo ──────────────────────── */
   const handleDeleteClick = () => {
@@ -150,14 +152,15 @@ export default function SideDrawer({
         className={cn(
           /* Overlay */
           "backdrop:bg-stone-900/40 backdrop:backdrop-blur-[3px]",
-          /* Positioning — full-height right panel */
-          "fixed inset-y-0 right-0 p-0 w-full",
+          /* Positioning */
+          "fixed inset-0 p-0 w-full max-w-none sm:inset-y-0 sm:right-0 sm:left-auto",
           /* Panel chrome */
-          "bg-ivory sm:rounded-l-2xl overflow-hidden",
+          "bg-ivory rounded-none sm:rounded-l-2xl overflow-hidden",
           "shadow-[0_32px_80px_rgba(0,0,0,0.22)]",
           /* Entrance animation */
-          "open:animate-in open:slide-in-from-right open:duration-300",
-          width,
+          "open:animate-in open:slide-in-from-bottom-8 sm:open:slide-in-from-right open:duration-300",
+          /* Width applied only on sm+ since max-w-none is used above for mobile */
+          `sm:${width}`,
           className
         )}
       >
@@ -204,30 +207,6 @@ export default function SideDrawer({
 
         </div>
       </dialog>
-
-      {/* ── Unsaved changes confirm ────────────────────────── */}
-      <Modal isOpen={showConfirm} onClose={() => setShowConfirm(false)} title="Несохраненные изменения">
-        <div className="text-center mb-6">
-          <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-amber-500/10 border border-amber-500/20 mb-4">
-            <AlertTriangle className="h-7 w-7 text-amber-600" />
-          </div>
-          <p className="text-stone-600 text-sm leading-relaxed">
-            Вы внесли изменения, но не сохранили их. Закрыть без сохранения?
-          </p>
-        </div>
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setShowConfirm(false)} className="bg-stone-100 hover:bg-stone-200 text-stone-700 border-transparent">
-            Вернуться к редактированию
-          </Button>
-          <Button
-            variant="primary"
-            className="bg-red-500 hover:bg-red-600 focus:ring-red-500/20 border-transparent text-white shadow-sm"
-            onClick={handleConfirmClose}
-          >
-            Не сохранять
-          </Button>
-        </div>
-      </Modal>
     </>
   );
 }

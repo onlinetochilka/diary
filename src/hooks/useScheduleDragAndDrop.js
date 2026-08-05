@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSensors, useSensor, PointerSensor } from '@dnd-kit/core';
 import { ymd } from '../components/schedule/scheduleUtils.jsx';
+import { useConfirm } from '../contexts/ConfirmContext.jsx';
 
 export function useScheduleDragAndDrop({ view, hookCopyLesson, handleSaveLesson, lessons = [] }) {
+  const confirm = useConfirm();
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -75,7 +77,7 @@ export function useScheduleDragAndDrop({ view, hookCopyLesson, handleSaveLesson,
     }
   };
 
-  const handleDragEnd = (event) => {
+  const handleDragEnd = async (event) => {
     setActiveDragLesson(null);
     setDragTimeDelta(0);
     setDragWidth(null);
@@ -134,7 +136,12 @@ export function useScheduleDragAndDrop({ view, hookCopyLesson, handleSaveLesson,
       });
 
       if (isOverlapping) {
-        const proceed = window.confirm("Внимание: На это время уже запланирован другой урок. Вы уверены, что хотите перенести/скопировать урок сюда?");
+        const proceed = await confirm({
+          title: "Пересечение времени",
+          message: "Внимание: На это время уже запланирован другой урок. Вы уверены, что хотите перенести/скопировать урок сюда?",
+          confirmText: "Продолжить",
+          intent: "warning"
+        });
         if (!proceed) return;
       }
 

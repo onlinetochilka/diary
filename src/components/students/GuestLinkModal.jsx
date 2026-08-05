@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Button } from '../ui/index.js';
+import { Modal, Button, Tooltip, useToast } from '../ui/index.js';
 import { Link2, Copy, Check, Send, Smartphone, Phone, Mail, ExternalLink } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 import { updateStudent } from '../../services/database.js';
@@ -44,6 +44,7 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
   const [copied, setCopied] = useState(false);
   const [videoCopied, setVideoCopied] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const { showToast } = useToast();
 
   const hash = student?.linkHash || (student ? `guest-${student.id}` : 'unknown');
   const url = `${window.location.origin}/?guest=${hash}`;
@@ -115,15 +116,16 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
             value={url}
             className="flex-1 bg-transparent border-none outline-none text-xs text-stone-500 font-mono min-w-0"
           />
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-stone-400 hover:text-stone-600 transition-colors shrink-0"
-            title="Открыть"
-          >
-            <ExternalLink size={14} />
-          </a>
+          <Tooltip text="Открыть">
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-stone-400 hover:text-stone-600 transition-colors shrink-0"
+            >
+              <ExternalLink size={14} />
+            </a>
+          </Tooltip>
         </div>
 
         {/* Copy button — спокойный стиль */}
@@ -153,25 +155,27 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
                 value={videoLink}
                 className="flex-1 bg-transparent border-none outline-none text-xs text-stone-500 font-mono min-w-0"
               />
-              <button
-                onClick={handleVideoCopy}
-                className={cn(
-                  "transition-colors shrink-0 p-1 rounded-md",
-                  videoCopied ? "text-emerald-500 bg-emerald-50" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100"
-                )}
-                title="Копировать ссылку на звонок"
-              >
-                {videoCopied ? <Check size={14} /> : <Copy size={14} />}
-              </button>
-              <a
-                href={videoLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-stone-400 hover:text-stone-600 hover:bg-stone-100 p-1 rounded-md transition-colors shrink-0"
-                title="Открыть"
-              >
-                <ExternalLink size={14} />
-              </a>
+              <Tooltip text="Копировать ссылку на звонок">
+                <button
+                  onClick={handleVideoCopy}
+                  className={cn(
+                    "transition-colors shrink-0 p-1 rounded-md",
+                    videoCopied ? "text-emerald-500 bg-emerald-50" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100"
+                  )}
+                >
+                  {videoCopied ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </Tooltip>
+              <Tooltip text="Открыть">
+                <a
+                  href={videoLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-stone-400 hover:text-stone-600 hover:bg-stone-100 p-1 rounded-md transition-colors shrink-0"
+                >
+                  <ExternalLink size={14} />
+                </a>
+              </Tooltip>
             </div>
           </div>
         )}
@@ -223,7 +227,7 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
                 window.dispatchEvent(new CustomEvent("force-refresh-data"));
               } catch (err) {
                 console.error("Ошибка при сбросе ссылки:", err);
-                alert("Не удалось сбросить ссылку");
+                showToast({ message: "Не удалось сбросить ссылку", type: "error" });
               } finally {
                 setIsResetting(false);
               }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useId } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Plus, X, Trash2, ArrowRight, Loader2 } from "lucide-react";
+import { useConfirm } from "../../contexts/ConfirmContext.jsx";
 import { 
   SideDrawer, Button, Input, SegmentedControl, 
   Select, TagsInput, Checkbox, Tooltip, Card
@@ -27,6 +28,7 @@ export default function GroupFormDrawer({
   availablePrograms = [],
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const confirm = useConfirm();
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     name: "",
@@ -118,19 +120,22 @@ export default function GroupFormDrawer({
     });
   };
 
-  const handleRemoveProgram = (progIndex) => {
-    setFormData(prev => {
-      const prog = prev.programs[progIndex];
-      
-      const hasCompleted = prog.topics?.some(t => t.isCompleted);
-      if (hasCompleted) {
-        if (!window.confirm(`Удалить программу "${prog.name}" и сбросить весь пройденный прогресс?`)) {
-          return prev;
-        }
-      }
+  const handleRemoveProgram = async (progIndex) => {
+    const prog = formData.programs[progIndex];
+    if (!prog) return;
 
-      return { ...prev, programs: prev.programs.filter((_, i) => i !== progIndex) };
-    });
+    const hasCompleted = prog.topics?.some(t => t.isCompleted);
+    if (hasCompleted) {
+      const proceed = await confirm({
+        title: "Внимание",
+        message: `Удалить программу "${prog.name}" и сбросить весь пройденный прогресс?`,
+        confirmText: "Удалить",
+        intent: "danger"
+      });
+      if (!proceed) return;
+    }
+
+    setFormData(prev => ({ ...prev, programs: prev.programs.filter((_, i) => i !== progIndex) }));
   };
 
   const handleSubmit = async (e) => {

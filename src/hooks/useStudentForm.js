@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useConfirm } from '../contexts/ConfirmContext.jsx';
 import { createEmptyStudent } from '../services/studentsAdapter.js';
+import { useToast } from '../components/ui/Toast.jsx';
 
 /**
  * useStudentForm
@@ -9,6 +11,8 @@ import { createEmptyStudent } from '../services/studentsAdapter.js';
  * расчёт почасовой ставки, сохранение/восстановление черновика из sessionStorage.
  */
 export function useStudentForm({ studentId, initialData, availablePrograms = [], onBack, onSubmit }) {
+  const confirm = useConfirm();
+  const { showToast } = useToast();
   const initialState = initialData || createEmptyStudent();
   const [formData, setFormData] = useState(initialState);
   const [isSaving, setIsSaving] = useState(false);
@@ -109,9 +113,15 @@ export function useStudentForm({ studentId, initialData, availablePrograms = [],
     });
   };
 
-  const handleBackAttempt = () => {
+  const handleBackAttempt = async () => {
     if (isDirty) {
-      if (window.confirm('Остались несохраненные данные. Точно выйти?')) {
+      const proceed = await confirm({
+        title: "Несохраненные изменения",
+        message: "Остались несохраненные данные. Точно выйти?",
+        confirmText: "Выйти без сохранения",
+        intent: "danger"
+      });
+      if (proceed) {
         onBack();
       }
     } else {
@@ -122,22 +132,22 @@ export function useStudentForm({ studentId, initialData, availablePrograms = [],
   const handleSave = async () => {
     // Валидация перед сохранением
     if (!formData.name?.trim()) {
-      alert("Пожалуйста, введите полное имя ученика.");
+      showToast({ message: "Пожалуйста, введите полное имя ученика", type: "error" });
       return;
     }
     
     for (let i = 0; i < formData.subjects.length; i++) {
       const subj = formData.subjects[i];
       if (!subj.name?.trim()) {
-        alert(`Пожалуйста, укажите название предмета (предмет №${i + 1}).`);
+        showToast({ message: `Пожалуйста, укажите название предмета (предмет №${i + 1})`, type: "error" });
         return;
       }
       if (subj.price === undefined || subj.price === "" || Number(subj.price) <= 0) {
-        alert(`Пожалуйста, укажите стоимость одного занятия для предмета "${subj.name || i + 1}".`);
+        showToast({ message: `Пожалуйста, укажите стоимость одного занятия для предмета "${subj.name || i + 1}"`, type: "error" });
         return;
       }
       if (subj.duration === undefined || subj.duration === "" || Number(subj.duration) <= 0) {
-        alert(`Пожалуйста, укажите длительность урока для предмета "${subj.name || i + 1}".`);
+        showToast({ message: `Пожалуйста, укажите длительность урока для предмета "${subj.name || i + 1}"`, type: "error" });
         return;
       }
     }
@@ -146,18 +156,20 @@ export function useStudentForm({ studentId, initialData, availablePrograms = [],
     try {
       if (onSubmit) {
         await onSubmit(formData, studentId);
+        showToast({ message: "Ученик сохранён", type: "success" });
       } else {
         // Fallback or demo mode
         setTimeout(() => {
           setInitialDataStr(JSON.stringify(formData));
           setIsSaving(false);
+          showToast({ message: "Ученик сохранён", type: "success" });
           onBack();
         }, 800);
         return;
       }
     } catch (error) {
       console.error("Error saving student:", error);
-      alert("Произошла ошибка при сохранении ученика. Проверьте правильность введенных данных.");
+      showToast({ message: "Произошла ошибка при сохранении ученика", type: "error" });
     } finally {
       setIsSaving(false);
     }

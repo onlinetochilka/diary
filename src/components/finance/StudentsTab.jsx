@@ -5,10 +5,10 @@
 import React, { useState, useMemo, Fragment } from "react";
 import {
   ChevronDown, ChevronUp, ArrowDownUp,
-  Check, Loader2, X,
+  Check, Loader2, X, Wallet
 } from "lucide-react";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
-import { Button } from "../ui/index.js";
+import { Button, EmptyState } from "../ui/index.js";
 import { addPayment } from "../../services/database.js";
 
 function generateReminderText(student) {
@@ -167,7 +167,7 @@ export default function StudentsTab({ studentData, onRefresh }) {
                   {isExpanded && (
                     <tr className="bg-stone-50/50">
                       <td colSpan="5" className="p-0 border-b-2 border-stone-200">
-                        <div className="px-5 py-4 max-h-[300px] overflow-y-auto scrollbar-thin shadow-inner bg-stone-50/80">
+                        <div className="px-5 py-4 max-h-[300px] overflow-y-auto scrollbar-thin bg-stone-50/80">
                           <div className="flex justify-between items-center mb-4">
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-widest">Акт сверки (Уроки и Оплаты)</h4>
                             <div className="flex gap-2">
@@ -192,9 +192,15 @@ export default function StudentsTab({ studentData, onRefresh }) {
                           </div>
 
                           {s.ledger.length === 0 ? (
-                            <p className="text-sm text-stone-400 text-center py-4 bg-white rounded-lg border border-stone-200/50">
-                              Нет истории операций.
-                            </p>
+                            <div className="bg-white rounded-[20px] border border-stone-200/50 shadow-sm overflow-hidden">
+                              <EmptyState
+                                icon={Wallet}
+                                title="Нет операций"
+                                description="История занятий и платежей пока пуста"
+                                iconTheme="bg-stone-100 text-stone-400"
+                                size="sm"
+                              />
+                            </div>
                           ) : (
                             <div className="space-y-1.5">
                               {s.ledger.map((item) => (

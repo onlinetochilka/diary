@@ -156,10 +156,10 @@ export default function DebtorsTab({ debtors, onRefresh }) {
                             setActiveAction({ studentId: s.id, type: "pay" });
                             setPayAmount(Math.abs(s.balance).toString());
                           }}
-                          className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors shadow-neu ${
+                          className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors shadow-sm ${
                             isThis && activeAction.type === "pay"
-                              ? "bg-stone-200 text-blue-600 shadow-neu-inset"
-                              : "bg-ivory text-brand-blue hover:text-blue-600 hover:bg-stone-50"
+                              ? "bg-stone-200 text-blue-600"
+                              : "bg-white text-stone-600 hover:text-blue-600 hover:bg-stone-50"
                           }`}
                         >
                           <Wallet size={18} />

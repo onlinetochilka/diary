@@ -24,7 +24,7 @@ if (typeof window !== "undefined") {
 // components don't cancel each other.
 pb.autoCancellation(false);
 
-// Функция для динамической проверки демо-режима
+// Функция для динамической проверки деморежима
 function getIsDemoMode() {
   return typeof window !== 'undefined' && localStorage.getItem('isDemoMode') === 'true';
 }

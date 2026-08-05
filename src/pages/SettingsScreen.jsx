@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
-import { Modal } from "../components/ui/index.js";
+import { Modal, Select } from "../components/ui/index.js";
 import {
   User, Globe, AlertTriangle, Bell,
   Check, Loader2, LogOut, Trash2,
@@ -496,22 +496,26 @@ function NotificationsSettings({ value, onSave, students = [] }) {
                   {/* Progress report: frequency + content chips */}
                   {key === "progressReport" && (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <select value={section.frequency} onChange={e => update(key, "frequency", e.target.value)} className={SMALL_SELECT}>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <Select value={section.frequency} onChange={e => update(key, "frequency", e.target.value)} className="w-48 min-h-[42px] py-0">
                           <option value="weekly">Каждую неделю</option>
                           <option value="biweekly">Раз в 2 недели</option>
                           <option value="monthly">Раз в месяц</option>
-                        </select>
+                        </Select>
                         {section.frequency !== "monthly" ? (
-                          <><span className="text-sm text-gray-500">в</span>
-                            <select value={section.dayOfWeek} onChange={e => update(key, "dayOfWeek", Number(e.target.value))} className={SMALL_SELECT}>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-500 font-medium">в</span>
+                            <Select value={section.dayOfWeek} onChange={e => update(key, "dayOfWeek", Number(e.target.value))} className="w-40 min-h-[42px] py-0">
                               {DAYS_OPTIONS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select></>
+                            </Select>
+                          </div>
                         ) : (
-                          <><span className="text-sm text-gray-500">числа</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-500 font-medium">числа</span>
                             <input type="number" min="1" max="28" value={section.dayOfMonth}
                               onChange={e => update(key, "dayOfMonth", clamp(Number(e.target.value), 1, 28))}
-                              className={SMALL_NUM} /></>
+                              className="w-16 h-[42px] text-center text-sm border border-stone-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20" />
+                          </div>
                         )}
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -698,10 +702,10 @@ export default function SettingsPage() {
         onClose={() => setResetModalOpen(false)}
         onConfirm={handleResetConfirm}
         isLoading={isResetting}
-        title="Сброс данных"
-        description="Это действие необратимо удалит:"
+        title="Стереть базу с концами?"
+        description="Действие нельзя отменить. Это удалит:"
         bullets={["Всех учеников", "Все уроки и расписание", "Все финансовые записи", "Все программы"]}
-        confirmLabel="Очистить всё"
+        confirmLabel="Да, я уверен"
       />
 
       <div className="max-w-[1400px] mx-auto pb-6">
@@ -784,13 +788,13 @@ export default function SettingsPage() {
               <TimezoneCombobox value={config.timezone} onChange={v => updateConfig("timezone", v)} />
               <div>
                 <FieldLabel>Валюта</FieldLabel>
-                <select value={config.currency} onChange={e => updateConfig("currency", e.target.value)} className={INPUT_CLS}>
+                <Select value={config.currency} onChange={e => updateConfig("currency", e.target.value)}>
                   <option value="RUB">₽ Рубль</option>
                   <option value="BYN">Br Белорусский рубль</option>
                   <option value="USD">$ Доллар</option>
                   <option value="EUR">€ Евро</option>
                   <option value="KZT">₸ Тенге</option>
-                </select>
+                </Select>
               </div>
             </div>
             <WorkingHoursSettings value={config.workingHours} onSave={v => updateConfig("workingHours", v)} />
@@ -814,16 +818,16 @@ export default function SettingsPage() {
               {/* Сброс данных */}
               <div className="flex items-start justify-between gap-6">
                 <div>
-                  <p className="text-sm font-bold text-red-800 mb-1">Сброс данных профиля</p>
+                  <p className="text-sm font-bold text-red-800 mb-1">Удалить все данные</p>
                   <p className="text-sm text-red-500 leading-relaxed">
-                    Удаляет всех учеников, уроки и финансовые записи.<br/>
-                    Аккаунт и настройки остаются.
+                    Это удалит: Всех учеников, уроки и финансовые записи.<br/>
+                    Действие нельзя отменить.
                   </p>
                 </div>
                 <button onClick={() => setResetModalOpen(true)} disabled={isResetting}
                   className={`${BTN_BASE} shrink-0 h-10 px-4 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 focus:ring-red-300`}>
                   <Trash2 size={14} className="mr-2" />
-                  Очистить данные
+                  Удалить
                 </button>
               </div>
 

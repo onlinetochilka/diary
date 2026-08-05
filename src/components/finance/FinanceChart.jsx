@@ -17,7 +17,7 @@
  */
 import React, { useState } from "react";
 import { TrendingUp, TrendingDown, BarChart2 } from "lucide-react";
-import { Card } from "../ui/index.js";
+import { Card, EmptyState } from "../ui/index.js";
 
 const BAR_HEIGHT_FULL    = 148; // px — полный размер
 const BAR_HEIGHT_COMPACT = 156;  // px — компактный режим (чтобы Card был 192px)
@@ -93,16 +93,16 @@ export function FinanceChart({ chartData, maxMonthIncome, incomeGrowthPct, compa
         {!hasData ? (
           /* Empty state */
           <div
-            className="flex flex-col items-center justify-center gap-4 text-center bg-stone-50/50 rounded-xl border border-dashed border-stone-200"
+            className="flex items-center justify-center bg-stone-50/50 rounded-xl border border-dashed border-stone-200"
             style={{ height: BAR_HEIGHT }}
           >
-            <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-stone-100 flex items-center justify-center rotate-3 hover:rotate-0 transition-transform duration-300">
-              <TrendingUp size={26} className="text-stone-300" strokeWidth={2} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-stone-700 mb-1">Пока нет данных</p>
-              <p className="text-xs text-stone-500 max-w-[220px] mx-auto">График доходов появится здесь после первой транзакции.</p>
-            </div>
+            <EmptyState
+              icon={TrendingUp}
+              title="Пока нет данных"
+              description="График доходов появится здесь после первой транзакции"
+              iconTheme="bg-white text-stone-300 ring-1 ring-stone-100 shadow-sm"
+              size="sm"
+            />
           </div>
         ) : (
           <div className="flex gap-1 sm:gap-2">

@@ -4,6 +4,7 @@ import AppShell from "./components/layout/AppShell.jsx";
 import SplashScreen from "./components/layout/SplashScreen.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import { AuthProvider, useAuth } from "./contexts/AuthContext.jsx";
+import { ConfirmProvider } from "./contexts/ConfirmContext.jsx";
 import {
   DashboardPage,
   SchedulePage,
@@ -81,11 +82,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <TooltipProvider>
-          <ToastProvider>
-            <RootApp />
-          </ToastProvider>
-        </TooltipProvider>
+        <ConfirmProvider>
+          <TooltipProvider>
+            <ToastProvider>
+              <RootApp />
+            </ToastProvider>
+          </TooltipProvider>
+        </ConfirmProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -41,7 +41,7 @@ const contentClasses = cn(
   "bg-white/95 backdrop-blur-sm",
   "border border-slate-200/60",
   "shadow-sm",
-  "text-slate-700 font-sans text-xs font-medium leading-snug",
+  "text-slate-700 text-xs font-medium leading-snug",
   "px-3 py-1.5 rounded-lg whitespace-nowrap select-none",
   "will-change-[transform,opacity]",
   // Появление

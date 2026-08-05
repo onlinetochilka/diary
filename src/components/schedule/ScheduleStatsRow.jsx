@@ -1,5 +1,5 @@
 import React from "react";
-import { formatMoney } from "../../utils/format.js";
+import { formatMoney, pluralize } from "../../utils/format.js";
 
 function StatItem({ label, value }) {
   return (
@@ -63,11 +63,11 @@ export default function ScheduleStatsRow({ lessons, students, periodLabel = "н�
 
   return (
     <div className="flex items-center gap-5 px-2">
-      <StatItem label="занятий" value={totalLessons} />
+      <StatItem label={pluralize(totalLessons, "занятие", "занятия", "занятий")} value={totalLessons} />
       <div className="w-px h-6 bg-stone-200 shrink-0" />
-      <StatItem label="часов" value={Number(totalHours.toFixed(1))} />
+      <StatItem label={pluralize(Math.floor(totalHours), "час", "часа", "часов")} value={Number(totalHours.toFixed(1))} />
       <div className="w-px h-6 bg-stone-200 shrink-0" />
-      <StatItem label="учеников" value={uniqueStudents.size} />
+      <StatItem label={pluralize(uniqueStudents.size, "ученик", "ученика", "учеников")} value={uniqueStudents.size} />
       <div className="w-px h-6 bg-stone-200 shrink-0" />
       <StatItem label="доход" value={formatMoney(expectedRevenue)} />
     </div>

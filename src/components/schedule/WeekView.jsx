@@ -184,7 +184,7 @@ export default function WeekView({
                         key={h}
                         id={`week-slot-${dateStr}-${h}`}
                         date={dateStr}
-                        className="w-full cursor-pointer hover:bg-stone-200/40 hover:shadow-neu-sm-inset transition-all"
+                        className="w-full cursor-pointer hover:bg-stone-200/40 transition-all"
                         style={{ height: hourHeight }}
                         onClick={(e) => {
                           e.stopPropagation();

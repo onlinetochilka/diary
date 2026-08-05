@@ -1,10 +1,10 @@
 /**
  * Select.jsx — Точилка UI Kit
  * ─────────────────────────────────────────────────────────────────────────────
- * Native select wrapped with Floating Label styling and a custom chevron.
+ * Custom dropdown component with Floating Label styling and smooth animations.
  */
-import { useId } from "react";
-import { ChevronDown } from "lucide-react";
+import React, { useId, useState, useRef, useEffect } from "react";
+import { ChevronDown, Check } from "lucide-react";
 import { cn } from "../../utils/cn.js";
 
 export default function Select({
@@ -18,71 +18,107 @@ export default function Select({
   value,
   defaultValue,
   children,
+  onChange,
+  name,
   ...rest
 }) {
-  const autoId     = useId();
-  const selectId   = externalId ?? `select-${autoId}`;
+  const autoId = useId();
+  const selectId = externalId ?? `select-${autoId}`;
   const helperHint = helperText ? `${selectId}-helper` : undefined;
-  const errorId    = error      ? `${selectId}-error`  : undefined;
+  const errorId = error ? `${selectId}-error` : undefined;
   const describedBy = [helperHint, errorId].filter(Boolean).join(" ") || undefined;
-  const hasError   = Boolean(error);
+  const hasError = Boolean(error);
   
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  // Parse options from children
+  const options = React.Children.map(children, child => {
+    if (React.isValidElement(child) && child.type === 'option') {
+      if (child.props.hidden || (child.props.disabled && !child.props.value)) return null;
+      return { value: child.props.value, label: child.props.children, disabled: child.props.disabled };
+    }
+    return null;
+  })?.filter(Boolean) || [];
+
   const isControlled = value !== undefined;
-  const hasValue = isControlled ? String(value).length > 0 : false;
+  const [internalValue, setInternalValue] = useState(defaultValue || "");
+  const currentValue = isControlled ? value : internalValue;
+  
+  const selectedOption = options.find(opt => String(opt.value) === String(currentValue));
+  
+  // A label should float if there is an explicit value, OR if the selected option has a label (like a default fallback option)
+  const hasDisplayValue = String(currentValue).length > 0 || Boolean(selectedOption && selectedOption.label);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelect = (opt) => {
+    if (opt.disabled) return;
+    if (!isControlled) setInternalValue(opt.value);
+    setIsOpen(false);
+    if (onChange) {
+      onChange({ target: { name, value: opt.value } });
+    }
+  };
 
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
-      <div className="relative flex items-center group">
+    <div className={cn("flex flex-col gap-1.5", className)} ref={containerRef}>
+      <div 
+        className="relative flex items-center group cursor-pointer"
+        onClick={() => !disabled && setIsOpen(prev => !prev)}
+      >
         {leftIcon && (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute left-3 z-10 text-stone-400 group-focus-within:text-violet-500 transition-colors"
+            className={cn(
+              "pointer-events-none absolute left-3 z-10 transition-colors",
+              isOpen ? "text-[#006584]" : "text-stone-400"
+            )}
           >
             {leftIcon}
           </span>
         )}
 
-        <select
+        <div
           id={selectId}
-          disabled={disabled}
           aria-invalid={hasError}
           aria-describedby={describedBy}
-          value={value}
-          defaultValue={defaultValue}
           className={cn(
-            "peer w-full rounded-xl bg-ivory px-3.5 pb-2 pt-6 text-sm",
-            "text-stone-900 outline-none appearance-none cursor-pointer",
-            "transition-all duration-300 ease-out-quart",
-            "border-2 border-transparent shadow-neu-sm-inset",
-            "focus:border-transparent focus:ring-2 focus:ring-brand-teal focus:ring-offset-2 focus:ring-offset-ivory focus:shadow-neu-sm-inset",
-            hasError && "ring-2 ring-brand-red ring-offset-2 ring-offset-ivory",
+            "peer w-full rounded-xl bg-stone-50 px-3.5 text-sm flex items-center",
+            label ? "pb-2 pt-6" : "py-3",
+            "text-stone-900 outline-none select-none",
+            "transition-all duration-200 ease-out-quart",
+            "border shadow-sm min-h-[52px]",
+            isOpen ? "bg-white border-[#006584]/50 ring-2 ring-[#006584]/20 ring-offset-0" : "border-stone-200/80 hover:border-stone-300",
+            hasError && "border-brand-red focus:ring-brand-red/20",
             disabled && "opacity-60 cursor-not-allowed",
             leftIcon && "pl-10",
-            "pr-10" // Space for chevron
+            "pr-10"
           )}
           {...rest}
         >
-          <option value="" disabled hidden></option>
-          {children}
-        </select>
+          <span className="truncate">{selectedOption ? selectedOption.label : ""}</span>
+        </div>
 
         {/* Floating Label */}
         {label && (
           <label
-            htmlFor={selectId}
             className={cn(
               "absolute text-stone-500 pointer-events-none select-none",
               "transition-all duration-300 ease-out-quart",
               leftIcon ? "left-10" : "left-3.5",
-              // Since select doesn't have a "placeholder-shown" state exactly like inputs if an option is selected,
-              // we check if it has a value. Native select with empty option selected behaves a bit differently.
-              // However, we start it 'floated' if there's any value.
-              // We'll rely heavily on hasValue/defaultValue, and peer-focus.
               "top-3.5 text-sm",
-              (hasValue || defaultValue) && "top-1.5 text-[11px] font-medium",
-              "peer-focus:top-1.5 peer-focus:text-[11px] peer-focus:font-medium peer-focus:text-violet-600",
-              // Fallback for valid selection in pure CSS (if required is set)
-              "peer-valid:top-1.5 peer-valid:text-[11px] peer-valid:font-medium"
+              (hasDisplayValue || isOpen) && "top-1.5 text-[11px] font-medium",
+              isOpen && "text-[#006584]",
+              hasError && "text-brand-red"
             )}
           >
             {label}
@@ -92,14 +128,41 @@ export default function Select({
         {/* Custom Chevron */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute right-3 z-10 text-stone-400 group-focus-within:text-violet-500 transition-colors"
+          className={cn(
+            "pointer-events-none absolute right-3 z-10 transition-transform duration-300",
+            isOpen ? "text-[#006584] rotate-180" : "text-stone-400"
+          )}
         >
           <ChevronDown size={18} strokeWidth={2} />
         </span>
+
+        {/* Dropdown Menu */}
+        {isOpen && !disabled && (
+          <div className="absolute top-[calc(100%+4px)] left-0 w-full bg-white border border-stone-200 shadow-xl rounded-xl py-1.5 z-50 max-h-60 overflow-y-auto animate-fade-in origin-top">
+            {options.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-stone-500 text-center">Нет вариантов</div>
+            ) : (
+              options.map((opt, idx) => (
+                <div
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); handleSelect(opt); }}
+                  className={cn(
+                    "px-3 py-2 text-[13px] cursor-pointer transition-colors flex items-center justify-between mx-1 rounded-lg",
+                    String(currentValue) === String(opt.value) ? "bg-[#006584]/5 text-[#006584] font-semibold" : "text-stone-700 hover:bg-stone-100",
+                    opt.disabled && "opacity-50 cursor-not-allowed hover:bg-transparent"
+                  )}
+                >
+                  <span className="truncate">{opt.label}</span>
+                  {String(currentValue) === String(opt.value) && <Check size={16} strokeWidth={2.5} />}
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {helperText && !error && (
-        <p id={helperHint} className="text-[11px] text-stone-500 font-medium px-1">
+        <p id={helperHint} className="text-[11px] text-stone-500 font-medium px-1 mt-1">
           {helperText}
         </p>
       )}
@@ -108,11 +171,8 @@ export default function Select({
         <p
           id={errorId}
           role="alert"
-          className="text-[11px] text-red-600 font-medium flex items-center gap-1 px-1"
+          className="text-[11px] text-red-600 font-medium flex items-center gap-1 px-1 mt-1"
         >
-          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-            <path d="M6 1a5 5 0 110 10A5 5 0 016 1zm0 3a.75.75 0 00-.75.75v2.5a.75.75 0 001.5 0v-2.5A.75.75 0 006 4zm0 5a.75.75 0 100-1.5.75.75 0 000 1.5z" />
-          </svg>
           {error}
         </p>
       )}

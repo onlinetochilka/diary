@@ -10,7 +10,7 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     // NEVER auto-login demo accounts — they should not persist across page loads.
-    // Users must explicitly click "Попробовать демо-версию" each time.
+    // Users must explicitly click "Попробовать демоверсию" each time.
     if (pb.authStore.record?.email?.startsWith("demo_")) {
       pb.authStore.clear();
       return null;

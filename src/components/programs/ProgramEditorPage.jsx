@@ -95,11 +95,10 @@ function UnsavedGuardModal({ isOpen, onConfirm, onCancel }) {
           id="guard-title"
           className="text-base font-semibold text-stone-900 mb-1"
         >
-          Есть несохранённые изменения
+          Сохранить изменения?
         </h2>
         <p className="text-sm text-stone-500 leading-relaxed mb-5">
-          Если уйти сейчас, последние правки в программе не сохранятся.
-          Продолжить?
+          Если уйти сейчас, вы потеряете последние правки.
         </p>
         <div className="flex gap-2 justify-end">
           <button
@@ -125,7 +124,7 @@ function UnsavedGuardModal({ isOpen, onConfirm, onCancel }) {
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400",
             )}
           >
-            Выйти без сохранения
+            Уйти
           </button>
         </div>
       </div>

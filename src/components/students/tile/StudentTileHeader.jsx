@@ -83,7 +83,7 @@ export default function StudentTileHeader({
             </button>
           </Tooltip>
 
-          <Tooltip text="Сгенерировать отчет" position="top">
+          <Tooltip text="Сводный отчет" position="top">
             <button 
               onClick={(e) => {
                 e.stopPropagation();

@@ -297,7 +297,7 @@ function SectionAccordion({
         >
           {sectionTopics.length === 0 ? (
             <p className="text-xs text-stone-400 py-3 pl-2 italic">
-              В разделе нет тем — добавьте первую ↓
+              В этом разделе пока нет тем.
             </p>
           ) : (
             sectionTopics.map((theme, i) => (

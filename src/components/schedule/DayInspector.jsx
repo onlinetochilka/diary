@@ -8,9 +8,10 @@ import { ymd } from './scheduleUtils.jsx';
 import { cn } from '../../utils/cn.js';
 import { getEntityStyle } from '../../utils/colors.js';
 import DayMiniCalendar from './DayMiniCalendar.jsx';
-import { Select, Checkbox, Tooltip } from '../ui/index.js';
+import { Select, Checkbox, Tooltip, Input } from '../ui/index.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { getUserConfig } from '../../services/database.js';
+import { useConfirm } from '../../contexts/ConfirmContext.jsx';
 
 // --- Contact Helpers ---
 export function getPrimaryChannel(channels) {
@@ -119,6 +120,61 @@ function StatusBlock({ formData, onPatch }) {
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function DetailsBlock({ formData, onPatch }) {
+  return (
+    <div className="px-4 py-2 space-y-3 border-b border-stone-100/50 pb-4 mb-2">
+      <div className="grid grid-cols-2 gap-3">
+        {/* Время */}
+        <div className="flex gap-1 items-center">
+          <Input 
+            type="time" 
+            label="Начало" 
+            value={formData.startTime || ''} 
+            onChange={e => onPatch({ startTime: e.target.value })} 
+            className="flex-1"
+          />
+          <span className="text-stone-300">-</span>
+          <Input 
+            type="time" 
+            label="Конец" 
+            value={formData.endTime || ''} 
+            onChange={e => onPatch({ endTime: e.target.value })} 
+            className="flex-1"
+          />
+        </div>
+
+        {/* Формат */}
+        <Select 
+          label="Формат" 
+          value={formData.format || 'online'} 
+          onChange={e => onPatch({ format: e.target.value })}
+        >
+          <option value="online">Онлайн</option>
+          <option value="offline">Офлайн</option>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {/* Предмет */}
+        <Input 
+          label="Предмет"
+          value={formData.subjectName || ''} 
+          onChange={e => onPatch({ subjectName: e.target.value })} 
+          placeholder="Математика..."
+        />
+
+        {/* Ссылка */}
+        <Input 
+          label="Ссылка на урок"
+          value={formData.link || ''} 
+          onChange={e => onPatch({ link: e.target.value })} 
+          placeholder="https://zoom.us/..." 
+        />
       </div>
     </div>
   );
@@ -248,28 +304,26 @@ function TopicBlock({ formData, students, groups, onPatch }) {
 
   return (
     <div className="px-4 py-2 space-y-2">
-      <div>
+      <div className="mb-4">
         <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Программа</p>
-        <select
+        <Select
           value={formData.programId || ''}
           onChange={e => onPatch({ programId: e.target.value, topicId: '' })}
-          className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
         >
-          <option value="">{activePrograms.length === 0 ? "Нет доступных программ" : "Не выбрана"}</option>
+          <option value="">{activePrograms.length === 0 ? "Без программы" : "Не выбрана"}</option>
           {activePrograms.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        </Select>
       </div>
       {(formData.programId || activeTopics.length > 0) && (
         <div>
           <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Тема</p>
-          <select
+          <Select
             value={formData.topicId || ''}
             onChange={e => onPatch({ topicId: e.target.value })}
-            className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
           >
             <option value="">Не выбрана</option>
             {activeTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
+          </Select>
         </div>
       )}
     </div>
@@ -283,9 +337,8 @@ function HwIndividualBlock({ formData, onPatch }) {
 
   const isHwAssigned = formData.hwAssigned !== false;
   const studentId = formData.studentId;
-  if (!studentId) return null;
 
-  const isDone = (formData.hwDoneBy || []).includes(studentId);
+  const isDone = studentId ? (formData.hwDoneBy || []).includes(studentId) : false;
   const hwStatus = isDone ? (formData.hwStatuses?.[studentId] || 'on_time') : 'not_done';
 
   const HW_OPTIONS = [
@@ -295,6 +348,7 @@ function HwIndividualBlock({ formData, onPatch }) {
   ];
 
   const handleStatusChange = (val) => {
+    if (!studentId) return;
     let newHw = [...(formData.hwDoneBy || [])];
     let newStatuses = { ...(formData.hwStatuses || {}) };
     if (val === 'not_done') {
@@ -335,28 +389,30 @@ function HwIndividualBlock({ formData, onPatch }) {
                 onPatch({ homework: e.target.value });
             }}
             placeholder="Домашнее задание..."
-            rows={3}
+            rows={4}
             className="w-full px-3 py-2 text-sm text-stone-800 bg-stone-50 rounded-xl border border-stone-200 focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 focus:bg-white transition-all outline-none resize-none placeholder:text-stone-300"
           />
-          <div>
-            <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Статус выполнения</p>
-            <div className="flex gap-1.5">
-              {HW_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => handleStatusChange(opt.value)}
-                  className={cn(
-                    'flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none',
-                    hwStatus === opt.value
-                      ? opt.value === 'not_done' ? 'bg-rose-500 text-white shadow-sm' : opt.value === 'on_time' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50'
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
+          {studentId && (
+            <div>
+              <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Статус выполнения</p>
+              <div className="flex gap-1.5">
+                {HW_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleStatusChange(opt.value)}
+                    className={cn(
+                      'flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none',
+                      hwStatus === opt.value
+                        ? opt.value === 'not_done' ? 'bg-rose-500 text-white shadow-sm' : opt.value === 'on_time' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-amber-500 text-white shadow-sm'
+                        : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50'
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -589,6 +645,7 @@ export default function DayInspector({
   onGoToProfile,
 }) {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const mode = createInitial ? 'create' : selectedLesson ? 'lesson' : 'calendar';
   const [formData, setFormData] = useState({});
   const [initialDataStr, setInitialDataStr] = useState("{}");
@@ -660,20 +717,25 @@ export default function DayInspector({
 
     setIsSubmitting(true);
     try {
+      const payload = { ...formData };
+      if (payload.paymentAmount === '') {
+        payload.paymentAmount = null;
+      }
+      
       if (mode === 'create') {
-        if (!formData.studentId && formData.type === 'individual') {
+        if (!payload.studentId && payload.type === 'individual') {
           setSaveError('Выберите ученика');
           return;
         }
-        if (!formData.groupId && formData.type === 'group') {
+        if (!payload.groupId && payload.type === 'group') {
           setSaveError('Выберите группу');
           return;
         }
-        await onSaveLesson(null, formData);
+        await onSaveLesson(null, payload);
         onClearCreate();
       } else {
-        await onPatchLesson(selectedLesson.id, formData);
-        setInitialDataStr(JSON.stringify(formData));
+        await onPatchLesson(selectedLesson.id, payload);
+        setInitialDataStr(JSON.stringify(payload));
       }
     } finally {
       setIsSubmitting(false);
@@ -733,7 +795,19 @@ export default function DayInspector({
             </button>
           </Tooltip>
         )}
-        <button onClick={() => { if (isDirty && !window.confirm('Есть несохранённые изменения. Закрыть без сохранения?')) return; onClose(); onClearCreate?.(); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-xl text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-colors">
+        <button onClick={async () => { 
+          if (isDirty) {
+            const proceed = await confirm({
+              title: "Несохраненные изменения",
+              message: "Вы внесли изменения, но не сохранили их. Закрыть без сохранения?",
+              confirmText: "Не сохранять",
+              intent: "danger"
+            });
+            if (!proceed) return;
+          }
+          onClose(); 
+          onClearCreate?.(); 
+        }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-xl text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-colors">
           <X size={16} />
         </button>
       </div>
@@ -747,31 +821,35 @@ export default function DayInspector({
             </div>
             
             {formData.type === 'individual' ? (
-              <select value={formData.studentId} onChange={(e) => {
-                const sid = e.target.value;
-                const st = students.find(s => s.id === sid);
-                handlePatch({ studentId: sid, subjectName: st?.subjects?.[0]?.name || '' });
-              }} className="w-full px-3 py-2 text-sm bg-white border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800">
-                <option value="">Выберите ученика...</option>
+              <Select 
+                name="studentId"
+                value={formData.studentId} 
+                onChange={(e) => {
+                  const sid = e.target.value;
+                  const st = students.find(s => s.id === sid);
+                  handlePatch({ studentId: sid, subjectName: st?.subjects?.[0]?.name || '' });
+                }} 
+              >
+                <option value="" disabled hidden>Выберите ученика...</option>
                 {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              </Select>
             ) : (
-              <select value={formData.groupId} onChange={(e) => handlePatch({ groupId: e.target.value })} className="w-full px-3 py-2 text-sm bg-white border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800">
-                <option value="">Выберите группу...</option>
+              <Select 
+                name="groupId"
+                value={formData.groupId} 
+                onChange={(e) => handlePatch({ groupId: e.target.value })} 
+              >
+                <option value="" disabled hidden>Выберите группу...</option>
                 {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
+              </Select>
             )}
-
-            <div className="flex items-center gap-2">
-              <input type="time" value={formData.startTime} onChange={e => handlePatch({ startTime: e.target.value })} className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-800 outline-none focus:border-indigo-500" />
-              <span className="text-stone-400">-</span>
-              <input type="time" value={formData.endTime} onChange={e => handlePatch({ endTime: e.target.value })} className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-800 outline-none focus:border-indigo-500" />
-            </div>
           </div>
         )}
 
         <div className="py-2">
           <StatusBlock formData={formData} onPatch={handlePatch} />
+          
+          <DetailsBlock formData={formData} onPatch={handlePatch} />
 
           {formData.type === 'individual' ? (
             <HwIndividualBlock formData={formData} onPatch={handlePatch} />

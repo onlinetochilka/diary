@@ -15,8 +15,8 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
   
   const isMoney = item?.type === "money";
   const title = mode === "remind" 
-    ? (isMoney ? "Напоминание об оплате" : "Напоминание о ДЗ")
-    : (isMoney ? "Отметить оплату" : "Отметить ДЗ");
+    ? (isMoney ? "Как дела с оплатой?" : "Напоминание о ДЗ")
+    : (isMoney ? "Отметить оплату" : "Ученик сдал домашку?");
 
   const generateText = () => {
     if (!item) return "";
@@ -119,11 +119,19 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                 <CheckCircle2 size={40} strokeWidth={2} />
               </div>
               <p className="text-stone-600 font-medium text-base mb-2">
-                Подтверждаете, что <span className="font-bold text-stone-900">
-                  {isMoney && item.student.contacts?.billingTo === 'parent' && item.student.contacts?.parentName 
-                    ? item.student.contacts.parentName 
-                    : item.student.name}
-                </span> {getVerb()} {isMoney ? "задолженность" : "домашнее задание"}?
+                {isMoney ? (
+                  <>
+                    Подтверждаете, что <span className="font-bold text-stone-900">
+                      {item.student.contacts?.billingTo === 'parent' && item.student.contacts?.parentName 
+                        ? item.student.contacts.parentName 
+                        : item.student.name}
+                    </span> {getVerb()} задолженность?
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold text-stone-900">{item.student.name}</span> {getVerb()} домашку?
+                  </>
+                )}
               </p>
               
               {isMoney && (
@@ -139,7 +147,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200 shadow-inner">
+                    <div className="flex items-center justify-center gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200">
                       <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">Сумма:</span>
                       <input 
                         type="number" 
@@ -155,7 +163,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                   <input
                     type="text"
                     placeholder="Комментарий к оплате (необязательно)"
-                    className="w-full text-sm bg-stone-50 border border-stone-200 rounded-xl py-2.5 px-4 text-stone-700 placeholder:text-stone-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+                    className="w-full text-sm bg-stone-50 border border-stone-200 rounded-xl py-2.5 px-4 text-stone-700 placeholder:text-stone-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
                     value={payNote}
                     onChange={(e) => setPayNote(e.target.value)}
                     maxLength={120}
@@ -164,7 +172,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
               )}
 
               {!isMoney && !isMultiple && (
-                <div className="mt-4 flex bg-stone-100 p-1 rounded-xl w-full max-w-[280px] mx-auto border border-stone-200 shadow-inner">
+                <div className="mt-4 flex bg-stone-100 p-1 rounded-xl w-full max-w-[280px] mx-auto border border-stone-200">
                   <button
                     onClick={() => setSingleHwStatus("on_time")}
                     className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
@@ -190,7 +198,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
             </div>
             
             {isMultiple && (
-              <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 text-left mb-4 shadow-inner">
+              <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 text-left mb-4 shadow-sm">
                 <p className="text-xs font-bold text-stone-500 uppercase px-1 mb-2">Выберите сданные ДЗ:</p>
                 {item.lessons.map(l => (
                   <label key={l.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-stone-100 cursor-pointer transition-colors">
@@ -205,15 +213,18 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                       <span className="text-xs text-stone-500 truncate">{l.homework}</span>
                     </div>
                     {selectedLessons[l.id] && (
-                      <select 
-                        className="text-[11px] border border-stone-200 rounded px-1.5 py-1 bg-white text-stone-600 outline-none focus:border-blue-400 font-medium"
-                        value={selectedLessons[l.id]}
-                        onChange={(e) => setSelectedLessons(prev => ({ ...prev, [l.id]: e.target.value }))}
-                        onClick={(e) => e.stopPropagation()} // Prevent toggling the checkbox when interacting with the select
-                      >
-                        <option value="on_time">Вовремя</option>
-                        <option value="late">С опозданием</option>
-                      </select>
+                      <div className="flex bg-stone-100 p-0.5 rounded border border-stone-200" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${selectedLessons[l.id] === 'on_time' ? "bg-white text-stone-800 shadow-sm" : "text-stone-400 hover:text-stone-600"}`}
+                          onClick={() => setSelectedLessons(prev => ({ ...prev, [l.id]: 'on_time' }))}
+                        >Вовремя</button>
+                        <button
+                          type="button"
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${selectedLessons[l.id] === 'late' ? "bg-white text-stone-800 shadow-sm" : "text-stone-400 hover:text-stone-600"}`}
+                          onClick={() => setSelectedLessons(prev => ({ ...prev, [l.id]: 'late' }))}
+                        >Позже</button>
+                      </div>
                     )}
                   </label>
                 ))}

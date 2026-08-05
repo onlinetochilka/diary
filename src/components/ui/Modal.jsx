@@ -61,14 +61,19 @@ export default function Modal({
       onClose={onClose}
       className={cn(
         "backdrop:bg-stone-900/40 backdrop:backdrop-blur-sm",
-        "bg-white rounded-[24px] shadow-2xl ring-1 ring-slate-200/50 w-full p-0 overflow-visible",
-        "open:animate-in open:fade-in-0 open:zoom-in-95 open:duration-200",
+        "bg-white shadow-2xl ring-1 ring-slate-200/50 w-full p-0 overflow-visible",
+        /* Mobile: bottom sheet, Desktop: centered modal */
+        "fixed inset-x-0 bottom-0 mb-0 mt-auto rounded-t-[24px] rounded-b-none sm:relative sm:inset-auto sm:m-auto sm:rounded-[24px]",
+        "open:animate-in open:fade-in-0 open:slide-in-from-bottom-8 sm:open:slide-in-from-bottom-0 sm:open:zoom-in-95 open:duration-300",
         maxWidth,
         className
       )}
     >
-      <div className="flex items-center justify-between p-6 pb-2">
-        <h2 className="text-lg font-semibold text-stone-900">{title}</h2>
+      <div className="flex items-center justify-between p-6 pb-2 relative">
+        {/* Mobile drag handle indicator */}
+        <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-stone-200 rounded-full sm:hidden" />
+        
+        <h2 className="text-lg font-semibold text-stone-900 mt-2 sm:mt-0">{title}</h2>
         <button
           onClick={onClose}
           aria-label="Закрыть"

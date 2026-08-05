@@ -74,27 +74,28 @@ export default function DayLessonCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           {/* Время — поля ввода */}
-          <div
-            className="group flex items-center gap-0.5 text-[11px] font-bold bg-white/70 hover:bg-white text-stone-700 px-1.5 py-0.5 rounded-md tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-sm ring-1 ring-black/5 hover:ring-blue-500/30 transition-all cursor-pointer relative"
-            onClick={(e) => e.stopPropagation()}
-            title="Нажмите, чтобы изменить время"
-          >
-            <input 
-              type="time" 
-              value={startTime}
-              onChange={(e) => onTimeChange && onTimeChange(lesson, { startTime: e.target.value, endTime })}
-              className="relative bg-transparent outline-none w-[36px] text-center cursor-pointer hover:text-blue-600 focus:text-blue-600 transition-colors [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
-              style={{ padding: 0 }}
-            />
-            <span className="text-stone-400 font-normal mx-px">–</span>
-            <input 
-              type="time" 
-              value={endTime}
-              onChange={(e) => onTimeChange && onTimeChange(lesson, { startTime, endTime: e.target.value })}
-              className="relative bg-transparent outline-none w-[36px] text-center cursor-pointer hover:text-blue-600 focus:text-blue-600 transition-colors [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
-              style={{ padding: 0 }}
-            />
-          </div>
+          <Tooltip text="Нажмите, чтобы изменить время">
+            <div
+              className="group flex items-center gap-0.5 text-[11px] font-bold bg-white/70 hover:bg-white text-stone-700 px-1.5 py-0.5 rounded-md tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-sm ring-1 ring-black/5 hover:ring-blue-500/30 transition-all cursor-pointer relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input 
+                type="time" 
+                value={startTime}
+                onChange={(e) => onTimeChange && onTimeChange(lesson, { startTime: e.target.value, endTime })}
+                className="relative bg-transparent outline-none w-[36px] text-center cursor-pointer hover:text-blue-600 focus:text-blue-600 transition-colors [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
+                style={{ padding: 0 }}
+              />
+              <span className="text-stone-400 font-normal mx-px">–</span>
+              <input 
+                type="time" 
+                value={endTime}
+                onChange={(e) => onTimeChange && onTimeChange(lesson, { startTime, endTime: e.target.value })}
+                className="relative bg-transparent outline-none w-[36px] text-center cursor-pointer hover:text-blue-600 focus:text-blue-600 transition-colors [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:m-0"
+                style={{ padding: 0 }}
+              />
+            </div>
+          </Tooltip>
           {/* Длительность */}
           <span
             className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"

@@ -12,11 +12,12 @@
  * ProgramDrawer сохранён для создания новой программы.
  * Редактирование существующей — только через ProgramEditorPage.
  */
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BookOpen, Plus, FilePlus2 } from "lucide-react";
-import { Card, Button, Input } from "../components/ui/index.js";
+import { Card, Button, Input, EmptyState, ProgramCardSkeleton } from "../components/ui/index.js";
 import { getPrograms, addProgram, deleteProgram } from "../services/database.js";
+import { useToast } from "../components/ui/Toast.jsx";
 import ProgramEditorPage from "../components/programs/ProgramEditorPage.jsx";
 import ProgramStructure from "../components/programs/ProgramStructure.jsx";
 import InspectorPanel from "../components/programs/InspectorPanel.jsx";
@@ -103,33 +104,28 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
 
       {/* Содержимое */}
       {isLoading ? (
-        <div className="py-12 flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fuchsia-600" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <ProgramCardSkeleton key={i} />
+          ))}
         </div>
       ) : processedPrograms.length === 0 ? (
-        <Card variant="elevated" className="text-center py-12 px-6">
-          {programs.length === 0 ? (
-            <button
-              type="button"
-              onClick={onCreateNew}
-              className="w-16 h-16 rounded-full flex items-center justify-center mb-5 mx-auto bg-[#7A5299]/10 text-[#7A5299] hover:scale-105 active:scale-95 shadow-sm hover:shadow-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-[#7A5299]/20"
-            >
-              <FilePlus2 size={32} strokeWidth={1.5} />
-            </button>
-          ) : (
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5 mx-auto bg-[#7A5299]/10 text-[#7A5299]">
-              <FilePlus2 size={32} strokeWidth={1.5} />
-            </div>
-          )}
-          <p className="text-stone-800 font-medium mb-1">
-            {programs.length === 0 ? "У вас ещё нет учебных программ." : "По вашему запросу ничего не найдено."}
-          </p>
-          {programs.length === 0 && (
-             <p className="text-stone-500 text-sm max-w-sm mx-auto leading-relaxed">
-               Начните с создания программы! Добавьте темы, чтобы легко планировать уроки и видеть прогресс каждого ученика.
-             </p>
-          )}
-        </Card>
+          <EmptyState
+            icon={FilePlus2}
+            title={programs.length === 0 ? "Здесь пока пусто" : "По вашему запросу ничего не найдено"}
+            description={programs.length === 0 ? "Создайте программу, чтобы легко отмечать пройденные темы." : "Проверьте опечатку или измените параметры фильтра."}
+            iconTheme="bg-[#7A5299]/10 text-[#7A5299]"
+            onIconClick={programs.length === 0 ? onCreateNew : undefined}
+            size="lg"
+            action={
+              programs.length === 0 && (
+                <Button onClick={onCreateNew} className="bg-[#7A5299] hover:bg-[#684185] text-white shadow-md hover:shadow-lg">
+                  <Plus size={16} strokeWidth={2.5} className="mr-2" />
+                  Создать программу
+                </Button>
+              )
+            }
+          />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
           {processedPrograms.map((prog) => (
@@ -155,6 +151,7 @@ export default function ProgramsPage() {
 
   const [programs, setPrograms] = useState([]);
   const [isLoading, setIsLoading]             = useState(true);
+  const { showToast } = useToast();
 
   // State-роутинг: null = список, string = редактор
   const [selectedProgramId, setSelectedProgramId] = useState(null);
@@ -166,24 +163,30 @@ export default function ProgramsPage() {
       setPrograms(await getPrograms());
     } catch (err) {
       console.error(err);
+      showToast({ message: "Ошибка при загрузке программ", type: "error" });
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => { fetchPrograms(); }, [fetchPrograms]);
 
   // ── Создание новой программы ────────────────────────────────────────
   const handleCreate = useCallback(async () => {
-    const newId = await addProgram({
-      name: "Новая программа",
-      subject: "",
-      topics: [],
-    });
-    await fetchPrograms();
-    // Сразу открываем редактор созданной программы
-    setSelectedProgramId(newId);
-  }, [fetchPrograms]);
+    try {
+      const newId = await addProgram({
+        name: "Новая программа",
+        subject: "",
+        topics: [],
+      });
+      await fetchPrograms();
+      // Сразу открываем редактор созданной программы
+      setSelectedProgramId(newId);
+    } catch (err) {
+      console.error("Ошибка при создании:", err);
+      showToast({ message: "Не удалось создать программу. Проверьте подключение.", type: "error" });
+    }
+  }, [fetchPrograms, showToast]);
 
   // ── Обработка навигации с параметрами ───────────────────────────────
   const createProcessed = useRef(false);
@@ -196,9 +199,15 @@ export default function ProgramsPage() {
 
   // ── Удаление ────────────────────────────────────────────────────────
   const handleDelete = useCallback(async (id) => {
-    await deleteProgram(id);
-    await fetchPrograms();
-  }, [fetchPrograms]);
+    try {
+      await deleteProgram(id);
+      await fetchPrograms();
+      showToast({ message: "Программа удалена", type: "success" });
+    } catch (err) {
+      console.error("Ошибка удаления:", err);
+      showToast({ message: "Не удалось удалить программу", type: "error" });
+    }
+  }, [fetchPrograms, showToast]);
 
   // ── Если открыт редактор — рендерим его вместо списка ───────────────
   if (selectedProgramId) {

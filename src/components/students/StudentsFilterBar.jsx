@@ -30,7 +30,7 @@ export default function StudentsFilterBar({
       {/* Левая часть: Статус и Формат */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full xl:w-auto">
         {/* Status Tabs (Активные / Архив) */}
-        <div className="flex p-1 bg-stone-100 rounded-lg shadow-sm ring-1 ring-slate-200">
+        <div className="flex p-1 bg-stone-100 rounded-lg shadow-sm ring-1 ring-slate-200 w-full overflow-x-auto scrollbar-hide">
           {statusTabs.map((tab) => {
             const isActive = activeStatus === tab.id;
             const Icon = tab.icon;
@@ -54,7 +54,7 @@ export default function StudentsFilterBar({
         </div>
 
         {/* Format Segments (Все / Индивидуальные / Группы) */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full overflow-x-auto scrollbar-hide pb-1 md:pb-0">
           {formatSegments.map((segment) => {
             const isActive = activeFormat === segment.id;
             const Icon = segment.icon;

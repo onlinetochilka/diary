@@ -17,7 +17,7 @@ import { StatusPopover } from "../components/schedule/StatusPopover.jsx";
 import LessonInspector from "../components/schedule/LessonInspector.jsx";
 import StudentFormDrawer from "../components/students/StudentFormDrawer.jsx";
 import ActionItemModal from "../components/dashboard/ActionItemModal.jsx";
-import { Modal, Input, Button } from "../components/ui/index.js";
+import { Modal, Input, Button, Tooltip, Select } from "../components/ui/index.js";
 
 import { addPayment, getPrograms } from "../services/database.js";
 import { createStudent, patchStudent } from "../services/studentsAdapter.js";
@@ -77,13 +77,14 @@ function StudentsBento({ students, onCreateStudent, onGoToProfile }) {
               >
                 Добавить
               </button>
-              <button
-                onClick={() => setShowList(true)}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-colors"
-                title="Существующие ученики"
-              >
-                <ChevronRight size={20} />
-              </button>
+              <Tooltip text="Существующие ученики">
+                <button
+                  onClick={() => setShowList(true)}
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-colors"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -117,7 +118,7 @@ function PaymentBento({ onAddPayment }) {
         <Wallet size={28} />
       </div>
       <div className="mt-auto pt-4 flex items-end justify-between">
-        <h3 className="text-lg sm:text-xl font-bold text-stone-900 leading-tight">Внести<br/>оплату</h3>
+        <h3 className="text-lg sm:text-xl font-bold text-stone-900 leading-tight">Отметить<br/>оплату</h3>
         <div className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
           <Plus size={20} />
         </div>
@@ -191,29 +192,28 @@ function LitePaymentModal({ isOpen, onClose, students, onConfirm }) {
   const activeStudents = students.filter(s => !s.isArchived);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Внести оплату" maxWidth="max-w-sm">
+    <Modal isOpen={isOpen} onClose={onClose} title="Отметить оплату" maxWidth="max-w-sm">
       <div className="space-y-4">
-        <div>
-          <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Ученик</label>
-          <select 
+        <div className="pt-2">
+          <Select 
+            label="Ученик"
+            name="studentId"
             value={studentId} 
             onChange={e => setStudentId(e.target.value)}
-            className="w-full bg-stone-50 border border-stone-200 text-stone-900 text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
           >
-            <option value="">Выберите ученика...</option>
+            <option value="" disabled hidden>Выберите ученика...</option>
             {activeStudents.map(s => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
-          </select>
+          </Select>
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Сумма (₽)</label>
-          <input 
+        <div className="pt-2">
+          <Input 
+            label="Сумма (₽)"
             type="number" 
             value={amount} 
             onChange={e => setAmount(e.target.value)}
             placeholder="Например, 1500"
-            className="w-full bg-stone-50 border border-stone-200 text-stone-900 text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
         <div className="pt-2">

@@ -179,7 +179,7 @@ export default function AuthPage() {
     setError("");
     setSuccess("");
     try {
-      setDemoStatus("Загрузка демо-режима...");
+      setDemoStatus("Загрузка деморежима...");
       pb.authStore.clear();
       localStorage.setItem("isDemoMode", "true");
       localStorage.removeItem("demo_db"); // force fresh regen
@@ -195,7 +195,7 @@ export default function AuthPage() {
       } else if (err?.status === 429) {
         setError("Слишком много попыток. Подождите пару минут.");
       } else {
-        setError(`Не удалось запустить демо-режим (${err?.status || "?"}: ${msg || "неизвестная ошибка"}). Попробуйте позже.`);
+        setError(`Не удалось запустить деморежим (${err?.status || "?"}: ${msg || "неизвестная ошибка"}). Попробуйте позже.`);
       }
       setIsLoading(false);
     }
@@ -210,8 +210,8 @@ export default function AuthPage() {
             <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 ring-1 ring-stone-900/5 p-3">
               <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" style={{ animation: 'spin-gear 12s linear infinite' }} />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-stone-900">Сброс пароля</h1>
-            <p className="text-stone-500 mt-1 text-sm text-center">Введите email — пришлём ссылку</p>
+            <h1 className="text-2xl font-bold tracking-tight text-stone-900">Забыли пароль?</h1>
+            <p className="text-stone-500 mt-1 text-sm text-center">Отправим ссылку для сброса пароля на вашу почту</p>
           </div>
 
           {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center">{error}</div>}
@@ -220,7 +220,7 @@ export default function AuthPage() {
           {!success && (
             <>
               <div className="space-y-1">
-                <label className="text-sm font-medium text-stone-700 ml-1">Email</label>
+                <label className="text-sm font-medium text-stone-700 ml-1">Электронная почта</label>
                 <Input
                   type="email"
                   placeholder="name@example.com"
@@ -264,10 +264,10 @@ export default function AuthPage() {
             <img src="https://raw.githubusercontent.com/onlinetochilka/theme/main/tochilka-logo.svg" alt="Точилка" className="w-full h-full object-contain" style={{ animation: 'spin-gear 12s linear infinite' }} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900">
-            {mode === "reset" ? "Новый пароль" : (mode === "login" ? "С возвращением" : "Добро пожаловать")}
+            {mode === "reset" ? "Новый пароль" : (mode === "login" ? "С возвращением" : "Добро пожаловать!")}
           </h1>
           <p className="text-stone-500 mt-1 text-sm text-center">
-            {mode === "reset" ? "Придумайте новый пароль для аккаунта" : (mode === "login" ? "Войдите в свою учетную запись" : "Создайте аккаунт, чтобы начать")}
+            {mode === "reset" ? "Придумайте новый пароль для аккаунта" : (mode === "login" ? "Войдите в свою учетную запись" : "Создайте аккаунт, чтобы навести порядок в расписании")}
           </p>
         </div>
 
@@ -275,7 +275,7 @@ export default function AuthPage() {
 
         {mode === "register" && (
           <div className="space-y-1 mb-4">
-            <label className="text-sm font-medium text-stone-700 ml-1">Как к вам обращаться?</label>
+            <label className="text-sm font-medium text-stone-700 ml-1">Имя</label>
             <Input
               type="text"
               placeholder="Ваше имя (по желанию)"
@@ -289,7 +289,7 @@ export default function AuthPage() {
 
         {mode !== "reset" && (
           <div className="space-y-1">
-            <label className="text-sm font-medium text-stone-700 ml-1">Email</label>
+            <label className="text-sm font-medium text-stone-700 ml-1">Электронная почта</label>
             <Input
               type="email"
               placeholder="name@example.com"
@@ -424,7 +424,7 @@ export default function AuthPage() {
           {isLoading && demoStatus ? (
             <><Loader2 size={16} className="animate-spin mr-2 inline shrink-0" /><span className="truncate">{demoStatus}</span></>
           ) : (
-            "Попробовать демо-версию"
+            "Войти без регистрации (деморежим)"
           )}
         </Button>
       </form>
@@ -432,7 +432,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex font-sans text-stone-900 bg-[#FAFAF9]">
+    <div className="min-h-screen w-full flex text-stone-900 bg-[#FAFAF9]">
       {/* Левая часть - Визуальная (скрыта на мобилках) */}
       <div className="hidden lg:flex lg:w-[45%] relative bg-stone-900 overflow-hidden items-center justify-center">
         <img 

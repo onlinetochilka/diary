@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
 import { Settings2, Loader2, Wallet } from "lucide-react";
-import { Tooltip } from "../components/ui/index.js";
+import { Card, Button, FinanceMetricSkeleton, FinanceChartSkeleton, Tooltip } from "../components/ui/index.js";
 import { useFinanceData } from "../hooks/useFinanceData.js";
 import { useFinanceMetrics } from "../hooks/useFinanceMetrics.js";
 import { getMetricCardData } from "../constants/financeMetrics.js";
@@ -25,8 +25,18 @@ export default function FinancePage() {
         iconBgClass="bg-[#426B5C]/10"
         iconTextClass="text-[#426B5C]"
       >
-        <div className="flex justify-center py-20">
-          <Loader2 className="animate-spin text-stone-300" />
+        <div className="flex flex-col gap-6 lg:gap-8 max-w-[1400px] mx-auto w-full mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => <FinanceMetricSkeleton key={i} />)}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 lg:gap-8 items-start">
+            <div className="space-y-6">
+              <FinanceChartSkeleton />
+            </div>
+            <div className="space-y-6">
+              <div className="h-64 bg-stone-50 rounded-2xl animate-skeleton-pulse" />
+            </div>
+          </div>
         </div>
       </PageWrapper>
     );
@@ -40,7 +50,7 @@ export default function FinancePage() {
   return (
     <PageWrapper
       title="Управление балансом"
-      subtitle="Вся математика ваших уроков в одном месте"
+      subtitle="Вся статистика на одном экране"
       icon={Wallet}
       iconBgClass="bg-[#426B5C]/10"
       iconTextClass="text-[#426B5C]"

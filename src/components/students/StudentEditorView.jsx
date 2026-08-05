@@ -10,6 +10,8 @@
  */
 import { ArrowLeft } from 'lucide-react';
 import { useStudentForm } from '../../hooks/useStudentForm.js';
+import { useConfirm } from '../../contexts/ConfirmContext.jsx';
+import { useToast } from '../ui/Toast.jsx';
 import {
   PersonalInfoSection,
   SubjectsSection,
@@ -18,6 +20,8 @@ import {
 } from './StudentFormSections.jsx';
 
 export default function StudentEditorView({ studentId, initialData, onBack, onNavigate, onSubmit, onDelete, onArchive, availablePrograms = [] }) {
+  const confirm = useConfirm();
+  const { showToast } = useToast();
   const {
     formData,
     isSaving,
@@ -39,12 +43,12 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const hasHistory = !!initialData && (initialData.stats?.conductedHours > 0 || initialData.ltv > 0);
     const isArchived = !!initialData?.isArchived;
 
     if (hasHistory && !isArchived) {
-      alert('Ученика с историей уроков и оплат можно удалить только из архива. Пожалуйста, сначала перенесите его в архив.');
+      showToast({ message: 'Ученика с историей можно удалить только из архива', type: 'error' });
       return;
     }
     
@@ -52,16 +56,31 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
       ? 'ВНИМАНИЕ! Вместе с учеником будут безвозвратно удалены ВСЕ его проведенные уроки и история оплат. Вы уверены, что хотите продолжить?'
       : 'Удалить ученика? Это действие нельзя отменить. Все его данные будут стерты.';
       
-    if (!window.confirm(message)) return;
+    const proceed = await confirm({
+      title: "Удаление ученика",
+      message,
+      confirmText: "Удалить",
+      intent: "danger"
+    });
+    if (!proceed) return;
+    
     onDelete?.(studentId);
   };
 
-  const handleArchive = () => {
+  const handleArchive = async () => {
     const isCurrentlyArchived = initialData?.isArchived;
     const message = isCurrentlyArchived
       ? 'Восстановить ученика из архива?'
       : 'Перенести ученика в архив? Его можно будет восстановить в любой момент.';
-    if (!window.confirm(message)) return;
+      
+    const proceed = await confirm({
+      title: isCurrentlyArchived ? "Восстановление" : "Архивация",
+      message,
+      confirmText: isCurrentlyArchived ? "Восстановить" : "В архив",
+      intent: isCurrentlyArchived ? "info" : "warning"
+    });
+    if (!proceed) return;
+    
     onArchive?.(studentId, !isCurrentlyArchived);
   };
 

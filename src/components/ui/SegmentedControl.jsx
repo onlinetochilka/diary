@@ -26,17 +26,21 @@ export default function SegmentedControl({
           {label}
         </span>
       )}
-      <div className="flex p-1 rounded-xl bg-white border border-stone-200 shadow-sm">
-        {options.map((opt) => {
+      <div className={cn(
+        "p-1 rounded-xl bg-white border border-stone-200 shadow-sm",
+        options.length > 2 ? "grid grid-cols-2 gap-1" : "flex"
+      )}>
+        {options.map((opt, index) => {
           const isSelected = value === opt.value;
           return (
             <label
               key={opt.value}
               className={cn(
-                "flex-1 text-center py-1.5 px-4 rounded-lg text-sm font-medium cursor-pointer transition-all duration-200 select-none",
+                "flex-1 flex items-center justify-center text-center py-1.5 px-2 sm:px-4 rounded-lg text-[11px] sm:text-sm font-medium cursor-pointer transition-all duration-200 select-none leading-tight",
                 isSelected
                   ? "bg-academic-blue text-white shadow-sm hover:bg-academic-blue-light active:scale-[0.98]"
-                  : "text-stone-500 hover:text-stone-700 hover:bg-stone-100"
+                  : "text-stone-500 hover:text-stone-700 hover:bg-stone-100",
+                (options.length % 2 !== 0 && index === options.length - 1) ? "col-span-2" : ""
               )}
             >
               <input

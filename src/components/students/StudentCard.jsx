@@ -168,7 +168,7 @@ const StudentCard = memo(({
               <Link2 size={18} strokeWidth={1.5} />
             </Button>
           </Tooltip>
-          <Tooltip text="Сгенерировать отчет">
+          <Tooltip text="Сводный отчет">
             <Button 
               variant="ghost" 
               size="icon"

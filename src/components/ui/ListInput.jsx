@@ -204,7 +204,7 @@ export default function ListInput({
       
       <div 
         className={cn(
-          "flex flex-col gap-2 p-3 rounded-xl bg-ivory/50 border border-stone-200/60 shadow-neu-sm-inset transition-all",
+          "flex flex-col gap-2 p-3 rounded-xl bg-stone-50 border border-stone-200/80 transition-all",
           hasError && "border-brand-red ring-1 ring-brand-red"
         )}
       >

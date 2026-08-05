@@ -11,11 +11,11 @@ import { cn } from "../../utils/cn.js";
 
 const variants = {
   primary: [
-    "bg-ivory text-brand-teal font-bold shadow-neu-md",
-    "hover:shadow-neu-lg hover:-translate-y-0.5",
-    "active:shadow-neu-md-inset active:translate-y-0",
-    "focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 focus-visible:ring-offset-ivory border-transparent",
-    "disabled:opacity-50 disabled:shadow-none disabled:active:shadow-none",
+    "bg-white text-brand-teal font-bold border border-stone-200 shadow-sm",
+    "hover:bg-stone-50 hover:-translate-y-0.5",
+    "active:translate-y-0 active:bg-stone-100",
+    "focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2",
+    "disabled:opacity-50 disabled:shadow-none",
   ],
   // Filled: solid background for use on white/non-ivory surfaces
   filled: [
@@ -27,17 +27,17 @@ const variants = {
     "disabled:opacity-50 disabled:shadow-none disabled:active:shadow-none",
   ],
   secondary: [
-    "bg-ivory text-stone-600 font-medium shadow-neu-sm",
-    "hover:shadow-neu-md hover:text-stone-800",
-    "active:shadow-neu-sm-inset",
-    "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory border-transparent",
+    "bg-white text-stone-600 font-medium border border-stone-200 shadow-sm",
+    "hover:bg-stone-50 hover:text-stone-800",
+    "active:bg-stone-100",
+    "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2",
     "disabled:opacity-50 disabled:shadow-none",
   ],
   ghost: [
     "bg-transparent text-stone-600 border border-transparent",
-    "hover:bg-ivory hover:shadow-neu-sm hover:text-stone-900",
-    "active:shadow-neu-sm-inset",
-    "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory",
+    "hover:bg-stone-100 hover:text-stone-900",
+    "active:bg-stone-200",
+    "focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2",
     "disabled:text-stone-400",
   ],
   outline: [
@@ -48,10 +48,10 @@ const variants = {
     "disabled:opacity-50 disabled:bg-stone-50",
   ],
   danger: [
-    "bg-ivory text-brand-red font-bold shadow-neu-md",
-    "hover:shadow-neu-lg hover:-translate-y-0.5",
-    "active:shadow-neu-md-inset active:translate-y-0",
-    "focus-visible:ring-2 focus-visible:ring-brand-red focus-visible:ring-offset-2 focus-visible:ring-offset-ivory border-transparent",
+    "bg-white text-brand-red font-bold border border-stone-200 shadow-sm",
+    "hover:bg-red-50 hover:-translate-y-0.5",
+    "active:translate-y-0 active:bg-red-100",
+    "focus-visible:ring-2 focus-visible:ring-brand-red focus-visible:ring-offset-2",
     "disabled:opacity-50 disabled:shadow-none",
   ],
 };

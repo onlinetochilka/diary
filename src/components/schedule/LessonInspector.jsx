@@ -1,7 +1,8 @@
 import { cn } from '../../utils/cn.js';
+import { useConfirm } from '../../contexts/ConfirmContext.jsx';
 import { useState, useEffect } from "react";
-import { Loader2, User, AlignLeft, CheckCircle2, AlertCircle, X } from "lucide-react";
-import { SideDrawer, Button, Input, Select, SegmentedControl, Card } from "../ui/index.js";
+import { Loader2, User, AlignLeft, CheckCircle2, AlertCircle, X, Trash2 } from "lucide-react";
+import { SideDrawer, Button, Input, Select, SegmentedControl, Card, Tooltip, useToast } from "../ui/index.js";
 
 export default function LessonInspector({
   isOpen,
@@ -18,6 +19,9 @@ export default function LessonInspector({
   const [errors, setErrors] = useState({});
   const [activeTab, setActiveTab] = useState(initialTab); // 'info' | 'hw' | 'notes'
   
+  const confirm = useConfirm();
+  const { showToast } = useToast();
+
   const [formData, setFormData] = useState({
     type: "individual", // 'individual' or 'group'
     studentId: "",
@@ -99,9 +103,18 @@ export default function LessonInspector({
 
   const isDirty = JSON.stringify(formData) !== initialStateStr;
 
-  const safeClose = () => {
-    if (isDirty && !window.confirm('Есть несохранённые изменения. Закрыть без сохранения?')) return;
-    onClose();
+  const safeClose = async () => {
+    if (isDirty) {
+      const proceed = await confirm({
+        title: "Несохраненные изменения",
+        message: "Вы внесли изменения, но не сохранили их. Закрыть без сохранения?",
+        confirmText: "Не сохранять",
+        intent: "danger"
+      });
+      if (proceed) onClose();
+    } else {
+      onClose();
+    }
   };
 
   const handleChange = (field, value) => {
@@ -217,10 +230,13 @@ export default function LessonInspector({
     });
 
     if (isOverlapping) {
-      const proceed = window.confirm("Внимание: На это время уже запланирован другой урок. Вы уверены, что хотите создать пересекающийся урок?");
-      if (!proceed) {
-        return;
-      }
+      const proceed = await confirm({
+        title: "Пересечение времени",
+        message: "На это время уже запланирован другой урок. Вы уверены, что хотите создать пересекающийся урок?",
+        confirmText: "Создать урок",
+        intent: "warning"
+      });
+      if (!proceed) return;
     }
 
     setIsSubmitting(true);
@@ -238,12 +254,13 @@ export default function LessonInspector({
 
     try {
       await onSubmit(initialData?.id, payload);
+      showToast({ message: "Урок сохранён", type: "success" });
     } catch (error) {
       console.error(error);
       const errorMsg = error?.response?.data 
         ? JSON.stringify(error.response.data) 
         : (error?.message || "Неизвестная ошибка базы данных");
-      alert("Ошибка PocketBase: " + errorMsg);
+      showToast({ message: "Ошибка PocketBase: " + errorMsg, type: "error" });
       setIsSubmitting(false);
     }
   };
@@ -255,32 +272,13 @@ export default function LessonInspector({
 
   /* ── Footer ─────────────────────────────────────────────── */
   const drawerFooter = (requestClose) => (
-    <div className="flex justify-between items-center w-full">
-      <div>
-        {initialData?.id && onDelete && (
-          <Button 
-            type="button" 
-            variant="ghost" 
-            onClick={() => {
-              if (window.confirm("Удалить этот урок? Это действие необратимо.")) {
-                handleDelete();
-              }
-            }}
-            disabled={isSubmitting}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            Удалить
-          </Button>
-        )}
-      </div>
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="ghost" onClick={requestClose} disabled={isSubmitting}>
-          Отмена
-        </Button>
-        <Button type="submit" form="lesson-form" variant="filled" disabled={isSubmitting} className="min-w-[120px]">
-          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Сохранить"}
-        </Button>
-      </div>
+    <div className="flex justify-end gap-3 w-full">
+      <Button type="button" variant="ghost" onClick={requestClose} disabled={isSubmitting}>
+        Отмена
+      </Button>
+      <Button type="submit" form="lesson-form" variant="filled" disabled={isSubmitting} className="min-w-[120px]">
+        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Сохранить"}
+      </Button>
     </div>
   );
 
@@ -288,9 +286,31 @@ export default function LessonInspector({
     <div className="flex flex-col h-full bg-white relative shadow-sm rounded-[28px] overflow-hidden border border-stone-100">
       <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100/80 bg-white shrink-0">
         <h3 className="font-semibold text-lg text-stone-800">{initialData?.id ? "Правка урока" : "Новый урок"}</h3>
-        <button onClick={safeClose} type="button" className="p-2 hover:bg-stone-50 text-stone-400 hover:text-stone-600 rounded-full transition-colors">
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-1">
+          {initialData?.id && onDelete && (
+            <Tooltip text="Удалить урок">
+              <button 
+                type="button"
+                onClick={async () => {
+                  const proceed = await confirm({
+                    title: "Урок не состоялся?",
+                    message: "Отменить занятие? Это действие необратимо.",
+                    confirmText: "Отменить",
+                    intent: "danger"
+                  });
+                  if (proceed) handleDelete();
+                }}
+                disabled={isSubmitting}
+                className="p-2 text-stone-400 hover:bg-red-50 hover:text-red-600 rounded-full transition-colors"
+              >
+                <Trash2 size={20} />
+              </button>
+            </Tooltip>
+          )}
+          <button onClick={safeClose} type="button" className="p-2 hover:bg-stone-50 text-stone-400 hover:text-stone-600 rounded-full transition-colors">
+            <X size={20} />
+          </button>
+        </div>
       </div>
       <div className="flex-1 min-h-0 relative overflow-hidden">
       <div className="h-full overflow-y-auto px-6 py-5 pb-16 bg-stone-50/30 hide-scrollbar">
@@ -337,91 +357,106 @@ export default function LessonInspector({
                 </div>
 
                 {formData.type === "individual" ? (
-                  <div>
-                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Ученик</p>
-                  <select
-                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.studentId && "border-red-300 ring-2 ring-red-100")}
+                  <Select
+                    label="Ученик"
+                    error={errors.studentId}
+                    name="studentId"
                     value={formData.studentId}
                     onChange={(e) => handleChange("studentId", e.target.value)}
                     disabled={isSubmitting}
                   >
-                    <option value="" disabled>Выберите ученика</option>
+                    <option value="" disabled hidden>Выберите ученика</option>
                     {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                  {errors.studentId && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.studentId}</p>}
-                </div>
+                  </Select>
                 ) : (
-                  <div>
-                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Группа</p>
-                  <select
-                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.groupId && "border-red-300 ring-2 ring-red-100")}
+                  <Select
+                    label="Группа"
+                    error={errors.groupId}
+                    name="groupId"
                     value={formData.groupId}
                     onChange={(e) => handleChange("groupId", e.target.value)}
                     disabled={isSubmitting}
                   >
-                    <option value="" disabled>Выберите группу</option>
+                    <option value="" disabled hidden>Выберите группу</option>
                     {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  </select>
-                  {errors.groupId && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.groupId}</p>}
-                </div>
+                  </Select>
                 )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Предмет</p>
-                  <input
-                    className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.subjectName && "border-red-300 ring-2 ring-red-100")}
-                    value={formData.subjectName}
-                    onChange={(e) => handleChange("subjectName", e.target.value)}
-                    maxLength={100}
-                    disabled={isSubmitting}
-                  />
-                  {errors.subjectName && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.subjectName}</p>}
-                </div>
-                  <div>
-                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Статус</p>
-                  <select
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
-                    value={formData.status}
-                    onChange={(e) => handleChange("status", e.target.value)}
-                    disabled={isSubmitting}
-                  >
-                    <option value="scheduled">Запланирован</option>
-                    <option value="conducted">Проведен</option>
-                    <option value="cancelled">Отменён</option>
-                    <option value="skipped_paid">Оплаченный пропуск</option>
-                    <option value="skipped_free">Неоплаченный пропуск</option>
-                  </select>
-                </div>
+                    <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Предмет</p>
+                    <input
+                      className={cn("w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800", errors.subjectName && "border-red-300 ring-2 ring-red-100")}
+                      value={formData.subjectName}
+                      onChange={(e) => handleChange("subjectName", e.target.value)}
+                      maxLength={100}
+                      disabled={isSubmitting}
+                    />
+                    {errors.subjectName && <p className="text-red-500 text-[11px] mt-1 px-1 font-medium">{errors.subjectName}</p>}
+                  </div>
+                  {initialData?.id && (
+                    <div>
+                      <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Стоимость урока, ₽</p>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                        value={formData.price !== "" && formData.price !== undefined ? formData.price : subjectPrice}
+                        onChange={(e) => handleChange("price", e.target.value.replace(/\D/g, '') ? Number(e.target.value.replace(/\D/g, '')) : '')}
+                        disabled={isSubmitting}
+                        placeholder={String(subjectPrice)}
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {/* Стоимость урока — только для существующих уроков */}
-                {initialData?.id && (
-                  <div>
-                    <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Стоимость урока, ₽</p>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
-                      value={formData.price !== "" && formData.price !== undefined ? formData.price : subjectPrice}
-                      onChange={(e) => handleChange("price", e.target.value.replace(/\D/g, '') ? Number(e.target.value.replace(/\D/g, '')) : '')}
-                      disabled={isSubmitting}
-                      placeholder={String(subjectPrice)}
-                    />
+                <div>
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Статус урока</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { value: 'scheduled', label: 'Запланирован' },
+                      { value: 'conducted', label: 'Проведен' },
+                      { value: 'skipped_paid', label: 'Оплаченный пропуск' },
+                      { value: 'skipped_free', label: 'Бесплатный пропуск' },
+                      { value: 'cancelled', label: 'Отменен' }
+                    ].map(opt => {
+                      const STATUS_COLORS = {
+                        scheduled: "bg-[#006584]/10 text-[#006584] ring-1 ring-[#006584]/30 shadow-sm",
+                        conducted: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-500/40 shadow-sm",
+                        skipped_paid: "bg-amber-100 text-amber-800 ring-1 ring-amber-500/40 shadow-sm",
+                        skipped_free: "bg-stone-200 text-stone-800 ring-1 ring-stone-400/40 shadow-sm",
+                        cancelled: "bg-red-100 text-red-800 ring-1 ring-red-500/40 shadow-sm"
+                      };
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleChange('status', opt.value)}
+                          className={cn(
+                            "flex-1 whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none",
+                            formData.status === opt.value
+                              ? STATUS_COLORS[opt.value]
+                              : "bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
                 {subjectFormat === "mixed" && (
-                  <div>
+                  <div className="pt-2">
                     <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Формат урока</p>
-                    <select
-                      className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                    <Select
+                      name="format"
                       value={formData.format}
                       onChange={(e) => handleChange("format", e.target.value)}
                       disabled={isSubmitting}
                     >
                       <option value="online">Онлайн</option>
                       <option value="offline">Офлайн</option>
-                    </select>
+                    </Select>
                   </div>
                 )}
                 {formData.format === "online" && (
@@ -522,41 +557,41 @@ export default function LessonInspector({
 
               <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4 shadow-sm">
                 <div>
-                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Программа (из назначенных)</p>
-                  <select
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                  <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Программа</p>
+                  <Select
+                    name="programId"
                     value={formData.programId}
-                  onChange={(e) => {
-                    handleChange("programId", e.target.value);
-                    handleChange("topicId", ""); // reset topic
-                  }}
-                  disabled={isSubmitting}
-                >
-                  <option value="" disabled>
-                    {formData.type === "individual" && !formData.studentId 
-                      ? "Сначала выберите ученика"
-                      : formData.type === "group" && !formData.groupId
-                        ? "Сначала выберите группу"
-                        : activePrograms.length === 0
-                          ? "Нет назначенных программ"
-                          : "Не выбрана"
-                    }
-                  </option>
-                  {activePrograms.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                  </select>
+                    onChange={(e) => {
+                      handleChange("programId", e.target.value);
+                      handleChange("topicId", ""); // reset topic
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <option value="" disabled hidden>
+                      {formData.type === "individual" && !formData.studentId 
+                        ? "Сначала выберите ученика"
+                        : formData.type === "group" && !formData.groupId
+                          ? "Сначала выберите группу"
+                          : activePrograms.length === 0
+                            ? "Нет назначенных программ"
+                            : "Не выбрана"
+                      }
+                    </option>
+                    {activePrograms.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </Select>
                 </div>
 
                 <div>
                   <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Тема урока</p>
-                  <select
-                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-[#006584]/50 focus:ring-2 focus:ring-[#006584]/20 text-stone-800"
+                  <Select
+                    name="topicId"
                     value={formData.topicId}
                     onChange={(e) => handleChange("topicId", e.target.value)}
                     disabled={isSubmitting}
                   >
-                    <option value="" disabled>
+                    <option value="" disabled hidden>
                       {!formData.programId 
                         ? "Сначала выберите программу" 
                         : activeTopics.length === 0 
@@ -569,7 +604,7 @@ export default function LessonInspector({
                         {t.isCompleted ? "✓ " : ""}{t.title}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 {formData.status === "conducted" && formData.topicId && (
                   <p className="text-[11px] font-medium text-emerald-700 bg-emerald-50/80 p-2.5 rounded-xl flex items-center gap-2 border border-emerald-100/80">
@@ -585,52 +620,87 @@ export default function LessonInspector({
           {activeTab === "hw" && (
             <div className="space-y-4">
               <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4 shadow-sm">
-                <div>
-                  <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">
-                    Домашнее задание
-                  </label>
-                  <textarea
-                    value={formData.homework}
-                    onChange={(e) => handleChange("homework", e.target.value)}
-                    placeholder="Опишите задание для ученика..."
-                    maxLength={1000}
-                    className="w-full min-h-[150px] p-3 text-sm text-stone-800 bg-stone-50 rounded-xl border border-stone-200/60 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition-all outline-none resize-y"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                
-                {formData.type === "individual" ? (
-                  <div className="pt-2">
-                    <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">Отметка о выполнении</label>
-                    <SegmentedControl
-                      options={[
-                        { label: 'Не сдано', value: 'none' },
-                        { label: 'Сдано вовремя', value: 'on_time' },
-                        { label: 'С опозданием', value: 'late' }
-                      ]}
-                      value={
-                        formData.hwDoneBy.includes(formData.studentId)
-                          ? (formData.hwStatuses?.[formData.studentId] || "on_time")
-                          : "none"
-                      }
-                      onChange={(val) => {
-                        if (val === 'none') {
-                          setFormData(prev => ({
-                            ...prev,
-                            hwDoneBy: [],
-                            hwStatuses: {}
-                          }));
-                        } else {
-                          setFormData(prev => ({
-                            ...prev,
-                            hwDoneBy: [formData.studentId],
-                            hwStatuses: { [formData.studentId]: val }
-                          }));
-                        }
-                      }}
-                    />
-                  </div>
-                ) : (
+                {(() => {
+                  const isHwNotAssigned = formData.isHwNotAssigned !== undefined
+                    ? formData.isHwNotAssigned
+                    : (!formData.homework && Object.keys(formData.hwStatuses || {}).length === 0 && (formData.hwDoneBy || []).length === 0);
+                  
+                  return (
+                    <>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-[10px] font-bold tracking-widest text-stone-400 uppercase">
+                            Домашнее задание
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer group">
+                            <input 
+                              type="checkbox"
+                              className="w-4 h-4 rounded border-stone-300 text-academic-blue focus:ring-academic-blue cursor-pointer"
+                              checked={isHwNotAssigned}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  isHwNotAssigned: checked,
+                                  ...(checked ? { homework: "", hwDoneBy: [], hwStatuses: {} } : {})
+                                }));
+                              }}
+                              disabled={isSubmitting}
+                            />
+                            <span className="text-[13px] font-medium text-stone-600 group-hover:text-stone-800 transition-colors select-none">
+                              Не задано
+                            </span>
+                          </label>
+                        </div>
+                        
+                        {!isHwNotAssigned && (
+                          <textarea
+                            value={formData.homework || ""}
+                            onChange={(e) => handleChange("homework", e.target.value)}
+                            placeholder="Опишите задание для ученика..."
+                            maxLength={1000}
+                            className="w-full min-h-[150px] p-3 text-sm text-stone-800 bg-stone-50 rounded-xl border border-stone-200/60 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition-all outline-none resize-y"
+                            disabled={isSubmitting}
+                          />
+                        )}
+                      </div>
+                      
+                      {!isHwNotAssigned && formData.type === "individual" ? (
+                        <div className="pt-2">
+                          <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">Проверка ДЗ</label>
+                          <div className="flex gap-1.5">
+                            {(() => {
+                              const status = formData.hwDoneBy?.includes(formData.studentId)
+                                ? (formData.hwStatuses?.[formData.studentId] || "on_time")
+                                : "none";
+                              
+                              const setStatus = (val) => {
+                                if (val === 'none') {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    hwDoneBy: [],
+                                    hwStatuses: {}
+                                  }));
+                                } else {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    hwDoneBy: [formData.studentId],
+                                    hwStatuses: { [formData.studentId]: val }
+                                  }));
+                                }
+                              };
+                              
+                              return (
+                                <>
+                                  <button type="button" onClick={() => setStatus('none')} className={cn("flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none", status === 'none' ? 'bg-[#F04456] text-white shadow-sm' : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50')}>Ожидает проверки</button>
+                                  <button type="button" onClick={() => setStatus('on_time')} className={cn("flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none", status === 'on_time' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50')}>Сдано вовремя</button>
+                                  <button type="button" onClick={() => setStatus('late')} className={cn("flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none", status === 'late' ? 'bg-amber-500 text-white shadow-sm' : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50')}>Сдано с опозданием</button>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      ) : !isHwNotAssigned && formData.type === "group" ? (
                   <div className="space-y-2 mt-4">
                     <label className="block text-[10px] font-bold tracking-widest text-stone-400 uppercase mb-2">Отметки по ученикам</label>
                     {(() => {
@@ -731,11 +801,13 @@ export default function LessonInspector({
                       });
                     })()}
                   </div>
-
-                )}
-              </div>
+                ) : null}
+                </>
+              );
+            })()}
             </div>
-          )}
+          </div>
+        )}
 
           {activeTab === "notes" && (
             <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4 shadow-sm">

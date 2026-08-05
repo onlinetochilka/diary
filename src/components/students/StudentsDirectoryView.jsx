@@ -7,12 +7,14 @@ import GroupCard from './GroupCard.jsx';
 import { useStudentsFilter } from '../../hooks/useStudentsFilter.js';
 import StudentsEmptyState from './StudentsEmptyState.jsx';
 import { addPayment, getLessons, updateLesson } from '../../services/database.js';
+import { useToast } from '../ui/Toast.jsx';
 
 export default function StudentsDirectoryView({ students = [], groups = [], onEdit, onEditGroup, onCreate, onCreateGroup, highlightStudentId, onHighlightDone, onOpenGuestLink, onOpenReport, onOpenLessonHistory, onOpenGroupLessonHistory, onOpenGroupReport }) {
   // Состояние модалки ДЗ
   const [hwModal, setHwModal] = useState({ isOpen: false, item: null });
   // Состояние модалки оплаты
   const [payModal, setPayModal] = useState({ isOpen: false, item: null });
+  const { showToast } = useToast();
 
   // Логика фильтрации вынесена в кастомный хук
   const {
@@ -72,7 +74,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
       );
 
       if (pendingLessons.length === 0) {
-        alert("Нет невыполненного ДЗ для этого ученика!");
+        showToast({ message: "Нет невыполненного ДЗ для этого ученика!", type: "error" });
         return;
       }
 
@@ -86,7 +88,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
       setHwModal({ isOpen: true, item });
     } catch (err) {
       console.error("Ошибка загрузки уроков:", err);
-      alert("Не удалось загрузить историю ДЗ");
+      showToast({ message: "Не удалось загрузить историю ДЗ", type: "error" });
     }
   };
 
@@ -111,7 +113,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
       window.dispatchEvent(new CustomEvent("force-refresh-data"));
     } catch (err) {
       console.error("Ошибка при сохранении ДЗ:", err);
-      alert("Не удалось сохранить статусы ДЗ");
+      showToast({ message: "Не удалось сохранить статусы ДЗ", type: "error" });
     } finally {
       setHwModal({ isOpen: false, item: null });
     }
@@ -128,7 +130,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
           <div>
             <h1 className="sr-only">Ученики</h1>
             <p className="text-xl font-semibold text-stone-800 tracking-tight">
-              Профили учеников и статистика занятий
+              Все ваши ученики на одной странице
             </p>
           </div>
         </div>

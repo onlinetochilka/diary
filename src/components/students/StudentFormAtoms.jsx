@@ -14,7 +14,7 @@
 
 import { Trash2, Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
-import { Tooltip } from '../ui/index.js';
+import { Select as UISelect, Tooltip } from '../ui/index.js';
 
 export const Label = ({ children, required }) => (
   <label className="block text-sm font-medium text-stone-700 mb-1.5">
@@ -47,26 +47,18 @@ export const Input = ({ className, error, success, isLoading, ...props }) => (
 );
 
 export const Select = ({ className, error, success, isLoading, children, ...props }) => (
-  <select
+  <UISelect
     disabled={isLoading}
-    className={cn(
-      "w-full bg-white border-0 rounded-xl px-4 py-2.5 text-stone-900 transition-all duration-200 outline-none shadow-sm ring-1 ring-inset appearance-none",
-      "hover:ring-stone-300",
-      "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-academic-blue focus-visible:shadow-md",
-      "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-stone-50",
-      error   ? "ring-red-300 focus-visible:ring-red-500" :
-      success ? "ring-green-300 focus-visible:ring-green-500" :
-                "ring-stone-200",
-      className
-    )}
+    error={error}
+    className={className}
     {...props}
   >
     {children}
-  </select>
+  </UISelect>
 );
 
 export const SegmentedToggle = ({ options, value, onChange }) => (
-  <div className="flex p-1 bg-stone-100 rounded-xl ring-1 ring-slate-200 shadow-inner">
+  <div className="flex p-1 bg-stone-100 rounded-xl ring-1 ring-slate-200">
     {options.map((opt) => {
       const isActive = value === opt.value;
       return (

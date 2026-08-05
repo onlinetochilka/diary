@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getPlural } from "../utils/plural.js";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
-import { Card, Button, Tooltip } from "../components/ui/index.js";
+import { Card, Button, Tooltip, DashboardLessonSkeleton, ActionItemSkeleton } from "../components/ui/index.js";
 import {
   LayoutDashboard, Users, TrendingUp, Clock, BookOpen,
   Plus, Coffee, AlertCircle, CheckCircle2, PlayCircle,
@@ -127,7 +127,9 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="h-20 bg-stone-100 rounded-2xl animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map(i => <DashboardLessonSkeleton key={i} />)}
+          </div>
         ) : todayLessons.filter(l => l.status !== "conducted").length === 0 ? (
           <div className="flex items-center gap-4 py-3 px-5 bg-amber-50/50 border border-amber-100/60 rounded-2xl shadow-sm">
             <div className="h-10 w-10 shrink-0 bg-amber-100 flex items-center justify-center rounded-full text-amber-600 shadow-sm">
@@ -181,14 +183,8 @@ export default function DashboardPage() {
           </div>
 
           {loading ? (
-            /* Skeleton for action items list */
-            <div className="flex flex-col gap-6">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="bg-ivory shadow-neu-sm rounded-2xl p-4 space-y-3">
-                  <div className="skeleton-line w-2/5" style={{ animationDelay: `${i * 0.1}s` }} />
-                  <div className="skeleton-line-sm w-3/5" style={{ animationDelay: `${i * 0.15}s` }} />
-                </div>
-              ))}
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => <ActionItemSkeleton key={i} />)}
             </div>
           ) : actionItems.length === 0 ? (
             <div className="flex items-center gap-4 py-3 px-5 bg-emerald-50/50 border border-emerald-100/60 rounded-2xl shadow-sm shrink-0 mt-2">

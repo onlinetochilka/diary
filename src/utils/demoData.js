@@ -35,7 +35,7 @@ function rnd(arr) {
 // ─── Основная функция генерации ───────────────────────────────────────────────
 
 /**
- * Генерирует полную базу данных для демо-режима в виде JSON-объекта.
+ * Генерирует полную базу данных для деморежима в виде JSON-объекта.
  * @returns {Object} { programs, students, groups, lessons, payments, users, user_config }
  */
 export function generateDemoData(tutorId = "demo_tutor") {
@@ -54,7 +54,7 @@ export function generateDemoData(tutorId = "demo_tutor") {
       {
         id: tutorId,
         email: "demo@tochilka.app",
-        name: "Демо-репетитор",
+        name: "Деморепетитор",
         avatar: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString()
@@ -226,7 +226,7 @@ export function generateDemoData(tutorId = "demo_tutor") {
       colorOklch: getCol(),
       colorVersion: 2,
       balance: 0, 
-      notes: "Студент сгенерирован в демо-режиме",
+      notes: "Студент сгенерирован в деморежиме",
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       _role: def.role, 
