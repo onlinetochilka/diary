@@ -29,24 +29,28 @@ function useReveal(threshold = 0.15) {
 /* ─── Data ───────────────────────────────────────────────────────── */
 const SITUATIONS = [
   {
-    emoji: "💸",
+    icon: DollarSign,
     question: "Забудьте о путанице с оплатой!",
     answer: "Больше не нужно вспоминать, кто уже переводил деньги за урок. Удобный дашборд покажет актуальный баланс каждого ученика и сразу подсветит тех, кому пора напомнить об оплате.",
+    color: "#B36A5E",
   },
   {
-    emoji: "📊",
+    icon: BarChart3,
     question: "Отчеты об успеваемости — это просто!",
     answer: "Делитесь результатами учеников за пару секунд. Скачайте красивый PDF-отчет или отправьте родителям персональную ссылку для доступа к статистике — всё наглядно и без лишних регистраций.",
+    color: "#426B5C",
   },
   {
-    emoji: "📚",
+    icon: BookOpen,
     question: "Все учебные планы в идеальном порядке!",
     answer: "Попрощайтесь с хаосом в блокнотах и разрозненных файлах. Создавайте структурированные курсы, привязывайте их к ученикам и наглядно отслеживайте прогресс шаг за шагом.",
+    color: "#735B7A",
   },
   {
-    emoji: "😰",
+    icon: Send,
     question: "Никаких неловких разговоров!",
     answer: "Доверьте рутину автоматике. Система сама отправит вежливые напоминания об оплате или забытой «домашке» точно в срок и по настроенному вами расписанию.",
+    color: "#006584",
   },
 ];
 
@@ -55,28 +59,28 @@ const FEATURES = [
     icon: Calendar,
     title: "Расписание, которое работает на вас",
     description: "Перенесите урок на другой день одним движением. Отслеживайте свободные окна в расписании и отмечайте проведённые занятия в одно касание — баланс пересчитается автоматически.",
-    image: "/landing_schedule.jpg",
+    image: "/landing_schedule.png",
     color: "#B36A5E",
   },
   {
     icon: BarChart3,
     title: "Финансы под контролем",
     description: "Баланс каждого ученика автоматизирован, поэтому должникам от Вас не скрыться 😎 Просто настройте своё расписание — и «Точилка» сама отправит вежливое напоминание ученику или его представителю.",
-    image: "/landing_finance.jpg",
+    image: "/landing_finance.png",
     color: "#426B5C",
   },
   {
     icon: Users,
     title: "Портал для родителей",
     description: "Отправляйте родителям гостевую ссылку — и они увидят прогресс ребёнка: пройденные темы, статус д/з, баланс. Настраивайте автоматическую рассылку отчётов по расписанию.",
-    image: "/landing_portal.jpg",
+    image: "/landing_portal.png",
     color: "#1B4F72",
   },
   {
     icon: BookOpen,
     title: "Программы обучения",
     description: "Создавайте структуру курса: модули, темы, задания. Следите за прохождением программы и процентом её освоения. По желанию импортируйте существующую программу из Excel за минуту!",
-    image: "/landing_programs.jpg",
+    image: "/landing_programs.png",
     color: "#735B7A",
   },
 ];
@@ -175,13 +179,11 @@ function Navbar({ onLogin, onDemo }) {
           <button onClick={() => scrollTo("pricing")} className="landing-nav__link">Тарифы</button>
           <button onClick={() => scrollTo("faq")} className="landing-nav__link">Вопросы</button>
           <div className="landing-nav__buttons-mobile">
-            <button onClick={onDemo} className="landing-nav__btn landing-nav__btn--ghost">Демо</button>
             <button onClick={onLogin} className="landing-nav__btn landing-nav__btn--primary">Войти</button>
           </div>
         </div>
 
         <div className="landing-nav__buttons">
-          <button onClick={onDemo} className="landing-nav__btn landing-nav__btn--ghost">Демо</button>
           <button onClick={onLogin} className="landing-nav__btn landing-nav__btn--primary">Войти</button>
         </div>
 
@@ -211,15 +213,15 @@ function Hero({ onRegister, onDemo }) {
         </p>
         <div className="landing-hero__actions">
           <button onClick={onRegister} className="landing-btn landing-btn--primary landing-btn--lg">
-            Попробовать бесплатно <ArrowRight size={18} />
+            Создать аккаунт <ArrowRight size={18} />
           </button>
           <button onClick={onDemo} className="landing-btn landing-btn--ghost landing-btn--lg">
-            Посмотреть демо
+            Демо без регистрации
           </button>
         </div>
       </div>
       <div className={`landing-hero__visual ${vis ? "landing-reveal landing-reveal--delay-1" : "landing-reveal--hidden"}`}>
-        <img src="/landing_schedule.jpg" alt="Расписание «Точилки»" className="landing-hero__image" />
+        <img src="/landing_schedule.png" alt="Расписание «Точилки»" className="landing-hero__image" />
         <div className="landing-hero__image-glow" />
       </div>
     </section>
@@ -238,6 +240,7 @@ function Situations() {
       <div className="landing-situations">
         {SITUATIONS.map((s, i) => {
           const [cRef, cVis] = useReveal(0.2);
+          const Icon = s.icon;
           return (
             <div
               key={i}
@@ -245,7 +248,9 @@ function Situations() {
               className={`landing-situation-card ${cVis ? "landing-reveal" : "landing-reveal--hidden"}`}
               style={{ transitionDelay: `${i * 100}ms` }}
             >
-              <div className="landing-situation-card__emoji">{s.emoji}</div>
+              <div className="landing-situation-card__icon-wrap" style={{ background: s.color + "18", color: s.color }}>
+                <Icon size={24} strokeWidth={2.5} />
+              </div>
               <p className="landing-situation-card__question">{s.question}</p>
               <p className="landing-situation-card__answer">{s.answer}</p>
             </div>
@@ -305,9 +310,8 @@ function NoAiBlock() {
         <div className="landing-noai__content">
           <h3 className="landing-noai__title">Без ИИ — только факты</h3>
           <p className="landing-noai__text">
-            В «Точилке» нет искусственного интеллекта. Все данные — ваши реальные цифры.
-            Отчёты формируются из фактических записей: проведённые уроки, полученные оплаты,
-            пройденные темы. Никаких «умных» догадок, галлюцинаций и выдуманной статистики.
+            Все данные — ваши реальные цифры. Отчёты формируются из фактических записей:
+            проведённые уроки, полученные оплаты, пройденные темы. Никаких «умных» догадок, галлюцинаций и выдуманной статистики.
             Только то, что было на самом деле.
           </p>
         </div>
@@ -319,6 +323,7 @@ function NoAiBlock() {
 /* ─── Pricing ────────────────────────────────────────────────────── */
 function Pricing({ onRegister }) {
   const [annual, setAnnual] = useState(false);
+  const [selectedCard, setSelectedCard] = useState('pro');
   const [ref, vis] = useReveal();
 
   return (
@@ -343,7 +348,10 @@ function Pricing({ onRegister }) {
 
       <div className="landing-pricing-cards">
         {/* Free */}
-        <div className={`landing-pricing-card ${vis ? "landing-reveal landing-reveal--delay-1" : "landing-reveal--hidden"}`}>
+        <div 
+          className={`landing-pricing-card ${selectedCard === 'free' ? 'landing-pricing-card--selected' : ''} ${vis ? "landing-reveal landing-reveal--delay-1" : "landing-reveal--hidden"}`}
+          onClick={() => setSelectedCard('free')}
+        >
           <div className="landing-pricing-card__header">
             <h3 className="landing-pricing-card__name">Старт</h3>
             <div className="landing-pricing-card__price">
@@ -365,12 +373,15 @@ function Pricing({ onRegister }) {
             ))}
           </ul>
           <button onClick={onRegister} className="landing-btn landing-btn--outline landing-btn--full">
-            Начать бесплатно
+            Создать аккаунт
           </button>
         </div>
 
         {/* Pro */}
-        <div className={`landing-pricing-card landing-pricing-card--featured ${vis ? "landing-reveal landing-reveal--delay-2" : "landing-reveal--hidden"}`}>
+        <div 
+          className={`landing-pricing-card landing-pricing-card--featured ${selectedCard === 'pro' ? 'landing-pricing-card--selected' : ''} ${vis ? "landing-reveal landing-reveal--delay-2" : "landing-reveal--hidden"}`}
+          onClick={() => setSelectedCard('pro')}
+        >
           <div className="landing-pricing-card__ribbon">Ранний доступ — 3 мес. бесплатно</div>
           <div className="landing-pricing-card__header">
             <h3 className="landing-pricing-card__name">Репетитор</h3>
@@ -398,7 +409,7 @@ function Pricing({ onRegister }) {
             ))}
           </ul>
           <button onClick={onRegister} className="landing-btn landing-btn--primary landing-btn--full">
-            Попробовать бесплатно <ArrowRight size={16} />
+            Создать аккаунт <ArrowRight size={16} />
           </button>
         </div>
       </div>
@@ -441,10 +452,10 @@ function CtaBanner({ onRegister, onDemo }) {
       <p className="landing-cta__text">Присоединяйтесь к репетиторам, которые уже используют «Точилку»</p>
       <div className="landing-cta__actions">
         <button onClick={onRegister} className="landing-btn landing-btn--white landing-btn--lg">
-          Начать бесплатно <ArrowRight size={18} />
+          Создать аккаунт <ArrowRight size={18} />
         </button>
         <button onClick={onDemo} className="landing-btn landing-btn--ghost-white landing-btn--lg">
-          Посмотреть демо
+          Демо без регистрации
         </button>
       </div>
     </section>
@@ -486,13 +497,21 @@ function Footer() {
 /* ═══════════════════════════════════════════════════════════════════ */
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [transitioning, setTransitioning] = useState(false);
+  const [transitionText, setTransitionText] = useState("");
 
-  const handleLogin = () => navigate("/login");
-  const handleRegister = () => navigate("/login?mode=register");
+  const doTransition = (text, action) => {
+    action();
+  };
+
+  const handleLogin = () => doTransition("Переход к авторизации...", () => navigate("/login"));
+  const handleRegister = () => doTransition("Подготовка рабочего пространства...", () => navigate("/login?mode=register"));
   const handleDemo = () => {
-    localStorage.setItem("isDemoMode", "true");
-    localStorage.removeItem("demo_db");
-    setTimeout(() => { window.location.href = "/"; }, 300);
+    doTransition("Подготовка демо-данных...", () => {
+      localStorage.setItem("isDemoMode", "true");
+      localStorage.removeItem("demo_db");
+      window.location.href = "/";
+    });
   };
 
   return (
@@ -506,6 +525,13 @@ export default function LandingPage() {
       <FaqSection />
       <CtaBanner onRegister={handleRegister} onDemo={handleDemo} />
       <Footer />
+      {/* Page Transition Overlay */}
+      {transitioning && (
+        <div className="landing-transition landing-transition--active">
+          <div className="landing-transition__spinner"></div>
+          <div className="landing-transition__text">{transitionText}</div>
+        </div>
+      )}
     </div>
   );
 }

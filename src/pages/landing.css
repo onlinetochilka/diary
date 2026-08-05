@@ -22,7 +22,6 @@
   color: var(--stone-900);
   background: var(--stone-50);
   line-height: 1.6;
-  overflow-x: hidden;
 }
 
 /* ─── Reveal Animation ───────────────────────────────────────────── */
@@ -334,9 +333,14 @@
   box-shadow: 0 8px 30px rgba(0,0,0,0.06);
   transform: translateY(-2px);
 }
-.landing-situation-card__emoji {
-  font-size: 2rem;
-  margin-bottom: 1rem;
+.landing-situation-card__icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
 }
 .landing-situation-card__question {
   font-size: 1rem;
@@ -490,23 +494,228 @@
 .landing-pricing-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  max-width: 800px;
+  gap: 2.5rem;
+  max-width: 900px;
   margin: 0 auto;
 }
 .landing-pricing-card {
   background: #fff;
   border-radius: 24px;
   padding: 2.5rem 2rem;
-  border: 1px solid var(--stone-200);
+  border: 2px solid transparent;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+.landing-pricing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+}
+.landing-pricing-card--selected {
+  border: 2px solid var(--brand-blue);
+  box-shadow: 0 12px 40px rgba(0, 101, 132, 0.15);
 }
 .landing-pricing-card--featured {
-  border: 2px solid var(--stone-900);
-  box-shadow: 0 12px 40px rgba(28, 25, 23, 0.1);
+  /* Default styling overridden by selected state when active */
+}
+.landing-pricing-card__ribbon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, var(--brand-blue) 0%, #1B4F72 100%);
+  color: #fff;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 0;
+  letter-spacing: 0.02em;
+}
+.landing-pricing-card--featured .landing-pricing-card__header {
+  padding-top: 1rem;
+}
+.landing-pricing-card__header {
+  margin-bottom: 1.5rem;
+}
+.landing-pricing-card__name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+.landing-pricing-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.landing-pricing-card__amount {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.landing-pricing-card__period {
+  font-size: 1rem;
+  color: var(--stone-400);
+  font-weight: 500;
+}
+.landing-pricing-card__old-price {
+  font-size: 0.875rem;
+  color: var(--stone-400);
+  text-decoration: line-through;
+  margin-left: 8px;
+}
+.landing-pricing-card__desc {
+  font-size: 0.875rem;
+  color: var(--stone-500);
+  margin: 0.5rem 0 0;
+}
+.landing-pricing-card__features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.landing-pricing-card__feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--stone-700);
+  line-height: 1.4;
+}
+.landing-pricing-card__feature--missing {
+  color: var(--stone-400);
+}
+.landing-pricing-card__check {
+  color: #15803D;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.landing-pricing-card__x {
+  color: var(--stone-300);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ─── FAQ ─────────────────────────────────────────────────────────── */
+.landing-faq {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.landing-faq__item {
+  border-bottom: 1px solid var(--stone-200);
+}
+.landing-faq__question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--stone-800);
+  text-align: left;
+  padding: 1.25rem 0;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.landing-faq__question:hover {
+  color: var(--brand-blue);
+}
+.landing-faq__chevron {
+  flex-shrink: 0;
+  color: var(--stone-400);
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.landing-faq__item--open .landing-faq__chevron {
+  transform: rotate(180deg);
+}
+.landing-faq__answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+              opacity 0.3s;
+  opacity: 0;
+  font-weight: 500;
+}
+.landing-pricing-toggle__active {
+  color: var(--stone-900);
+  font-weight: 600;
+}
+.landing-pricing-toggle__switch {
+  width: 48px;
+  height: 28px;
+  border-radius: 14px;
+  background: var(--stone-200);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  padding: 2px;
+  transition: background 0.25s;
+}
+.landing-pricing-toggle__switch--on {
+  background: var(--brand-blue);
+}
+.landing-pricing-toggle__knob {
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.landing-pricing-toggle__switch--on .landing-pricing-toggle__knob {
+  transform: translateX(20px);
+}
+.landing-pricing-toggle__badge {
+  background: #DCFCE7;
+  color: #15803D;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.landing-pricing-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.landing-pricing-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 2.5rem 2rem;
+  border: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+.landing-pricing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+}
+.landing-pricing-card--selected {
+  border: 2px solid var(--brand-blue);
+  box-shadow: 0 12px 40px rgba(0, 101, 132, 0.15);
+}
+.landing-pricing-card--featured {
+  /* Default styling overridden by selected state when active */
 }
 .landing-pricing-card__ribbon {
   position: absolute;
@@ -649,14 +858,13 @@
 /* ─── CTA Banner ─────────────────────────────────────────────────── */
 .landing-cta {
   max-width: 1200px;
+  width: calc(100% - 3rem);
   margin: 2rem auto;
   padding: 4rem 2rem;
   background: linear-gradient(135deg, var(--stone-900) 0%, #2C2320 60%, var(--brand-accent) 100%);
   border-radius: 28px;
   text-align: center;
   color: #fff;
-  margin-left: 1.5rem;
-  margin-right: 1.5rem;
 }
 .landing-cta__title {
   font-size: clamp(1.75rem, 3.5vw, 2.25rem);
@@ -676,6 +884,7 @@
   flex-wrap: wrap;
 }
 
+
 /* ─── Footer ─────────────────────────────────────────────────────── */
 .landing-footer {
   border-top: 1px solid var(--stone-200);
@@ -684,12 +893,14 @@
 .landing-footer__inner {
   max-width: 1200px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2rem;
+  row-gap: 1.5rem;
 }
 .landing-footer__brand {
+  grid-column: 1;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -739,9 +950,13 @@
   gap: 6px;
 }
 .landing-footer__copy {
+  grid-column: 1 / -1;
+  text-align: center;
   font-size: 0.8125rem;
   color: var(--stone-400);
   margin: 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--stone-100);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -829,9 +1044,54 @@
     border-radius: 20px;
   }
 
+  .landing-footer__inner {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
   .landing-footer__links {
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
   }
+  .landing-footer__contacts {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
 }
+ 
+ 
+
+/* ─── Page Transition Overlay ────────────────────────────────────── */
+.landing-transition {
+  position: fixed;
+  inset: 0;
+  background: #FAFAF9;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.landing-transition--active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.landing-transition__spinner {
+  width: 48px; height: 48px;
+  border: 4px solid #E5E7EB;
+  border-top-color: #006584;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+.landing-transition__text {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { 
   getLessons, updateLesson, addLesson, deleteLesson,
   getStudents, getGroups 
@@ -6,6 +6,7 @@ import {
 import { useConfirm } from '../contexts/ConfirmContext.jsx';
 
 export function useSchedule() {
+  const updatingStatusRef = useRef(new Set());
   const [lessons, setLessons] = useState([]);
   const confirm = useConfirm();
   const [students, setStudents] = useState([]);
@@ -107,23 +108,29 @@ export function useSchedule() {
 
 
   const handleQuickStatus = async (lesson, status) => {
-    // Optimistic update
-    setLessons(prev => prev.map(l => l.id === lesson.id ? { ...l, status } : l));
+    if (updatingStatusRef.current.has(lesson.id)) return;
+    updatingStatusRef.current.add(lesson.id);
+    try {
+      // Optimistic update
+      setLessons(prev => prev.map(l => l.id === lesson.id ? { ...l, status } : l));
 
-    const { patchLesson } = await import('../services/database.js');
-    await patchLesson(lesson.id, { status });
+      const { patchLesson } = await import('../services/database.js');
+      await patchLesson(lesson.id, { status });
 
-    // Если урок стал «проведён» и у него есть тема — отмечаем тему пройденной
-    if (status === 'conducted' && lesson.programId && lesson.topicId) {
-      try {
-        const { updateTheme } = await import('../services/database.js');
-        await updateTheme(lesson.programId, lesson.topicId, { isCompleted: true });
-      } catch (err) {
-        console.error('Failed to mark topic as completed on status change:', err);
+      // Если урок стал «проведён» и у него есть тема — отмечаем тему пройденной
+      if (status === 'conducted' && lesson.programId && lesson.topicId) {
+        try {
+          const { updateTheme } = await import('../services/database.js');
+          await updateTheme(lesson.programId, lesson.topicId, { isCompleted: true });
+        } catch (err) {
+          console.error('Failed to mark topic as completed on status change:', err);
+        }
       }
-    }
 
-    await fetchData();
+      await fetchData();
+    } finally {
+      updatingStatusRef.current.delete(lesson.id);
+    }
   };
 
   /**

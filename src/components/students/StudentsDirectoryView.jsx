@@ -53,7 +53,9 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
   const handlePayment = (studentId) => {
     const student = students.find(s => s.id === studentId);
     if (!student) return;
-    const debt = Math.abs(student.balance || 0);
+    const balance = student.balance || 0;
+    const isDebtor = balance < 0;
+    const debt = isDebtor ? Math.abs(balance) : 0;
     const payItem = {
       type: 'money',
       student,
@@ -237,11 +239,13 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
         item={payModal.item}
         mode="action"
         onConfirm={async (item, amount, note) => {
+          const parsedAmount = Number(amount);
+          if (!parsedAmount || parsedAmount <= 0) return;
           try {
             await addPayment({
               studentId:   item.student.id,
               studentName: item.student.name,
-              amount:      Number(amount) || 0,
+              amount:      parsedAmount,
               paidAt:      new Date().toISOString(),
               note:        note || 'Оплата занятий',
             });

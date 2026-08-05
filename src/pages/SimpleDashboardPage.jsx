@@ -318,12 +318,14 @@ export default function SimpleDashboardPage() {
   };
 
   const handlePaymentConfirm = async (studentId, amount) => {
+    const parsedAmount = Number(amount);
+    if (!parsedAmount || parsedAmount <= 0) return;
     const s = students.find(x => x.id === studentId);
     try {
       await addPayment({
         studentId: s.id,
         studentName: s.name,
-        amount: amount,
+        amount: parsedAmount,
         paidAt: new Date().toISOString(),
         note: "Быстрая оплата",
       });

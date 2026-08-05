@@ -61,7 +61,7 @@ export default function StudentTileStats({
           <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center mb-1.5">
             <BookOpen size={14} className="text-stone-300" />
           </div>
-          <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase text-center">Нет ДЗ</span>
+          <span className="text-[9px] font-bold tracking-wider text-stone-400 uppercase text-center leading-tight">Нет выданных<br/>заданий</span>
         </div>
       )}
     </div>

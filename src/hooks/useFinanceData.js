@@ -13,8 +13,8 @@
  *   studentData, debtors,
  *   onRefresh
  */
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { getStudents, getPayments, getLessons } from "../services/database.js";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { getStudents, getPayments, getLessons, recalculateStudentBalance } from "../services/database.js";
 
 export function useFinanceData() {
   const [loading, setLoading]   = useState(true);
@@ -51,6 +51,35 @@ export function useFinanceData() {
     window.addEventListener('force-refresh-data', handleForceRefresh);
     return () => window.removeEventListener('force-refresh-data', handleForceRefresh);
   }, []);
+
+  // FIX-2: Background balance integrity check — silently recalculates any
+  // drifted balances without blocking UI. Runs once when finance page loads.
+  const hasCheckedBalancesRef = useRef(false);
+  useEffect(() => {
+    if (loading || students.length === 0 || hasCheckedBalancesRef.current) return;
+    hasCheckedBalancesRef.current = true;
+    let cancelled = false;
+    (async () => {
+      let anyCorrected = false;
+      for (const s of students) {
+        if (cancelled) break;
+        try {
+          const result = await recalculateStudentBalance(s.id);
+          if (result.corrected) {
+            anyCorrected = true;
+            console.warn(`[FinanceData] Balance corrected for ${s.name}: ${result.stored} → ${result.calculated}`);
+          }
+        } catch {
+          // Don't crash the UI if recalc fails for one student
+        }
+      }
+      // If any balance was corrected, refresh data to show updated numbers
+      if (!cancelled && anyCorrected) {
+        setRefreshKey(k => k + 1);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [loading, students.length]); // Only re-run when students list changes
 
   // ── Временные границы ───────────────────────────────────────────────────────
   const { now, currentMonthStart, nextMonthStart, lastMonthStart, lastMonthEnd } =

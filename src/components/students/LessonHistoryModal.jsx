@@ -10,7 +10,9 @@ function monthAgo() { const d = new Date(); d.setMonth(d.getMonth() - 1); return
 function groupByMonth(lessons) {
   const map = new Map();
   for (const l of lessons) {
+    if (!l.date) continue;
     const d = new Date(l.date);
+    if (isNaN(d.getTime())) continue;
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     const label = d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
     if (!map.has(key)) map.set(key, { label, items: [] });
@@ -41,8 +43,13 @@ export default function LessonHistoryModal({ isOpen, onClose, student }) {
 
     getLessons({ studentId: student.id })
       .then(data => {
-        data.sort((a, b) => new Date(b.date) - new Date(a.date));
-        setLessons(data);
+        const safeData = Array.isArray(data) ? data : [];
+        safeData.sort((a, b) => {
+          const dateA = a.date ? new Date(a.date).getTime() : 0;
+          const dateB = b.date ? new Date(b.date).getTime() : 0;
+          return dateB - dateA;
+        });
+        setLessons(safeData);
       })
       .catch(console.error)
       .finally(() => setLoading(false));

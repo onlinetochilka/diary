@@ -404,7 +404,7 @@ export function generateDemoData(tutorId = "demo_tutor") {
     });
   }
 
-  const lastWeekPayDate = fmtDate(addDays(monday, -4));
+  const currentWeekPayDate = fmtDate(now); // Use current date for payments so they show in "Income for the month"
 
   for (const s of db.students) {
     const owes = balanceTracker[s.id].conducted;
@@ -412,48 +412,69 @@ export function generateDemoData(tutorId = "demo_tutor") {
     if (s._role === "fin" || s._role === "both") {
       // Должник: оплатил меньше, чем должен
       // Пусть должен за 2 урока (баланс отрицательный)
-      addPay(s, Math.max(0, owes - 4000), lastWeekPayDate);
+      addPay(s, Math.max(0, owes - 4000), currentWeekPayDate);
     } else {
       // Обычный ученик: баланс ноль или в плюсе (аванс)
       const prepay = Math.random() > 0.7 ? 4000 : 0; 
-      addPay(s, owes + prepay, lastWeekPayDate);
+      addPay(s, owes + prepay, currentWeekPayDate);
     }
   }
 
-  // Корректировка балансов в профилях студентов
-  for (const s of db.students) {
-    const t = balanceTracker[s.id];
-    s.balance = t.payments - t.conducted;
-    delete s._role;
-    delete s._price;
-  }
-  for (const g of db.groups) {
-    delete g._price;
-    delete g._students;
-  }
-
-  // Подсчет долгов по ДЗ
+  // Подсчет долгов по ДЗ и часов
   const hwDebtMap = {};
+  const conductedHoursMap = {};
+  
   for (const lesson of db.lessons) {
-    if (lesson.status !== "conducted" || !lesson.homework) continue;
+    if (lesson.status !== "conducted") continue;
+    
+    const durationHours = 1; // Simplify to 1 hour per lesson
     
     if (lesson.type === "individual") {
-      if (!(lesson.hwDoneBy || []).includes(lesson.studentId)) {
+      conductedHoursMap[lesson.studentId] = (conductedHoursMap[lesson.studentId] || 0) + durationHours;
+      if (lesson.homework && !(lesson.hwDoneBy || []).includes(lesson.studentId)) {
         hwDebtMap[lesson.studentId] = (hwDebtMap[lesson.studentId] || 0) + 1;
       }
     } else {
       for (const sid of (lesson.groupStudentIds || [])) {
-        if (!(lesson.hwDoneBy || []).includes(sid)) {
+        conductedHoursMap[sid] = (conductedHoursMap[sid] || 0) + durationHours;
+        if (lesson.homework && !(lesson.hwDoneBy || []).includes(sid)) {
           hwDebtMap[sid] = (hwDebtMap[sid] || 0) + 1;
         }
       }
     }
   }
 
+  // Корректировка балансов и статистики в профилях студентов
   for (const s of db.students) {
-    if (hwDebtMap[s.id]) {
-      s.hwDebtCount = hwDebtMap[s.id];
+    const t = balanceTracker[s.id];
+    s.balance = t.payments - t.conducted;
+    s.ltv = t.payments;
+    
+    const hwDebt = hwDebtMap[s.id] || 0;
+    s.hwDebtCount = hwDebt;
+    
+    const role = s._role;
+    
+    s.stats = {
+      attendanceRate: (role === "fin" || role === "both") ? 85 : 100,
+      cancellationsCount: (role === "fin" || role === "both") ? 1 : 0,
+      homeworkRate: (role === "hw" || role === "both") ? 50 : 100,
+      pendingHomeworks: hwDebt,
+      conductedHours: conductedHoursMap[s.id] || 0
+    };
+    
+    // Also inject stats into the subject for StudentTileStats
+    if (s.subjects && s.subjects[0]) {
+      s.subjects[0].stats = { ...s.stats };
     }
+    
+    delete s._role;
+    delete s._price;
+  }
+  
+  for (const g of db.groups) {
+    delete g._price;
+    delete g._students;
   }
 
   return db;

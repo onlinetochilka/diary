@@ -62,40 +62,121 @@ function invalidateCache(collectionName) {
 // ── Balance Helpers ───────────────────────────────────────────────────────
 
 /**
- * Ledger Helper: Applies balance changes when a lesson's inline payment changes.
- * Compares old vs new paymentAmount/studentPayments and adjusts student balance.
+ * Builds a deterministic note tag that links a payment record to a lesson+student.
+ * Used to find/update/delete lesson-linked payments later.
  */
-async function applyLessonIncomeChange(oldData, newData) {
-  if (!newData) return;
-  const isIndividual = newData.type === "individual";
-  const isGroup = newData.type === "group";
+function lessonPaymentNote(lessonId, studentId) {
+  return `[урок:${lessonId}:${studentId || "ind"}]`;
+}
 
-  const updateStudentBalance = async (stId, amtDelta) => {
-    if (amtDelta === 0) return;
-    const student = await safeGetOne("students", stId);
-    if (student) {
-      await pb.collection("students").update(stId, {
-        balance: (student.balance || 0) + amtDelta,
-      });
-    }
-  };
+/**
+ * Find an existing payment record linked to a specific lesson+student via note tag.
+ * Returns the record or null.
+ */
+async function findLessonPayment(lessonId, studentId) {
+  const tag = lessonPaymentNote(lessonId, studentId);
+  try {
+    const results = await pb.collection("payments").getFullList({
+      filter: `note ~ "${tag}"`,
+      limit: 1,
+    });
+    return results.length > 0 ? results[0] : null;
+  } catch {
+    return null;
+  }
+}
 
-  if (isIndividual && newData.studentId) {
-    const oldAmt = Number(oldData?.paymentAmount) || 0;
-    const newAmt = Number(newData.paymentAmount) || 0;
-    await updateStudentBalance(newData.studentId, newAmt - oldAmt);
-  } else if (isGroup) {
-    const oldPayments = oldData?.studentPayments || {};
-    const newPayments = newData?.studentPayments || {};
-    const allStudents = new Set([
-      ...Object.keys(oldPayments),
-      ...Object.keys(newPayments),
-    ]);
-    for (const stId of allStudents) {
-      const oldAmt = Number(oldPayments[stId]?.amount) || 0;
-      const newAmt = Number(newPayments[stId]?.amount) || 0;
-      await updateStudentBalance(stId, newAmt - oldAmt);
+/**
+ * Ledger Helper: Syncs lesson inline payments as proper payment records.
+ * Compares old vs new paymentAmount/studentPayments and creates/updates/deletes
+ * payment records accordingly (which in turn update student balance).
+ *
+ * @param {object|null} oldData — previous lesson state (null for new lessons)
+ * @param {object} newData — new/updated lesson state
+ * @param {string} lessonId — the lesson record ID
+ */
+async function applyLessonIncomeChange(oldData, newData, lessonId) {
+  try {
+    if (!newData) return;
+    const isIndividual = newData.type === "individual";
+    const isGroup = newData.type === "group";
+    const tutorId = newData.tutorId || pb.authStore.model?.id;
+    const lessonDate = newData.date || new Date().toISOString().split("T")[0];
+
+    /**
+     * Sync a single student's lesson payment.
+     * If newAmt > 0 and no existing record → create.
+     * If newAmt > 0 and existing record with different amount → delete old, create new.
+     * If newAmt === 0 and existing record → delete.
+     */
+    const syncStudentPayment = async (stId, oldAmt, newAmt) => {
+      if (oldAmt === newAmt) return;
+
+      const existing = lessonId ? await findLessonPayment(lessonId, stId) : null;
+
+      // Remove old payment if it exists and amount changed
+      if (existing) {
+        // Use raw delete + balance adjustment to avoid double lookup
+        const existingAmount = Number(existing.amount) || 0;
+        if (existingAmount !== 0 && existing.studentId) {
+          const student = await safeGetOne("students", existing.studentId);
+          if (student) {
+            await pb.collection("students").update(existing.studentId, {
+              balance: (student.balance || 0) - existingAmount,
+              ltv: (student.ltv || 0) - existingAmount,
+            });
+          }
+        }
+        await pb.collection("payments").delete(existing.id);
+        invalidateCache("payments");
+        invalidateCache("students");
+      }
+
+      // Create new payment if amount > 0
+      if (newAmt > 0 && stId) {
+        const tag = lessonPaymentNote(lessonId, stId);
+        invalidateCache("payments");
+        invalidateCache("students");
+        const record = await pb.collection("payments").create({
+          tutorId,
+          studentId: stId,
+          amount: newAmt,
+          currency: "RUB",
+          paidAt: new Date().toISOString(),
+          note: `${tag} Оплата с урока ${lessonDate}`,
+        });
+
+        // Update balance + ltv
+        const student = await safeGetOne("students", stId);
+        if (student) {
+          await pb.collection("students").update(stId, {
+            balance: (student.balance || 0) + newAmt,
+            ltv: (student.ltv || 0) + newAmt,
+          });
+        }
+      }
+    };
+
+    if (isIndividual && newData.studentId) {
+      const oldAmt = Number(oldData?.paymentAmount) || 0;
+      const newAmt = Number(newData.paymentAmount) || 0;
+      await syncStudentPayment(newData.studentId, oldAmt, newAmt);
+    } else if (isGroup) {
+      const oldPayments = oldData?.studentPayments || {};
+      const newPayments = newData?.studentPayments || {};
+      const allStudents = new Set([
+        ...Object.keys(oldPayments),
+        ...Object.keys(newPayments),
+      ]);
+      for (const stId of allStudents) {
+        const oldAmt = Number(oldPayments[stId]?.amount) || 0;
+        const newAmt = Number(newPayments[stId]?.amount) || 0;
+        await syncStudentPayment(stId, oldAmt, newAmt);
+      }
     }
+  } catch (err) {
+    console.error('[applyLessonIncomeChange]', err);
+    throw err;
   }
 }
 
@@ -105,41 +186,46 @@ async function applyLessonIncomeChange(oldData, newData) {
  * isReverting = true  -> add price back to balance (lesson was un-conducted)
  */
 async function applyLessonBalanceChange(lessonData, isReverting = false) {
-  const price = lessonData.price || 0;
-  if (price === 0) return;
+  try {
+    const price = lessonData.price || 0;
+    if (price === 0) return;
 
-  const multiplier = isReverting ? 1 : -1;
-  const amountToApply = price * multiplier;
+    const multiplier = isReverting ? 1 : -1;
+    const amountToApply = price * multiplier;
 
-  if (lessonData.type === "individual" && lessonData.studentId) {
-    const student = await safeGetOne("students", lessonData.studentId);
-    if (student) {
-      await pb.collection("students").update(lessonData.studentId, {
-        balance: (student.balance || 0) + amountToApply,
-      });
-    }
-  } else if (lessonData.type === "group" && lessonData.groupId) {
-    // Fix #5: Prefer the group membership snapshot captured at lesson creation time.
-    let studentIds =
-      Array.isArray(lessonData.groupStudentIds) &&
-      lessonData.groupStudentIds.length > 0
-        ? lessonData.groupStudentIds
-        : null;
-
-    if (!studentIds) {
-      // Fallback: no snapshot stored — read current group membership
-      const group = await safeGetOne("groups", lessonData.groupId);
-      studentIds = group ? group.studentIds || [] : [];
-    }
-
-    for (const stId of studentIds) {
-      const student = await safeGetOne("students", stId);
+    if (lessonData.type === "individual" && lessonData.studentId) {
+      const student = await safeGetOne("students", lessonData.studentId);
       if (student) {
-        await pb.collection("students").update(stId, {
+        await pb.collection("students").update(lessonData.studentId, {
           balance: (student.balance || 0) + amountToApply,
         });
       }
+    } else if (lessonData.type === "group" && lessonData.groupId) {
+      // Fix #5: Prefer the group membership snapshot captured at lesson creation time.
+      let studentIds =
+        Array.isArray(lessonData.groupStudentIds) &&
+        lessonData.groupStudentIds.length > 0
+          ? lessonData.groupStudentIds
+          : null;
+
+      if (!studentIds) {
+        // Fallback: no snapshot stored — read current group membership
+        const group = await safeGetOne("groups", lessonData.groupId);
+        studentIds = group ? group.studentIds || [] : [];
+      }
+
+      for (const stId of studentIds) {
+        const student = await safeGetOne("students", stId);
+        if (student) {
+          await pb.collection("students").update(stId, {
+            balance: (student.balance || 0) + amountToApply,
+          });
+        }
+      }
     }
+  } catch (err) {
+    console.error('[applyLessonBalanceChange]', err);
+    throw err;
   }
 }
 
@@ -886,7 +972,7 @@ export async function addLesson(data) {
         await applyLessonBalanceChange(lessonDataToSave, false);
       }
 
-      await applyLessonIncomeChange(null, lessonDataToSave);
+      await applyLessonIncomeChange(null, lessonDataToSave, record.id);
 
       // add 7 days
       currentDate.setDate(currentDate.getDate() + 7);
@@ -920,7 +1006,7 @@ export async function addLesson(data) {
       await applyLessonBalanceChange(lessonDataToSave, false);
     }
 
-    await applyLessonIncomeChange(null, lessonDataToSave);
+    await applyLessonIncomeChange(null, lessonDataToSave, record.id);
 
     return record.id;
   }
@@ -993,7 +1079,7 @@ export async function updateLesson(id, data) {
   }
 
   if (oldData) {
-    await applyLessonIncomeChange(oldData, { ...oldData, ...data });
+    await applyLessonIncomeChange(oldData, { ...oldData, ...data }, id);
   }
 }
 
@@ -1045,7 +1131,7 @@ export async function patchLesson(id, partial) {
     (partial.paymentAmount !== undefined ||
       partial.studentPayments !== undefined)
   ) {
-    await applyLessonIncomeChange(oldData, { ...oldData, ...partial });
+    await applyLessonIncomeChange(oldData, { ...oldData, ...partial }, id);
   }
 }
 
@@ -1128,7 +1214,7 @@ export async function deleteLesson(id) {
          groupId: oldData.groupId,     // for group
          paymentAmount: 0, 
          studentPayments: {} 
-       });
+       }, id);
     }
   }
   await pb.collection("lessons").delete(id);
@@ -1168,29 +1254,34 @@ export async function getPayments({ tutorId, studentId } = {}) {
  * @returns {Promise<string>} new record ID
  */
 export async function addPayment(data) {
-  if (!data.tutorId) {
-    data.tutorId = pb.authStore.model?.id;
-  }
-
-  invalidateCache("payments");
-  invalidateCache("students");
-  const record = await pb.collection("payments").create({
-    ...data,
-    currency: data.currency ?? "RUB",
-  });
-
-  if (data.studentId && data.amount) {
-    const amount = Number(data.amount);
-    const student = await safeGetOne("students", data.studentId);
-    if (student) {
-      await pb.collection("students").update(data.studentId, {
-        balance: (student.balance || 0) + amount,
-        ltv: (student.ltv || 0) + amount,
-      });
+  try {
+    if (!data.tutorId) {
+      data.tutorId = pb.authStore.model?.id;
     }
-  }
 
-  return record.id;
+    invalidateCache("payments");
+    invalidateCache("students");
+    const record = await pb.collection("payments").create({
+      ...data,
+      currency: data.currency ?? "RUB",
+    });
+
+    if (data.studentId && data.amount) {
+      const amount = Number(data.amount);
+      const student = await safeGetOne("students", data.studentId);
+      if (student) {
+        await pb.collection("students").update(data.studentId, {
+          balance: (student.balance || 0) + amount,
+          ltv: (student.ltv || 0) + amount,
+        });
+      }
+    }
+
+    return record.id;
+  } catch (err) {
+    console.error('[addPayment]', err);
+    throw err;
+  }
 }
 
 /**
@@ -1200,29 +1291,34 @@ export async function addPayment(data) {
  * @returns {Promise<void>}
  */
 export async function updatePayment(id, data) {
-  invalidateCache("payments");
-  invalidateCache("students");
+  try {
+    invalidateCache("payments");
+    invalidateCache("students");
 
-  // Fix #2: When the payment amount changes, compute the delta and apply it
-  if (data.amount !== undefined) {
-    const oldData = await safeGetOne("payments", id);
-    if (oldData) {
-      const oldAmount = Number(oldData.amount) || 0;
-      const newAmount = Number(data.amount) || 0;
-      const delta = newAmount - oldAmount;
-      if (delta !== 0 && oldData.studentId) {
-        const student = await safeGetOne("students", oldData.studentId);
-        if (student) {
-          await pb.collection("students").update(oldData.studentId, {
-            balance: (student.balance || 0) + delta,
-            ltv: (student.ltv || 0) + delta,
-          });
+    // Fix #2: When the payment amount changes, compute the delta and apply it
+    if (data.amount !== undefined) {
+      const oldData = await safeGetOne("payments", id);
+      if (oldData) {
+        const oldAmount = Number(oldData.amount) || 0;
+        const newAmount = Number(data.amount) || 0;
+        const delta = newAmount - oldAmount;
+        if (delta !== 0 && oldData.studentId) {
+          const student = await safeGetOne("students", oldData.studentId);
+          if (student) {
+            await pb.collection("students").update(oldData.studentId, {
+              balance: (student.balance || 0) + delta,
+              ltv: (student.ltv || 0) + delta,
+            });
+          }
         }
       }
     }
-  }
 
-  await pb.collection("payments").update(id, data);
+    await pb.collection("payments").update(id, data);
+  } catch (err) {
+    console.error('[updatePayment]', err);
+    throw err;
+  }
 }
 
 /**
@@ -1232,25 +1328,31 @@ export async function updatePayment(id, data) {
  * @returns {Promise<void>}
  */
 export async function deletePayment(id) {
-  invalidateCache("payments");
-  invalidateCache("students");
+  try {
+    invalidateCache("payments");
+    invalidateCache("students");
 
-  // Fix #1: Read the payment before deleting to roll back the student's balance.
-  const payData = await safeGetOne("payments", id);
-  if (payData) {
-    const amount = Number(payData.amount) || 0;
-    if (amount !== 0 && payData.studentId) {
-      const student = await safeGetOne("students", payData.studentId);
-      if (student) {
-        await pb.collection("students").update(payData.studentId, {
-          balance: (student.balance || 0) - amount,
-          ltv: (student.ltv || 0) - amount,
-        });
+    // Fix #1: Read the payment before deleting to roll back the student's balance.
+    const payData = await safeGetOne("payments", id);
+    
+    await pb.collection("payments").delete(id);
+
+    if (payData) {
+      const amount = Number(payData.amount) || 0;
+      if (amount !== 0 && payData.studentId) {
+        const student = await safeGetOne("students", payData.studentId);
+        if (student) {
+          await pb.collection("students").update(payData.studentId, {
+            balance: (student.balance || 0) - amount,
+            ltv: (student.ltv || 0) - amount,
+          });
+        }
       }
     }
+  } catch (err) {
+    console.error('[deletePayment]', err);
+    throw err;
   }
-
-  await pb.collection("payments").delete(id);
 }
 
 /**
@@ -1294,18 +1396,11 @@ export async function recalculateStudentBalance(studentId) {
     }
   });
 
-  // Sum paymentAmount (inline payments from DayInspector)
-  let totalInlinePayments = 0;
-  lessons.forEach((l) => {
-    if (l.type === "individual" && l.studentId === studentId) {
-      totalInlinePayments += Number(l.paymentAmount) || 0;
-    } else if (l.type === "group" && l.studentPayments) {
-      totalInlinePayments +=
-        Number(l.studentPayments[studentId]?.amount) || 0;
-    }
-  });
+  // NOTE: Inline payments from DayInspector are now stored as proper payment
+  // records (via applyLessonIncomeChange → addPayment), so they are already
+  // included in totalPayments above. No need to count them separately.
 
-  const calculated = totalPayments + totalInlinePayments - totalLessonCost;
+  const calculated = totalPayments - totalLessonCost;
   const drift = Math.abs(stored - calculated);
 
   if (drift > 0.01) {

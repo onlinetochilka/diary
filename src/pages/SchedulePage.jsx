@@ -403,11 +403,13 @@ export default function SchedulePage() {
               const l = item.lessons[0];
               await hookQuickHomework(l, item.student.id, true);
             } else if (item.type === "money") {
+              const parsedAmount = Number(selectedLessonsOrAmount);
+              if (!parsedAmount || parsedAmount <= 0) return;
               try {
                 await addPayment({
                   studentId:   item.student.id,
                   studentName: item.student.name,
-                  amount:      selectedLessonsOrAmount,
+                  amount:      parsedAmount,
                   paidAt:      new Date().toISOString(),
                   note:        note || "Оплата с расписания",
                 });

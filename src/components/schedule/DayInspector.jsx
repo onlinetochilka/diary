@@ -703,20 +703,20 @@ export default function DayInspector({
 
   const handleSave = async () => {
     if (isSubmitting) return;
+    setIsSubmitting(true);
     setSaveError('');
 
-    // Validate: time order
-    if (formData.startTime && formData.endTime) {
-      const startObj = new Date(`1970-01-01T${formData.startTime}:00Z`);
-      const endObj = new Date(`1970-01-01T${formData.endTime}:00Z`);
-      if (startObj >= endObj) {
-        setSaveError('Время начала должно быть раньше окончания');
-        return;
-      }
-    }
-
-    setIsSubmitting(true);
     try {
+      // Validate: time order
+      if (formData.startTime && formData.endTime) {
+        const startObj = new Date(`1970-01-01T${formData.startTime}:00Z`);
+        const endObj = new Date(`1970-01-01T${formData.endTime}:00Z`);
+        if (startObj >= endObj) {
+          setSaveError('Время начала должно быть раньше окончания');
+          return;
+        }
+      }
+
       const payload = { ...formData };
       if (payload.paymentAmount === '') {
         payload.paymentAmount = null;

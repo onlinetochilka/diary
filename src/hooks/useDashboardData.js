@@ -259,7 +259,14 @@ export function useDashboardData() {
 
     fetchData();
     const interval = setInterval(fetchData, 60_000);
-    return () => clearInterval(interval);
+    
+    const handleForceRefresh = () => fetchData();
+    window.addEventListener('force-refresh-data', handleForceRefresh);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('force-refresh-data', handleForceRefresh);
+    };
   }, [refreshKey]);
 
   const refresh = () => setRefreshKey(k => k + 1);
