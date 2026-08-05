@@ -30,6 +30,13 @@ export const LessonCardOverlay = forwardRef(({ lesson, compact, dragTimeDelta, w
 
   return (
     <div style={{ width: width || 'auto', height: height || 'auto' }} className="relative z-[9999]" ref={ref}>
+      {/* Прячем палец под карточкой на мобильном, а время показываем сверху */}
+      <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-blue-600/95 backdrop-blur-sm text-white font-black text-sm px-4 py-2 rounded-2xl shadow-xl border border-blue-500/30 whitespace-nowrap pointer-events-none z-[10001] flex items-center gap-2">
+        <span>{newStartTime}</span>
+        <span className="text-blue-300">—</span>
+        <span>{newEndTime}</span>
+      </div>
+
       <LessonCardView 
         lesson={overlaidLesson}
         displayData={displayData}

@@ -1,14 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
-import { useSensors, useSensor, PointerSensor } from '@dnd-kit/core';
+import { useSensors, useSensor, MouseSensor, TouchSensor } from '@dnd-kit/core';
 import { ymd } from '../components/schedule/scheduleUtils.jsx';
 import { useConfirm } from '../contexts/ConfirmContext.jsx';
 
 export function useScheduleDragAndDrop({ view, hookCopyLesson, handleSaveLesson, lessons = [] }) {
   const confirm = useConfirm();
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     })
   );
