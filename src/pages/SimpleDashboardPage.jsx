@@ -236,6 +236,12 @@ export default function SimpleDashboardPage() {
   const location = useLocation();
   const pageState = location.state;
 
+  useEffect(() => {
+    if (localStorage.getItem("isDemoMode") === "true") {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
+
   // 1. Data for Dashboard (Stats)
   const { stats, refresh: refreshDashboard } = useDashboardData();
 

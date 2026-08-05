@@ -142,7 +142,12 @@ const FAQ_ITEMS = [
   },
   {
     q: "Есть ли сообщество?",
-    a: "Да — Telegram-сообщество «Лайфхаки от «Точилки»». Задать вопрос, предложить идею и обсудить новости образования с коллегами.",
+    a: (
+      <>
+        Да — <a href="https://t.me/tochilka_online" target="_blank" rel="noreferrer" style={{color: 'var(--brand-blue)', textDecoration: 'none'}}>Telegram-сообщество «Лайфхаки от «Точилки»»</a>. 
+        Задать вопрос, предложить идею и обсудить новости образования с коллегами можно там, или написав нам на почту <a href="mailto:info@tochilka.app" style={{color: 'var(--brand-blue)', textDecoration: 'none'}}>info@tochilka.app</a>.
+      </>
+    ),
   },
 ];
 

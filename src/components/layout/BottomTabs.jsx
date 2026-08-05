@@ -88,7 +88,7 @@ export default function BottomTabs({ activePage, onNavigate }) {
 
       {/* Nav items row */}
       <div className="flex items-stretch justify-around">
-      {NAV_ITEMS.map((item) => {
+      {NAV_ITEMS.filter(item => !(isAnonymous && item.id === 'lite')).map((item) => {
         const isActive = activePage === item.id;
         const Icon     = item.icon;
 

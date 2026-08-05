@@ -172,7 +172,7 @@ export default function Sidebar({ activePage, onNavigate }) {
 
       {/* Nav Links */}
       <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter(item => !(isAnonymous && item.id === 'lite')).map((item) => {
           const isActive = activePage === item.id;
           const Icon = item.icon;
 
