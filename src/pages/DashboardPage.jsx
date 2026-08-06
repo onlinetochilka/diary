@@ -217,7 +217,49 @@ export default function DashboardPage() {
                       </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[11px] font-semibold bg-white/80 text-stone-700 px-2 py-0.5 rounded-md tabular-nums">{l.startTime} — {l.endTime}</span>
-                        <span className="text-[12px] font-medium text-stone-500 truncate">{l.subjectName}</span>
+                        <span className="text-[10px] font-semibold tracking-wider uppercase text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded flex-shrink-0 truncate max-w-[80px]">
+                          {l.subjectName}
+                        </span>
+                        
+                        <div className="ml-auto flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          {(() => {
+                            const link = l.videoLink || (l.studentObj && (l.studentObj.subjects?.find(s => s.name === l.subjectName)?.videoLink || l.studentObj.videoLink)) || null;
+                            if (link) {
+                              return (
+                                <a href={link} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Подключиться к уроку">
+                                  <Video size={14} />
+                                </a>
+                              );
+                            }
+                            return null;
+                          })()}
+                          
+                          {l.type === 'individual' && l.studentObj && (() => {
+                            const s = l.studentObj;
+                            let href = '';
+                            let Icon = MessageCircle;
+                            let color = 'text-stone-400 hover:bg-stone-50';
+                            
+                            if (s.telegram) {
+                              href = s.telegram.startsWith('+') || /^\d/.test(s.telegram) ? `tg://resolve?phone=${s.telegram.replace(/\D/g, '')}` : `tg://resolve?domain=${s.telegram.replace(/^@/, '')}`;
+                              Icon = Send;
+                              color = 'text-sky-500 hover:bg-sky-50';
+                            } else if (s.whatsapp) {
+                              href = `https://wa.me/${s.whatsapp.replace(/\D/g, '')}`;
+                              Icon = Phone;
+                              color = 'text-emerald-500 hover:bg-emerald-50';
+                            }
+                            
+                            if (href) {
+                              return (
+                                <a href={href} target="_blank" rel="noopener noreferrer" className={`p-1.5 rounded-md transition-colors ${color}`} title="Написать ученику">
+                                  <Icon size={14} />
+                                </a>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -235,7 +277,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-6 flex-1 min-h-0 pb-4 lg:pb-0">
 
         {/* LEFT COLUMN — Action Items */}
-        <WidgetErrorBoundary className="lg:col-span-2 w-full h-full" onReset={() => refresh()}>
+        <WidgetErrorBoundary className="lg:col-span-1 w-full h-full" onReset={() => refresh()}>
           <section className="flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 h-fit lg:max-h-full self-start w-full lg:min-h-0 relative">
             <div className="flex items-center gap-2 mb-5 shrink-0">
               <AlertCircle size={20} className="text-stone-400" />
@@ -290,6 +332,87 @@ export default function DashboardPage() {
                   <div className="hidden lg:block absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-[28px] z-10" />
                 )}
               </>
+            )}
+          </section>
+        </WidgetErrorBoundary>
+
+        {/* MIDDLE COLUMN — Tutor Debts */}
+        <WidgetErrorBoundary className="lg:col-span-1 w-full h-full" onReset={() => refresh()}>
+          <section className="flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 h-full w-full relative overflow-hidden">
+            <div className="flex items-center gap-2 mb-5 shrink-0">
+              <CheckCircle2 size={20} className="text-stone-400" />
+              <h2 className="text-lg font-bold text-stone-800">Что нужно сделать</h2>
+              {!loading && tutorDebts.length > 0 && (
+                <span className="ml-auto text-xs font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full tabular-nums">
+                  {tutorDebts.length}
+                </span>
+              )}
+            </div>
+
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => <ActionItemSkeleton key={i} />)}
+              </div>
+            ) : tutorDebts.length === 0 ? (
+              <div className="flex items-center gap-4 py-3 px-5 bg-stone-50 border border-stone-100/60 rounded-2xl shadow-sm h-full justify-center">
+                <span className="text-sm font-medium text-stone-400">Все уроки отмечены</span>
+              </div>
+            ) : (
+                <div className="flex flex-col gap-3 overflow-y-auto hide-scrollbar pb-4 h-full relative z-0">
+                  {tutorDebts.map(item => (
+                    <div key={`${item.type}-${item.lesson.id}`} className="flex items-center justify-between p-3 rounded-2xl border border-stone-100 bg-white hover:border-slate-300 hover:shadow-sm transition-all group">
+                      <div className="flex flex-col gap-1 min-w-0 pr-3">
+                        <p className="text-sm font-semibold text-stone-900 truncate">
+                          {item.lesson.displayName}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${item.type === 'unmarked_lesson' ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-200' : 'bg-blue-100 text-blue-800 ring-1 ring-blue-200'}`}>
+                            {item.type === 'unmarked_lesson' ? 'Не отмечен статус' : 'Не задано ДЗ'}
+                          </span>
+                          <span className="text-[11px] text-stone-500 whitespace-nowrap">
+                            {(() => {
+                              const lDate = new Date(item.lesson.date);
+                              const today = new Date();
+                              today.setHours(0,0,0,0);
+                              const diffDays = Math.floor((today - lDate) / (1000 * 60 * 60 * 24));
+                              if (diffDays === 0) return `Сегодня, ${item.lesson.startTime}`;
+                              if (diffDays === 1) return `Вчера, ${item.lesson.startTime}`;
+                              return `${item.lesson.date.slice(5).replace('-', '.')} ${item.lesson.startTime}`;
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Tooltip text="Отметить статус" position="top">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-8 h-8 rounded-full bg-white text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 shadow-sm ring-1 ring-slate-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickModalLesson(item.lesson);
+                            }}
+                          >
+                            <Check size={16} />
+                          </Button>
+                        </Tooltip>
+                        <Tooltip text="Карточка урока" position="top">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-8 h-8 rounded-full bg-white text-stone-400 hover:bg-stone-50 hover:text-stone-600 shadow-sm ring-1 ring-slate-200 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigate("schedule", { openInspectorLessonId: item.lesson.id, date: item.lesson.date, view: "day" });
+                            }}
+                          >
+                            <Search size={16} />
+                          </Button>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  ))}
+                </div>
             )}
           </section>
         </WidgetErrorBoundary>
