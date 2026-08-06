@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
+import Button from '../ui/Button.jsx';
 
 /**
  * DayActionableGap — строка свободного времени между уроками.
@@ -25,8 +26,8 @@ export default function DayActionableGap({ dateStr, startTime, endTime, onClick,
   const dimmed = hasActiveSelection && !isActive;
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => onClick?.({ date: dateStr, startTime, endTime })}
@@ -65,6 +66,6 @@ export default function DayActionableGap({ dateStr, startTime, endTime, onClick,
           Добавить урок →
         </span>
       )}
-    </button>
+    </Button>
   );
 }

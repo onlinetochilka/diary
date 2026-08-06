@@ -60,12 +60,13 @@ export default function FinancePage() {
       iconTextClass="text-[#426B5C]"
       actionRight={
         <Tooltip text="Настроить метрики" position="bottom-right">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setShowMetricsModal(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 hover:bg-stone-50 active:scale-95 transition-all text-stone-500 hover:text-stone-700 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="w-10 h-10 border-none flex items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 hover:bg-stone-50 active:scale-95 transition-all text-stone-500 hover:text-stone-700 p-0"
           >
             <Settings2 size={20} />
-          </button>
+          </Button>
         </Tooltip>
       }
     >

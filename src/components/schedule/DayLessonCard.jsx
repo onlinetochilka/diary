@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, BookOpen, XCircle, Users } from 'lucide-react';
 import Tooltip from '../ui/Tooltip.jsx';
+import Button from '../ui/Button.jsx';
 
 /**
  * DayLessonCard — карточка урока в дневном расписании.
@@ -117,21 +118,23 @@ export default function DayLessonCard({
             </span>
           )}
           {hasHwDebt && (
-            <button
+            <Button
+              variant="danger"
               onClick={e => { e.stopPropagation(); onHwDebtClick?.(lesson); }}
-              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold transition-colors shadow-sm"
+              className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold transition-colors shadow-sm border-none"
             >
               <BookOpen size={9} strokeWidth={2.5} />
               ДЗ
-            </button>
+            </Button>
           )}
           {hasFinDebt && (
-            <button
+            <Button
+              variant="danger"
               onClick={e => { e.stopPropagation(); onFinDebtClick?.(lesson); }}
-              className="px-1.5 py-0.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold transition-colors shadow-sm"
+              className="flex items-center justify-center px-1.5 py-0.5 h-auto rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold transition-colors shadow-sm border-none"
             >
               ₽!
-            </button>
+            </Button>
           )}
           {isConducted && (
             <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">

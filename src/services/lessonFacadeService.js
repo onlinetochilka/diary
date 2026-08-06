@@ -1,5 +1,5 @@
 import pb from "./pocketbase.js";
-import { invalidateCache } from "../api/databaseApi.js";
+import { invalidateCache, safeGetOne, applyLessonBalanceChange, recalcHwDebtCount } from "../api/databaseApi.js";
 import { applyLessonIncomeChange } from "./billingService.js";
 
 // -- Lesson Facade --

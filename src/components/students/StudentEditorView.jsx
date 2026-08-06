@@ -9,6 +9,7 @@
  * Визуально интерфейс идентичен оригинальной версии.
  */
 import { ArrowLeft } from 'lucide-react';
+import Button from '../ui/Button.jsx';
 import { useStudentForm } from '../../hooks/useStudentForm.js';
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
 import { useToast } from '../ui/Toast.jsx';
@@ -88,13 +89,14 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
     <div className="max-w-[1400px] mx-auto p-6 lg:p-8 animate-fade-in pb-40">
       {/* Header */}
       <div className="flex items-center justify-between mb-10">
-        <button
+        <Button
+          variant="ghost"
           onClick={handleBackAttempt}
-          className="flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors font-medium text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7A404D] focus-visible:ring-offset-4 rounded-md px-2 py-1 -ml-2"
+          className="w-auto h-auto flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors font-medium text-sm border-none outline-none focus-visible:ring-2 focus-visible:ring-[#7A404D] focus-visible:ring-offset-4 rounded-md px-2 py-1 -ml-2"
         >
           <ArrowLeft size={18} strokeWidth={2} />
           К списку учеников
-        </button>
+        </Button>
         <div className="text-sm font-medium text-stone-400">
           {studentId ? 'Редактирование ученика' : 'Новый ученик'}
         </div>
@@ -140,6 +142,7 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
         onDelete={!!studentId ? handleDelete : undefined}
         onArchive={!!studentId && onArchive ? handleArchive : undefined}
         isArchived={!!initialData?.isArchived}
+        hasHistory={!!initialData && (initialData.stats?.conductedHours > 0 || initialData.ltv > 0)}
       />
     </div>
   );

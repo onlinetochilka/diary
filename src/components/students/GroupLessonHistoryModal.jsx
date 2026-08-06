@@ -166,18 +166,19 @@ export default function GroupLessonHistoryModal({ isOpen, onClose, group, studen
         <div className="mb-6">
           <div className="flex gap-2">
             {FILTERS.map(f => (
-              <button
+              <Button
+                variant="ghost"
                 key={f.key}
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  'flex-1 text-[13px] font-semibold py-2 px-2 rounded-xl transition-all duration-150 whitespace-nowrap text-center',
+                  'w-auto h-auto flex-1 text-[13px] font-semibold py-2 px-2 rounded-xl transition-all duration-150 whitespace-nowrap text-center',
                   filter === f.key
-                    ? 'bg-stone-800 text-white shadow-sm'
+                    ? 'bg-stone-800 text-white shadow-sm border border-stone-800'
                     : 'bg-white text-stone-500 hover:text-stone-700 hover:bg-stone-100 border border-stone-100'
                 )}
               >
                 {f.label}
-              </button>
+              </Button>
             ))}
           </div>
           {filter === 'range' && (
@@ -295,17 +296,18 @@ export default function GroupLessonHistoryModal({ isOpen, onClose, group, studen
       {/* ── Кнопка подгрузки (Infinite Scroll) ───────────────── */}
       {hasNextPage && (
         <div className="flex justify-center pt-2 pb-6">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-[#006584] bg-[#006584]/5 hover:bg-[#006584]/10 transition-colors disabled:opacity-50"
+            className="w-auto h-auto border-none flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-[#006584] bg-[#006584]/5 hover:bg-[#006584]/10 transition-colors disabled:opacity-50"
           >
             {isFetchingNextPage ? (
               <span className="flex items-center gap-1.5"><span className="w-4 h-4 border-2 border-[#006584] border-t-transparent rounded-full animate-spin"></span> Загрузка...</span>
             ) : (
               'Загрузить ещё'
             )}
-          </button>
+          </Button>
         </div>
       )}
     </SideDrawer>

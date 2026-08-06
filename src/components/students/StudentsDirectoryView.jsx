@@ -5,6 +5,7 @@ import StudentsFilterBar from './StudentsFilterBar.jsx';
 import StudentTile from './StudentTile.jsx';
 import ActionItemModal from '../dashboard/ActionItemModal.jsx';
 import GroupCard from './GroupCard.jsx';
+import Button from '../ui/Button.jsx';
 import { useStudentsFilter } from '../../hooks/useStudentsFilter.js';
 import StudentsEmptyState from './StudentsEmptyState.jsx';
 import { useLessons } from '../../hooks/useLessons.js';
@@ -64,7 +65,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
     const payItem = {
       type: 'money',
       student,
-      amount: debt > 0 ? debt : (student.subjects?.[0]?.price || 0),
+      amount: debt > 0 ? debt : "",
     };
     setPayModal({ isOpen: true, item: payItem });
   };
@@ -143,23 +144,24 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
         </div>
         
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="outline"
             onClick={onCreateGroup}
             data-action="create_group"
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-[#7A404D] rounded-xl text-sm font-medium border border-[#7A404D]/30 hover:bg-[#7A404D]/5 hover:border-[#7A404D]/50 transition-colors shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A404D] active:scale-[0.98]"
           >
             <FolderPlus size={18} strokeWidth={2} />
             Новая группа
-          </button>
+          </Button>
           
-          <button
+          <Button
             onClick={onCreate}
             data-action="create_student"
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#7A404D] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A404D] active:scale-[0.98]"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#7A404D] text-white rounded-xl text-sm font-medium hover:bg-[#7A404D]/90 transition-colors shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A404D] active:scale-[0.98] border-none"
           >
             <UserPlus size={18} strokeWidth={2} />
             Новый ученик
-          </button>
+          </Button>
         </div>
       </header>
 

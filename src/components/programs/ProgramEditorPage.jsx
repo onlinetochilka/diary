@@ -30,6 +30,7 @@ import {
 } from "../../services/database.js";
 import { useToast } from "../ui/Toast.jsx";
 import Tooltip from '../ui/Tooltip.jsx';
+import Button from '../ui/Button.jsx';
 
 // ─── Skeleton пока программа загружается ─────────────────────────────────────
 function EditorSkeleton() {
@@ -101,31 +102,33 @@ function UnsavedGuardModal({ isOpen, onConfirm, onCancel }) {
           Если уйти сейчас, вы потеряете последние правки.
         </p>
         <div className="flex gap-2 justify-end">
-          <button
+          <Button
+            variant="secondary"
             type="button"
             onClick={onCancel}
             className={cn(
-              "px-4 py-2 text-sm font-medium rounded-xl",
+              "w-auto h-auto px-4 py-2 text-sm font-medium rounded-xl",
               "text-stone-600 bg-stone-100 hover:bg-stone-200",
               "transition-colors duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
             )}
           >
             Остаться
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
             ref={confirmRef}
             type="button"
             onClick={onConfirm}
             className={cn(
-              "px-4 py-2 text-sm font-medium rounded-xl",
+              "w-auto h-auto px-4 py-2 text-sm font-medium rounded-xl",
               "text-white bg-red-500 hover:bg-red-600 active:scale-[0.98]",
               "transition-all duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400",
             )}
           >
             Уйти
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -148,15 +151,16 @@ function HeaderButton({ icon: Icon, label, onClick, variant = "ghost", disabled 
   };
 
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={cn(base, variants[variant])}
+      className={cn("w-auto h-auto border-none", base, variants[variant])}
     >
       <Icon size={16} strokeWidth={2} />
       {label && <span>{label}</span>}
-    </button>
+    </Button>
   );
 }
 
@@ -315,27 +319,30 @@ export default function ProgramEditorPage({
         {/* ── Шапка ─────────────────────────────────────────────── */}
         <header className="pe-header">
           {/* Кнопка «Назад» */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             type="button"
             onClick={requestBack}
             aria-label="Назад к программам"
             className={cn(
-              "p-1.5 rounded-xl text-stone-500",
+              "w-auto h-auto border-none p-1.5 rounded-xl text-stone-500",
               "hover:bg-stone-100 hover:text-stone-800",
               "active:scale-[0.98] transition-all duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
             )}
           >
             <ArrowLeft size={18} strokeWidth={2} />
-          </button>
+          </Button>
 
           {/* Иконка + название (кликабельно, открывает настройки программы) */}
           <Tooltip text="Открыть настройки программы" wrapperClassName="flex-1 min-w-0 flex">
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => setSelectedItem(null)}
               className={cn(
-                "flex items-center gap-2 min-w-0 w-full text-left",
+                "w-auto h-auto border-none flex items-center gap-2 min-w-0 text-left",
                 "hover:bg-stone-50 px-2 py-1 -ml-2 rounded-lg transition-colors cursor-pointer",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
               )}
@@ -361,7 +368,7 @@ export default function ProgramEditorPage({
                   />
                 </Tooltip>
               )}
-            </button>
+            </Button>
           </Tooltip>
 
           {/* Правые действия */}
@@ -397,13 +404,14 @@ export default function ProgramEditorPage({
                 Не удалось загрузить программу. Проверьте соединение и
                 попробуйте снова.
               </p>
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => window.location.reload()}
-                className="mt-2 text-sm font-medium text-[#1B4F72] hover:underline"
+                className="w-auto h-auto border-none mt-2 text-sm font-medium text-[#1B4F72] hover:underline px-0 py-0"
               >
                 Обновить страницу
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="flex gap-4 lg:gap-6 w-full h-full max-w-[1400px] mx-auto overflow-hidden">

@@ -53,6 +53,7 @@ import {
 } from "../../services/database.js";
 import { useToast } from "../ui/Toast.jsx";
 import ThemeRow, { ThemeRowOverlay } from "./ThemeRow.jsx";
+import Button from '../ui/Button.jsx';
 
 // ─── Хелперы ─────────────────────────────────────────────────────────────────
 
@@ -132,7 +133,7 @@ function AddThemeInline({ sectionId, onAdd, onCancel }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-center gap-2 mt-1 pl-10 pr-2"
+      className="flex items-center gap-2 mt-1 ml-2 px-1 pr-2 pb-1"
     >
       <input
         ref={inputRef}
@@ -147,16 +148,17 @@ function AddThemeInline({ sectionId, onAdd, onCancel }) {
           "flex-1 min-w-0 text-sm px-3 py-1.5 rounded-lg",
           "border border-[#1B4F72]/30 bg-white",
           "placeholder:text-stone-400 text-stone-800",
-          "focus:outline-none focus:ring-2 focus:ring-[#1B4F72]/40",
+          "focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#1B4F72]/40",
           "transition-shadow duration-150",
         )}
       />
-      <button
+      <Button
+        variant="filled"
         type="submit"
-        className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-[#1B4F72] text-white hover:bg-[#154060] active:scale-[0.97] transition-all duration-150 focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
+        className="w-auto h-auto border-none text-xs font-medium px-2.5 py-1.5 rounded-lg bg-[#1B4F72] text-white hover:bg-[#154060] active:scale-[0.97] transition-all duration-150 focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
       >
         Добавить
-      </button>
+      </Button>
     </form>
   );
 }
@@ -196,18 +198,19 @@ function SortableSectionHeader({ section, isOpen, onToggle, onDelete, isDragOver
         tabIndex={0}
         aria-expanded={isOpen}
       >
-        {/* Grip — только раздела */}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           ref={setActivatorNodeRef}
           {...listeners}
           type="button"
           tabIndex={-1}
           aria-label="Перетащить раздел"
-          className="pe-grip touch-none"
+          className="w-auto h-auto border-none pe-grip touch-none"
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical size={14} strokeWidth={2} />
-        </button>
+        </Button>
 
         {/* Иконка + название */}
         <FolderOpen size={14} strokeWidth={2} className="text-[#1B4F72] flex-shrink-0" />
@@ -220,20 +223,21 @@ function SortableSectionHeader({ section, isOpen, onToggle, onDelete, isDragOver
           {section.topicIds.length}
         </span>
 
-        {/* Кнопка удаления раздела */}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           aria-label="Удалить раздел"
           onClick={(e) => { e.stopPropagation(); onDelete(section.id); }}
           className={cn(
-            "p-0.5 rounded text-stone-300 opacity-0 group-hover/section:opacity-100",
+            "w-auto h-auto border-none p-0.5 rounded text-stone-300 opacity-0 group-hover/section:opacity-100",
             "hover:text-red-400 hover:bg-red-50 active:scale-[0.90]",
             "transition-all duration-150",
             "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400",
           )}
         >
           <Trash2 size={13} strokeWidth={2} />
-        </button>
+        </Button>
 
         {/* Стрелка аккордеона */}
         <ChevronDown
@@ -321,20 +325,21 @@ function SectionAccordion({
             onCancel={() => setIsAddingTheme(false)}
           />
         ) : (
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={() => setIsAddingTheme(true)}
             className={cn(
-              "flex items-center gap-1.5 mt-1 ml-2 px-2 py-1.5 rounded-lg",
+              "w-auto h-auto border-none flex items-center gap-1.5 mt-1 ml-2 px-2 py-1.5 rounded-lg",
               "text-xs text-stone-400 hover:text-[#1B4F72] hover:bg-[#1B4F72]/5",
-              "transition-all duration-150 w-full",
+              "transition-all duration-150 w-full justify-start",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
               "active:scale-[0.98]",
             )}
           >
             <Plus size={12} strokeWidth={2} />
             Добавить тему
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -665,74 +670,79 @@ export default function ProgramStructure({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      {/* Список разделов */}
-      <SortableContext
-        items={localSections.map((s) => `section::${s.id}`)}
-        strategy={verticalListSortingStrategy}
-      >
-        <div role="listbox" aria-label="Структура программы" aria-multiselectable="false">
-          {localSections.map((section) => (
-            <SectionAccordion
-              key={section.id}
-              section={section}
-              topics={localTopics}
-              selectedItemId={selectedItem?.id}
-              onSelectTheme={(id) => onSelect({ type: "theme", id })}
-              onSelectSection={(id) => onSelect({ type: "section", id })}
-              onToggleComplete={handleToggleComplete}
-              onDeleteSection={handleDeleteSection}
-              onAddTheme={handleAddTheme}
-            />
-          ))}
-        </div>
-      </SortableContext>
+      {/* Обертка с отступами, чтобы элементы не прилипали к краям скролл-контейнера */}
+      <div className="px-3 pt-3 pb-8">
+        {/* Список разделов */}
+        <SortableContext
+          items={localSections.map((s) => `section::${s.id}`)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div role="listbox" aria-label="Структура программы" aria-multiselectable="false">
+            {localSections.map((section) => (
+              <SectionAccordion
+                key={section.id}
+                section={section}
+                topics={localTopics}
+                selectedItemId={selectedItem?.id}
+                onSelectTheme={(id) => onSelect({ type: "theme", id })}
+                onSelectSection={(id) => onSelect({ type: "section", id })}
+                onToggleComplete={handleToggleComplete}
+                onDeleteSection={handleDeleteSection}
+                onAddTheme={handleAddTheme}
+              />
+            ))}
+          </div>
+        </SortableContext>
 
-      {/* Кнопка / форма добавления раздела */}
-      <div className="mt-3">
-        {isAddingSection ? (
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleAddSection(newSectionTitle); }}
-            className="flex gap-2"
-          >
-            <input
-              autoFocus
-              value={newSectionTitle}
-              onChange={(e) => setNewSectionTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Escape") setIsAddingSection(false); }}
-              onBlur={() => { if (!newSectionTitle.trim()) setIsAddingSection(false); }}
-              placeholder="Название раздела..."
-              maxLength={100}
-              className={cn(
-                "flex-1 min-w-0 text-sm px-3 py-2 rounded-xl",
-                "border border-[#1B4F72]/30 bg-white",
-                "placeholder:text-stone-400 text-stone-800",
-                "focus:outline-none focus:ring-2 focus:ring-[#1B4F72]/40",
-              )}
-            />
-            <button
-              type="submit"
-              className="text-sm font-medium px-3 py-2 rounded-xl bg-[#1B4F72] text-white hover:bg-[#154060] active:scale-[0.97] transition-all duration-150 focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
+        {/* Кнопка / форма добавления раздела */}
+        <div className="mt-3">
+          {isAddingSection ? (
+            <form
+              onSubmit={(e) => { e.preventDefault(); handleAddSection(newSectionTitle); }}
+              className="flex gap-2 px-1"
             >
-              Создать
-            </button>
-          </form>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setIsAddingSection(true)}
-            className={cn(
-              "flex items-center gap-2 w-full px-3 py-2 rounded-xl",
-              "text-sm text-stone-400 hover:text-[#1B4F72] hover:bg-[#1B4F72]/5",
-              "border border-dashed border-stone-200 hover:border-[#1B4F72]/30",
-              "transition-all duration-150",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
-              "active:scale-[0.99]",
-            )}
-          >
-            <Plus size={14} strokeWidth={2} />
-            Добавить раздел
-          </button>
-        )}
+              <input
+                autoFocus
+                value={newSectionTitle}
+                onChange={(e) => setNewSectionTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setIsAddingSection(false); }}
+                onBlur={() => { if (!newSectionTitle.trim()) setIsAddingSection(false); }}
+                placeholder="Название раздела..."
+                maxLength={100}
+                className={cn(
+                  "flex-1 min-w-0 text-sm px-3 py-2 rounded-xl",
+                  "border border-[#1B4F72]/30 bg-white",
+                  "placeholder:text-stone-400 text-stone-800",
+                  "focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#1B4F72]/40",
+                )}
+              />
+              <Button
+                variant="filled"
+                type="submit"
+                className="w-auto h-auto border-none text-sm font-medium px-3 py-2 rounded-xl bg-[#1B4F72] text-white hover:bg-[#154060] active:scale-[0.97] transition-all duration-150 focus-visible:ring-2 focus-visible:ring-[#1B4F72]"
+              >
+                Создать
+              </Button>
+            </form>
+          ) : (
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => setIsAddingSection(true)}
+              className={cn(
+                "flex items-center gap-2 w-full px-3 py-2 rounded-xl justify-start h-auto",
+                "text-sm text-stone-400 hover:text-[#1B4F72] hover:bg-[#1B4F72]/5",
+                "border border-dashed border-stone-200 hover:border-[#1B4F72]/30",
+                "transition-all duration-150",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
+                "active:scale-[0.99]",
+              )}
+            >
+              <Plus size={14} strokeWidth={2} />
+              Добавить раздел
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ── DragOverlay ────────────────────────────────────────────── */}

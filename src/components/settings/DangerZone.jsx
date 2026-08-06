@@ -1,12 +1,8 @@
 import React from "react";
-import { AlertTriangle, Trash2, Loader2 } from "lucide-react";
+import { AlertTriangle, Trash2 } from "lucide-react";
 import { SettingsCard } from "../ui/SettingsCard.jsx";
 import { SectionHeader } from "../ui/SectionHeader.jsx";
-
-const BTN_BASE =
-  "inline-flex items-center justify-center font-medium text-sm rounded-xl " +
-  "transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 " +
-  "disabled:opacity-40 disabled:cursor-not-allowed";
+import Button from "../ui/Button.jsx";
 
 export function DangerZone({ setResetModalOpen, isResetting, deleteConfirm, setDeleteConfirm, handleDeleteAccount, isDeleting }) {
   return (
@@ -19,11 +15,11 @@ export function DangerZone({ setResetModalOpen, isResetting, deleteConfirm, setD
             Это удалит всех учеников, расписание уроков и финансовые записи. Действие нельзя отменить.
           </p>
           <div className="mt-auto">
-            <button onClick={() => setResetModalOpen(true)} disabled={isResetting}
-              className={`${BTN_BASE} w-full h-10 px-4 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 focus:ring-red-300`}>
+            <Button variant="danger" onClick={() => setResetModalOpen(true)} loading={isResetting}
+              className="w-full h-10 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200 shadow-none">
               <Trash2 size={14} className="mr-2" />
               Удалить данные
-            </button>
+            </Button>
           </div>
         </div>
       </SettingsCard>
@@ -40,12 +36,12 @@ export function DangerZone({ setResetModalOpen, isResetting, deleteConfirm, setD
               value={deleteConfirm}
               onChange={e => setDeleteConfirm(e.target.value)}
               className="flex-1 min-w-0 bg-white border border-red-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 placeholder:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all" />
-            <button onClick={handleDeleteAccount}
-              disabled={deleteConfirm !== "УДАЛИТЬ" || isDeleting}
-              className={`${BTN_BASE} shrink-0 h-10 px-4 bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}>
-              {isDeleting ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Trash2 size={14} className="mr-1.5" />}
+            <Button variant="danger" onClick={handleDeleteAccount}
+              disabled={deleteConfirm !== "УДАЛИТЬ"} loading={isDeleting}
+              className="shrink-0 h-10">
+              <Trash2 size={14} className="mr-1.5" />
               Удалить профиль
-            </button>
+            </Button>
           </div>
         </div>
       </SettingsCard>

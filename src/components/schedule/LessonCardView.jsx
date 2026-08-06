@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react';
 import Tooltip from '../ui/Tooltip.jsx';
 import { MoreVertical } from 'lucide-react';
 import { ymd, renderStatusIcon } from './scheduleUtils.jsx';
+import Button from '../ui/Button.jsx';
 
 export const LessonCardView = forwardRef(({ 
   lesson, onClick, compact = false, isOverlay = false, 
@@ -56,12 +57,14 @@ export const LessonCardView = forwardRef(({
               renderStatusIcon(lesson.status)
             )}
             {!isOverlay && onMoreClick && (
-              <button 
+              <Button
+                variant="ghost" 
+                size="icon"
                 onClick={onMoreClick}
-                className="ml-0.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
+                className="w-auto h-auto border-none ml-0.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
               >
                 <MoreVertical size={14} />
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -117,12 +120,14 @@ export const LessonCardView = forwardRef(({
             renderStatusIcon(lesson.status)
           )}
           {!isOverlay && onMoreClick && (
-            <button 
+            <Button
+              variant="ghost" 
+              size="icon"
               onClick={onMoreClick}
-              className="ml-0.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
+              className="w-auto h-auto border-none ml-0.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
             >
               <MoreVertical size={14} />
-            </button>
+            </Button>
           )}
         </div>
       </div>

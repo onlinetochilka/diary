@@ -3,6 +3,7 @@ import SideDrawer from '../ui/SideDrawer.jsx';
 import { Send, CheckCircle2, XCircle, Loader2, Clock } from 'lucide-react';
 import { useLessons } from '../../hooks/useLessons.js';
 import { cn } from '../../utils/cn.js';
+import Button from '../ui/Button.jsx';
 
 function today()    { return new Date().toISOString().slice(0, 10); }
 function monthAgo() { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10); }
@@ -115,18 +116,19 @@ export default function LessonHistoryModal({ isOpen, onClose, student }) {
           {/* Горизонтальный ряд таблеток — 2 слева + 2 справа */}
           <div className="flex gap-2">
             {FILTERS.map(f => (
-              <button
+              <Button
+                variant="ghost"
                 key={f.key}
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  'flex-1 text-[13px] font-semibold py-2 px-2 rounded-xl transition-all duration-150 whitespace-nowrap text-center',
+                  'w-auto h-auto flex-1 text-[13px] font-semibold py-2 px-2 border-none rounded-xl transition-all duration-150 whitespace-nowrap text-center',
                   filter === f.key
                     ? 'bg-stone-800 text-white shadow-sm'
                     : 'bg-stone-100 text-stone-500 hover:bg-stone-200 hover:text-stone-700'
                 )}
               >
                 {f.label}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -238,12 +240,13 @@ export default function LessonHistoryModal({ isOpen, onClose, student }) {
                           {hwDone ? '✓ ДЗ сдано' : `ДЗ: ${lesson.homework}`}
                         </span>
                         {hwOverdue && (
-                          <button
+                          <Button
+                            variant="ghost"
                             onClick={() => window.open(`tg://msg?text=${encodeURIComponent(`Напоминаю про ДЗ: ${lesson.homework}`)}`, '_self')}
-                            className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-colors"
+                            className="w-auto h-auto border-none inline-flex items-center gap-1 text-[12px] text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-colors"
                           >
                             <Send size={11} /> Напомнить
-                          </button>
+                          </Button>
                         )}
                       </div>
                     )}
@@ -258,17 +261,18 @@ export default function LessonHistoryModal({ isOpen, onClose, student }) {
       {/* ── Кнопка подгрузки (Infinite Scroll) ───────────────── */}
       {hasNextPage && (
         <div className="flex justify-center pt-2 pb-6">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-[#006584] bg-[#006584]/5 hover:bg-[#006584]/10 transition-colors disabled:opacity-50"
+            className="w-auto h-auto border-none flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-[#006584] bg-[#006584]/5 hover:bg-[#006584]/10 transition-colors disabled:opacity-50"
           >
             {isFetchingNextPage ? (
               <><Loader2 size={14} className="animate-spin" /> Загрузка...</>
             ) : (
               'Загрузить ещё'
             )}
-          </button>
+          </Button>
         </div>
       )}
     </SideDrawer>

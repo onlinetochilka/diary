@@ -126,7 +126,7 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                       {item.student.contacts?.billingTo === 'parent' && item.student.contacts?.parentName 
                         ? item.student.contacts.parentName 
                         : item.student.name}
-                    </span> {getVerb()} задолженность?
+                    </span> {getVerb()} {item.student?.balance < 0 ? "задолженность?" : "оплату занятий?"}
                   </>
                 ) : (
                   <>
@@ -140,12 +140,14 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                   {!isEditingAmount ? (
                     <div className="flex flex-col items-center justify-center gap-1">
                       <span className="text-3xl font-black text-[#B71234]">{paymentAmount || item.amount} ₽</span>
-                      <button 
+                      <Button 
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setIsEditingAmount(true)}
-                        className="text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
+                        className="h-auto px-2 py-1 text-sm font-medium text-blue-500 hover:text-blue-600 hover:bg-transparent transition-colors cursor-pointer"
                       >
                         Изменить сумму
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200">
@@ -174,26 +176,28 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
 
               {!isMoney && !isMultiple && (
                 <div className="mt-4 flex bg-stone-100 p-1 rounded-xl w-full max-w-[280px] mx-auto border border-stone-200">
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => setSingleHwStatus("on_time")}
-                    className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`flex-1 py-1.5 h-auto text-sm font-medium rounded-lg transition-colors ${
                       singleHwStatus === "on_time" 
-                        ? "bg-white text-emerald-600 shadow-sm ring-1 ring-slate-200" 
-                        : "text-stone-500 hover:text-stone-700"
+                        ? "bg-white text-emerald-600 shadow-sm ring-1 ring-slate-200 hover:bg-white" 
+                        : "text-stone-500 hover:text-stone-700 hover:bg-transparent"
                     }`}
                   >
                     Вовремя
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
                     onClick={() => setSingleHwStatus("late")}
-                    className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`flex-1 py-1.5 h-auto text-sm font-medium rounded-lg transition-colors ${
                       singleHwStatus === "late" 
-                        ? "bg-white text-amber-600 shadow-sm ring-1 ring-slate-200" 
-                        : "text-stone-500 hover:text-stone-700"
+                        ? "bg-white text-amber-600 shadow-sm ring-1 ring-slate-200 hover:bg-white" 
+                        : "text-stone-500 hover:text-stone-700 hover:bg-transparent"
                     }`}
                   >
                     С опозданием
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -215,16 +219,16 @@ export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm
                     </div>
                     {selectedLessons[l.id] && (
                       <div className="flex bg-stone-100 p-0.5 rounded border border-stone-200" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${selectedLessons[l.id] === 'on_time' ? "bg-white text-stone-800 shadow-sm" : "text-stone-400 hover:text-stone-600"}`}
+                        <Button
+                          variant="ghost"
+                          className={`h-auto px-2 py-0.5 text-[10px] font-bold rounded transition-all ${selectedLessons[l.id] === 'on_time' ? "bg-white text-stone-800 shadow-sm hover:bg-white" : "text-stone-400 hover:text-stone-600 hover:bg-transparent"}`}
                           onClick={() => setSelectedLessons(prev => ({ ...prev, [l.id]: 'on_time' }))}
-                        >Вовремя</button>
-                        <button
-                          type="button"
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${selectedLessons[l.id] === 'late' ? "bg-white text-stone-800 shadow-sm" : "text-stone-400 hover:text-stone-600"}`}
+                        >Вовремя</Button>
+                        <Button
+                          variant="ghost"
+                          className={`h-auto px-2 py-0.5 text-[10px] font-bold rounded transition-all ${selectedLessons[l.id] === 'late' ? "bg-white text-stone-800 shadow-sm hover:bg-white" : "text-stone-400 hover:text-stone-600 hover:bg-transparent"}`}
                           onClick={() => setSelectedLessons(prev => ({ ...prev, [l.id]: 'late' }))}
-                        >Позже</button>
+                        >Позже</Button>
                       </div>
                     )}
                   </label>

@@ -139,9 +139,10 @@ export default function DebtorsTab({ debtors, onRefresh }) {
                     <td className="py-3 px-5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         {/* Remind button */}
-                        <button
+                        <Button
+                          variant="ghost"
                           onClick={() => setActiveAction(isThis && activeAction.type === "remind" ? null : { studentId: s.id, type: "remind" })}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
+                          className={`w-auto h-auto border-none px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
                             isThis && activeAction.type === "remind"
                               ? "bg-stone-200 text-indigo-600"
                               : "text-stone-500 hover:text-indigo-600 hover:bg-stone-100/50"
@@ -149,22 +150,24 @@ export default function DebtorsTab({ debtors, onRefresh }) {
                         >
                           <Bell size={14} className="hidden lg:block" />
                           <span>Напомнить</span>
-                        </button>
+                        </Button>
                         {/* Pay button */}
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => {
                             if (isThis && activeAction.type === "pay") { setActiveAction(null); return; }
                             setActiveAction({ studentId: s.id, type: "pay" });
                             setPayAmount(Math.abs(s.balance).toString());
                           }}
-                          className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors shadow-sm ${
+                          className={`border-none h-11 w-11 rounded-full flex items-center justify-center transition-colors shadow-sm ${
                             isThis && activeAction.type === "pay"
                               ? "bg-stone-200 text-blue-600"
                               : "bg-white text-stone-600 hover:text-blue-600 hover:bg-stone-50"
                           }`}
                         >
                           <Wallet size={18} />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>

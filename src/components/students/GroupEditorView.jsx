@@ -8,6 +8,7 @@ import { useState, useEffect, useId } from 'react';
 import { ArrowLeft, Save, Loader2, Trash2, Plus, Archive, ArchiveRestore } from 'lucide-react';
 import { useConfirm } from "../../contexts/ConfirmContext.jsx";
 import { cn } from '../../utils/cn.js';
+import Button from '../ui/Button.jsx';
 import { Label, Input, Select, SegmentedToggle, SectionHeading } from './StudentFormAtoms.jsx';
 import { useToast } from '../ui/Toast.jsx';
 
@@ -18,19 +19,20 @@ function SegmentedControl({ options, value, onChange }) {
       {options.map((opt) => {
         const isActive = value === opt.value;
         return (
-          <button
+          <Button
+            variant="ghost"
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
             className={cn(
-              'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue active:scale-[0.98]',
+              'w-auto h-auto flex-1 px-4 py-2 border-none rounded-lg text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue active:scale-[0.98]',
               isActive
                 ? 'bg-white text-stone-900 shadow-sm ring-1 ring-slate-200'
                 : 'text-stone-500 hover:text-stone-700 hover:bg-stone-50'
             )}
           >
             {opt.label}
-          </button>
+          </Button>
         );
       })}
     </div>
@@ -38,18 +40,19 @@ function SegmentedControl({ options, value, onChange }) {
 }
 
 // ── SaveBar ───────────────────────────────────────────────────────────────────
-function GroupSaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchive, isArchived }) {
+function GroupSaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchive, isArchived, hasHistory }) {
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 p-3 px-4 bg-white/95 backdrop-blur-md border border-stone-200/80 rounded-2xl flex justify-between items-center z-50 shadow-2xl shadow-stone-900/10 w-[calc(100%-2rem)] max-w-4xl transition-all duration-300">
       <div className="flex w-full justify-between items-center">
         <div className="flex items-center gap-2">
-          {isEditMode && onArchive && (
-            <button
+          {isEditMode && onArchive && (hasHistory || isArchived) && (
+            <Button
+              variant="ghost"
               type="button"
               onClick={onArchive}
               disabled={isSaving}
               data-action="archive_group"
-              className={`px-4 py-2.5 rounded-xl font-medium transition-colors outline-none focus-visible:ring-2 flex items-center gap-2 ${
+              className={`w-auto h-auto px-4 py-2.5 border-none rounded-xl font-medium transition-colors outline-none focus-visible:ring-2 flex items-center gap-2 ${
                 isArchived
                   ? 'text-teal-700 hover:bg-teal-50 focus-visible:ring-teal-400'
                   : 'text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400'
@@ -59,42 +62,45 @@ function GroupSaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchiv
               <span className="hidden sm:inline">
                 {isArchived ? 'Восстановить' : 'В архив'}
               </span>
-            </button>
+            </Button>
           )}
-          {isEditMode && onDelete && (
-            <button
+          {isEditMode && onDelete && (!hasHistory || isArchived) && (
+            <Button
+              variant="ghost"
               type="button"
               onClick={onDelete}
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400 active:scale-[0.98] disabled:opacity-50"
+              className="w-auto h-auto flex items-center gap-2 px-4 py-2.5 border-none rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400 active:scale-[0.98] disabled:opacity-50"
             >
               <Trash2 size={16} />
               <span className="hidden sm:inline">Удалить</span>
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Отмена + Сохранить */}
         <div className="flex gap-3">
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={onBack}
             disabled={isSaving}
             data-action="cancel_group_edit"
-            className="px-6 py-2.5 rounded-xl font-medium text-stone-600 hover:bg-stone-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-stone-400 active:scale-[0.98] disabled:opacity-50"
+            className="w-auto h-auto px-6 py-2.5 border-none rounded-xl font-medium text-stone-600 hover:bg-stone-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-stone-400 active:scale-[0.98] disabled:opacity-50"
           >
             Отмена
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             type="button"
             onClick={onSave}
             disabled={isSaving}
             data-action="save_group"
-            className="px-8 py-2.5 bg-academic-blue text-white rounded-xl font-medium shadow-sm hover:bg-academic-blue-light transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-academic-blue active:scale-[0.98] disabled:opacity-70 flex items-center gap-2"
+            className="w-auto h-auto px-8 py-2.5 border-none bg-academic-blue text-white rounded-xl font-medium shadow-sm hover:bg-academic-blue-light transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-academic-blue active:scale-[0.98] disabled:opacity-70 flex items-center gap-2"
           >
             {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             Сохранить
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -318,14 +324,15 @@ export default function GroupEditorView({
     <div className="max-w-[1400px] mx-auto p-6 lg:p-8 animate-fade-in pb-40">
       {/* Header */}
       <div className="flex items-center justify-between mb-10">
-        <button
+        <Button
+          variant="ghost"
           onClick={handleBackAttempt}
           data-action="back_to_directory"
-          className="flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors font-medium text-sm outline-none focus-visible:ring-2 focus-visible:ring-academic-blue focus-visible:ring-offset-4 rounded-md px-2 py-1 -ml-2"
+          className="w-auto h-auto border-none flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors font-medium text-sm outline-none focus-visible:ring-2 focus-visible:ring-academic-blue focus-visible:ring-offset-4 rounded-md px-2 py-1 -ml-2"
         >
           <ArrowLeft size={18} strokeWidth={2} />
           К списку учеников
-        </button>
+        </Button>
         <div className="text-sm font-medium text-stone-400">
           {isEditMode ? 'Редактирование группы' : 'Новая группа'}
         </div>
@@ -376,13 +383,13 @@ export default function GroupEditorView({
             {/* Формат */}
             <div>
               <Label>Формат</Label>
-              <SegmentedControl
+              <SegmentedToggle
                 options={[
                   { label: 'Онлайн', value: 'online' },
                   { label: 'Офлайн', value: 'offline' },
-                  { label: 'Смешанный', value: 'mixed' },
+                  { label: 'Смешанный', value: 'mixed' }
                 ]}
-                value={formData.format}
+                value={formData.format || 'online'}
                 onChange={val => handleChange('format', val)}
               />
             </div>
@@ -445,7 +452,7 @@ export default function GroupEditorView({
                   : 'grid-rows-[0fr] opacity-0 pointer-events-none'
               )}
             >
-              <div className="overflow-hidden">
+              <div className="overflow-hidden px-1 py-1 -mx-1 -my-1">
                 <Label>Занятий в абонементе</Label>
                 <Input
                   type="number"
@@ -470,9 +477,11 @@ export default function GroupEditorView({
 
               <Select
                 value=""
+                label="Выберите программу..."
                 onChange={e => handleAddProgram(e.target.value)}
               >
-                <option value="" disabled>+ Добавить программу</option>
+                <option value="" disabled hidden>Выберите программу...</option>
+
                 {availablePrograms
                   .filter(p => !formData.programs.some(sp => sp.id === p.id))
                   .map(p => <option key={p.id} value={p.id}>{p.name}</option>)
@@ -495,13 +504,15 @@ export default function GroupEditorView({
                             Пройдено: {done} из {total} тем
                           </p>
                         </div>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           type="button"
                           onClick={() => handleRemoveProgram(idx)}
-                          className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          className="w-auto h-auto p-1.5 border-none text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           <Trash2 size={16} />
-                        </button>
+                        </Button>
                       </div>
                     );
                   })}
@@ -517,8 +528,8 @@ export default function GroupEditorView({
           <SectionHeading number={availablePrograms.length > 0 ? 4 : 3}>
             Состав группы
             {formData.studentIds.length > 0 && (
-              <span className="ml-2 px-2 py-0.5 text-xs bg-academic-blue/10 text-academic-blue rounded-full font-semibold">
-                {formData.studentIds.length}
+              <span className="ml-2 px-2.5 py-0.5 text-[11px] bg-academic-blue/10 text-academic-blue rounded-full font-semibold uppercase tracking-wider">
+                {formData.studentIds.length} чел.
               </span>
             )}
           </SectionHeading>
@@ -617,7 +628,6 @@ export default function GroupEditorView({
                             <div>
                               <label className="block text-[11px] font-semibold text-stone-500 uppercase tracking-wide mb-1">Тип оплаты</label>
                               <Select
-                                className="text-sm py-1.5 px-3 min-h-0 h-9"
                                 value={formData.studentFinances[student.id].paymentType || 'per_lesson'}
                                 onChange={e => handleStudentFinanceChange(student.id, 'paymentType', e.target.value)}
                               >
@@ -633,7 +643,7 @@ export default function GroupEditorView({
                               <Input
                                 type="number"
                                 min="0"
-                                className="text-sm py-1.5 px-3 min-h-0 h-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 placeholder="0"
                                 value={formData.studentFinances[student.id].price || ''}
                                 onChange={e => handleStudentFinanceChange(student.id, 'price', e.target.value)}
@@ -646,7 +656,7 @@ export default function GroupEditorView({
                                 <Input
                                   type="number"
                                   min="1"
-                                  className="text-sm py-1.5 px-3 min-h-0 h-9"
+                                  className="w-full"
                                   value={formData.studentFinances[student.id].subscriptionLessons || ''}
                                   onChange={e => handleStudentFinanceChange(student.id, 'subscriptionLessons', e.target.value)}
                                 />
@@ -675,6 +685,7 @@ export default function GroupEditorView({
         onDelete={isEditMode ? handleDelete : undefined}
         onArchive={isEditMode && onArchive ? handleArchive : undefined}
         isArchived={!!initialData?.isArchived}
+        hasHistory={!!initialData && initialData.stats?.conductedLessons > 0}
       />
     </div>
   );

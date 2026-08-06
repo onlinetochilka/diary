@@ -74,13 +74,15 @@ export default function Modal({
         <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-stone-200 rounded-full sm:hidden" />
         
         <h2 className="text-lg font-semibold text-stone-900 mt-2 sm:mt-0">{title}</h2>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onClose}
           aria-label="Закрыть"
-          className="flex items-center justify-center w-8 h-8 rounded-full border border-stone-200/80 text-stone-400 hover:text-stone-700 hover:bg-stone-50 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-stone-200/80 text-stone-400 hover:text-stone-700 hover:bg-stone-50 transition-colors"
         >
           <X size={16} strokeWidth={2} />
-        </button>
+        </Button>
       </div>
       <div className="p-6 pt-4">
         {children}

@@ -178,15 +178,17 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
                 className="flex-1 bg-transparent border-none outline-none text-xs text-stone-500 font-mono min-w-0"
               />
               <Tooltip text="Копировать ссылку на звонок">
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={handleVideoCopy}
                   className={cn(
-                    "transition-colors shrink-0 p-1 rounded-md",
-                    videoCopied ? "text-emerald-500 bg-emerald-50" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100"
+                    "w-6 h-6 p-1 rounded-md shrink-0",
+                    videoCopied ? "text-emerald-500 bg-emerald-50 hover:bg-emerald-50" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100"
                   )}
                 >
                   {videoCopied ? <Check size={14} /> : <Copy size={14} />}
-                </button>
+                </Button>
               </Tooltip>
               <Tooltip text="Открыть">
                 <a
@@ -247,9 +249,10 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
             <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold mb-3">
               Отправить ученику
             </p>
-            <button
+            <Button
+              variant="outline"
               onClick={handleShareViaContact}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-stone-200 hover:border-stone-300 hover:bg-stone-50 transition-all group"
+              className="w-full flex items-center justify-start h-auto gap-3 px-4 py-3 rounded-xl border border-stone-200 hover:border-stone-300 hover:bg-stone-50 transition-all group font-normal text-left"
             >
               <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center text-stone-500 group-hover:bg-stone-200 transition-colors shrink-0">
                 {contactMeta.icon}
@@ -261,7 +264,7 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
                 </p>
               </div>
               <Send size={14} className="ml-auto text-stone-300 group-hover:text-stone-500 transition-colors shrink-0" />
-            </button>
+            </Button>
           </div>
         )}
 
@@ -275,9 +278,8 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
         )}
 
         <div className="flex justify-between items-center px-6 py-4 bg-stone-50/50 border-t border-stone-100">
-          <button
-            type="button"
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          <Button
+            variant="ghost"
             onClick={async () => {
               if (isResetting) return;
               setIsResetting(true);
@@ -294,9 +296,11 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
               }
             }}
             disabled={isResetting}
+            loading={isResetting}
+            className="h-auto px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
           >
             {isResetting ? "Сбрасывается..." : "Сбросить ссылку"}
-          </button>
+          </Button>
           <Button
             variant="outline"
             onClick={onClose}

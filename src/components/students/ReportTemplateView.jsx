@@ -1,6 +1,7 @@
 import React from 'react';
 import { getEntityStyle } from '../../utils/colors.js';
 import { Download, ArrowLeft, CheckCircle2, Circle } from 'lucide-react';
+import Button from '../ui/Button.jsx';
 
 function Stat({ label, value, accent }) {
   return (
@@ -55,19 +56,20 @@ export default function ReportTemplateView({ reportConfig, onBack }) {
       
       {/* Панель управления */}
       <div className="flex justify-between items-center px-8 py-4 bg-white border-b border-stone-200 print:hidden shadow-sm z-10 sticky top-0">
-        <button
+        <Button
+          variant="ghost"
           onClick={onBack}
-          className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors font-medium"
+          className="w-auto h-auto border-none flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors font-medium px-2 py-1"
         >
           <ArrowLeft size={16} /> Назад
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => window.print()}
-          className="flex items-center gap-2 text-sm font-semibold text-white px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all"
+          className="w-auto h-auto border-none flex items-center gap-2 text-sm font-semibold text-white px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all"
           style={{ backgroundColor: '#7A404D' }}
         >
           <Download size={16} /> Сохранить PDF
-        </button>
+        </Button>
       </div>
 
       {/* Документ */}

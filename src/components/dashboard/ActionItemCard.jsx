@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Check, Bell, Copy, Send, MessageCircle, Mail, CheckCircle2 } from "lucide-react";
 import Tooltip from '../ui/Tooltip.jsx';
+import Button from '../ui/Button.jsx';
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
 function getHwText(n) {
@@ -88,8 +89,10 @@ export default function ActionItemCard({ item, onMarkDone }) {
         <div className="flex gap-2">
           <div className="relative">
             <Tooltip text={isMoney ? "Отметить оплату" : "Отметить ДЗ"} position="bottom-right">
-              <button 
-                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all bg-white border border-stone-200 shadow-sm hover:bg-stone-50 active:scale-95 group/btn outline-none focus-visible:ring-2 focus-visible:ring-[#006584]" 
+              <Button 
+                variant="outline"
+                size="icon"
+                className="w-9 h-9 flex items-center justify-center bg-white shadow-sm hover:bg-stone-50 active:scale-95 border-stone-200 p-0" 
                 onClick={(e) => { 
                   e.stopPropagation(); 
                   if (!isMoney && item.count === 1) {
@@ -100,32 +103,36 @@ export default function ActionItemCard({ item, onMarkDone }) {
                 }}
               >
                 <Check size={16} strokeWidth={3} className={isMoney ? "text-emerald-500" : "text-blue-500"} />
-              </button>
+              </Button>
             </Tooltip>
             {showHwMenu && (
               <div className="absolute top-full right-0 mt-2 w-36 bg-white border border-stone-200 shadow-lg rounded-xl z-50 overflow-hidden flex flex-col">
-                <button 
-                  className="w-full text-left px-4 py-2.5 text-sm text-emerald-600 hover:bg-stone-50 font-medium transition-colors"
+                <Button 
+                  variant="ghost"
+                  className="w-full justify-start h-auto px-4 py-2.5 text-sm text-emerald-600 hover:text-emerald-700 hover:bg-stone-50 font-medium transition-colors rounded-none"
                   onClick={(e) => { e.stopPropagation(); setShowHwMenu(false); onMarkDone(item, "on_time"); }}
                 >
                   Вовремя
-                </button>
-                <button 
-                  className="w-full text-left px-4 py-2.5 text-sm text-amber-600 hover:bg-stone-50 font-medium border-t border-stone-100 transition-colors"
+                </Button>
+                <Button 
+                  variant="ghost"
+                  className="w-full justify-start h-auto px-4 py-2.5 text-sm text-amber-600 hover:text-amber-700 hover:bg-stone-50 font-medium border-t border-stone-100 transition-colors rounded-none"
                   onClick={(e) => { e.stopPropagation(); setShowHwMenu(false); onMarkDone(item, "late"); }}
                 >
                   С опозданием
-                </button>
+                </Button>
               </div>
             )}
           </div>
           <Tooltip text={isExpanded ? "Свернуть" : "Написать"} position="bottom-right">
-            <button 
-              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#006584] ${isExpanded ? 'bg-stone-100 border-stone-200 text-stone-700' : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50 hover:text-stone-700 active:scale-95'}`}
+            <Button 
+              variant="outline"
+              size="icon"
+              className={`w-9 h-9 flex items-center justify-center p-0 border-stone-200 shadow-sm ${isExpanded ? 'bg-stone-100 text-stone-700' : 'bg-white text-stone-500 hover:bg-stone-50 hover:text-stone-700 active:scale-95'}`}
               onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
             >
               <MessageCircle size={16} strokeWidth={2} />
-            </button>
+            </Button>
           </Tooltip>
         </div>
       </div>
@@ -179,13 +186,15 @@ export default function ActionItemCard({ item, onMarkDone }) {
                 </a>
               </Tooltip>
               <Tooltip text="Скопировать" position="top-right">
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={(e) => { e.stopPropagation(); handleCopy(); }}
                   disabled={!text.trim()}
                   className={btnClass}
                 >
                   {copied ? <Check size={16} strokeWidth={3} className="text-emerald-500" /> : <Copy size={16} />}
-                </button>
+                </Button>
               </Tooltip>
             </div>
           </div>

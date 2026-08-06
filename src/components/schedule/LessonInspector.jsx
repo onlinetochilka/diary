@@ -296,7 +296,9 @@ export default function LessonInspector({
         <div className="flex items-center gap-1">
           {initialData?.id && onDelete && (
             <Tooltip text="Удалить урок">
-              <button 
+              <Button 
+                variant="ghost"
+                size="icon"
                 type="button"
                 onClick={async () => {
                   const proceed = await confirm({
@@ -308,15 +310,15 @@ export default function LessonInspector({
                   if (proceed) handleDelete();
                 }}
                 disabled={isSubmitting}
-                className="p-2 text-stone-400 hover:bg-red-50 hover:text-red-600 rounded-full transition-colors"
+                className="w-auto h-auto p-2 text-stone-400 hover:bg-red-50 hover:text-red-600 rounded-full transition-colors border-none"
               >
                 <Trash2 size={20} />
-              </button>
+              </Button>
             </Tooltip>
           )}
-          <button onClick={safeClose} type="button" className="p-2 hover:bg-stone-50 text-stone-400 hover:text-stone-600 rounded-full transition-colors">
+          <Button variant="ghost" size="icon" onClick={safeClose} type="button" className="w-auto h-auto p-2 hover:bg-stone-50 text-stone-400 hover:text-stone-600 rounded-full transition-colors border-none">
             <X size={20} />
-          </button>
+          </Button>
         </div>
       </div>
       <div className="flex-1 min-h-0 relative overflow-hidden">
@@ -359,8 +361,8 @@ export default function LessonInspector({
 
               <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-4 shadow-sm">
                 <div className="flex gap-2 p-1 bg-stone-100/50 rounded-xl">
-                  <button type="button" onClick={() => handleChange("type", "individual")} className={cn("flex-1 py-1.5 text-xs font-bold rounded-lg transition-all", formData.type === 'individual' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Индивидуальный</button>
-                  <button type="button" onClick={() => handleChange("type", "group")} className={cn("flex-1 py-1.5 text-xs font-bold rounded-lg transition-all", formData.type === 'group' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Групповой</button>
+                  <Button variant="ghost" type="button" onClick={() => handleChange("type", "individual")} className={cn("flex-1 py-1.5 h-auto text-xs font-bold rounded-lg transition-all border-none", formData.type === 'individual' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Индивидуальный</Button>
+                  <Button variant="ghost" type="button" onClick={() => handleChange("type", "group")} className={cn("flex-1 py-1.5 h-auto text-xs font-bold rounded-lg transition-all border-none", formData.type === 'group' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Групповой</Button>
                 </div>
 
                 {formData.type === "individual" ? (
@@ -435,19 +437,20 @@ export default function LessonInspector({
                         cancelled: "bg-red-100 text-red-800 ring-1 ring-red-500/40 shadow-sm"
                       };
                       return (
-                        <button
+                        <Button
                           key={opt.value}
+                          variant="ghost"
                           type="button"
                           onClick={() => handleChange('status', opt.value)}
                           className={cn(
-                            "flex-1 whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none",
+                            "flex-1 whitespace-nowrap h-auto border-none px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none",
                             formData.status === opt.value
                               ? STATUS_COLORS[opt.value]
                               : "bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50"
                           )}
                         >
                           {opt.label}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -699,9 +702,9 @@ export default function LessonInspector({
                               
                               return (
                                 <>
-                                  <button type="button" onClick={() => setStatus('none')} className={cn("flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none", status === 'none' ? 'bg-[#F04456] text-white shadow-sm' : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50')}>Ожидает проверки</button>
-                                  <button type="button" onClick={() => setStatus('on_time')} className={cn("flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none", status === 'on_time' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50')}>Сдано вовремя</button>
-                                  <button type="button" onClick={() => setStatus('late')} className={cn("flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none", status === 'late' ? 'bg-amber-500 text-white shadow-sm' : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50')}>Сдано с опозданием</button>
+                                  <Button variant="ghost" type="button" onClick={() => setStatus('none')} className={cn("flex-1 py-1.5 h-auto border-none rounded-lg text-[11px] font-bold transition-all duration-100 outline-none", status === 'none' ? 'bg-[#F04456] text-white shadow-sm' : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50')}>Ожидает проверки</Button>
+                                  <Button variant="ghost" type="button" onClick={() => setStatus('on_time')} className={cn("flex-1 py-1.5 h-auto border-none rounded-lg text-[11px] font-bold transition-all duration-100 outline-none", status === 'on_time' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50')}>Сдано вовремя</Button>
+                                  <Button variant="ghost" type="button" onClick={() => setStatus('late')} className={cn("flex-1 py-1.5 h-auto border-none rounded-lg text-[11px] font-bold transition-all duration-100 outline-none", status === 'late' ? 'bg-amber-500 text-white shadow-sm' : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50')}>Сдано с опозданием</Button>
                                 </>
                               );
                             })()}
@@ -738,7 +741,8 @@ export default function LessonInspector({
                                     { label: 'Присутствовал', value: true },
                                     { label: 'Отсутствовал',  value: false },
                                   ].map(opt => (
-                                    <button
+                                    <Button
+                                      variant="ghost"
                                       key={String(opt.value)}
                                       type="button"
                                       disabled={isSubmitting}
@@ -751,7 +755,7 @@ export default function LessonInspector({
                                           return { ...prev, presentStudentIds: next };
                                         });
                                       }}
-                                      className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-all whitespace-nowrap ${
+                                      className={`px-2.5 py-1 h-auto border-none text-[11px] font-medium rounded-md transition-all whitespace-nowrap ${
                                         isPresent === opt.value
                                           ? opt.value
                                             ? 'bg-emerald-500 text-white shadow-sm'
@@ -760,7 +764,7 @@ export default function LessonInspector({
                                       }`}
                                     >
                                       {opt.label}
-                                    </button>
+                                    </Button>
                                   ))}
                                 </div>
                               </div>
@@ -775,7 +779,8 @@ export default function LessonInspector({
                                       { label: 'Вовремя',       value: 'on_time' },
                                       { label: 'С опозданием',  value: 'late' },
                                     ].map(opt => (
-                                      <button
+                                      <Button
+                                        variant="ghost"
                                         key={opt.value}
                                         type="button"
                                         disabled={isSubmitting}
@@ -797,7 +802,7 @@ export default function LessonInspector({
                                         }`}
                                       >
                                         {opt.label}
-                                      </button>
+                                      </Button>
                                     ))}
                                   </div>
                                 </div>

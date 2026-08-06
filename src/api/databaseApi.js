@@ -89,7 +89,7 @@ export function invalidateCache(collectionName) {
  * isReverting = false -> subtract price from balance (student took lesson)
  * isReverting = true  -> add price back to balance (lesson was un-conducted)
  */
-async function applyLessonBalanceChange(lessonData, isReverting = false) {
+export async function applyLessonBalanceChange(lessonData, isReverting = false) {
   try {
     const price = lessonData.price || 0;
     if (price === 0) return;
@@ -868,7 +868,7 @@ export async function getLesson(id) {
 /**
  * Пересчитывает hwDebtCount на студентах, затронутых изменением урока.
  */
-async function recalcHwDebtCount(lessonId, updatedLesson) {
+export async function recalcHwDebtCount(lessonId, updatedLesson) {
   const studentIds = [];
   if (updatedLesson.type === "individual" && updatedLesson.studentId) {
     studentIds.push(updatedLesson.studentId);

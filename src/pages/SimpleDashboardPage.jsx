@@ -239,7 +239,7 @@ function LitePaymentModal({ isOpen, onClose, students, onConfirm }) {
 export default function SimpleDashboardPage() {
   const { addPayment } = usePayments();
   const { createStudent, patchStudent } = useStudents();
-  const { getPrograms } = usePrograms();
+
   const navigate = useNavigate();
   const location = useLocation();
   const pageState = location.state;
@@ -262,8 +262,7 @@ export default function SimpleDashboardPage() {
     handleDeleteLesson, handleQuickStatus, handleQuickHomework, handlePatchLesson
   } = useSchedule({ currentDate, view });
 
-  const [programs, setPrograms] = useState([]);
-  useEffect(() => { getPrograms().then(setPrograms).catch(console.error); }, []);
+  const { programs } = usePrograms();
 
   // 3. Drawers state
   const [selectedLessonId, setSelectedLessonId] = useState(null);

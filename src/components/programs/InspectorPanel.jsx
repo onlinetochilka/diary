@@ -34,6 +34,7 @@ import { updateTheme, renameSection } from "../../services/database.js";
 import { useToast } from "../ui/Toast.jsx";
 import { SectionLabel, Divider, CountPill, getPlural } from "./InspectorPanelAtoms.jsx";
 import { TaskComposer, TaskCard } from "./TaskComposer.jsx";
+import Button from '../ui/Button.jsx';
 
 // ─── Режим: пустой (статистика программы) ──────────────────────────────────
 function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
@@ -147,11 +148,12 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
 
       {/* Кнопка экспорта */}
       <div className="px-4 pt-3">
-        <button
+        <Button
+          variant="outline"
           type="button"
           onClick={onRequestExcel}
           className={cn(
-            "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl",
+            "w-auto h-auto w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl",
             "text-sm font-medium text-[#1B4F72]",
             "border border-[#1B4F72]/25 hover:bg-[#1B4F72]/5 hover:border-[#1B4F72]/40",
             "transition-all duration-150",
@@ -161,11 +163,11 @@ function EmptyInspector({ program, stats, onProgramChange, onRequestExcel }) {
         >
           <FileSpreadsheet size={15} strokeWidth={2} />
           Скачать как таблицу Excel
-        </button>
+        </Button>
       </div>
 
       {/* Подсказка */}
-      <p className="px-4 pt-4 text-[11px] text-stone-400 leading-relaxed">
+      <p className="px-4 pt-4 pb-6 text-[11px] text-stone-400 leading-relaxed">
         Нажмите на раздел, чтобы переименовать его, или на тему — чтобы добавить ДЗ.
       </p>
     </div>
@@ -441,11 +443,12 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
 
         {/* Плашка «Тема завершена» — интерактивный тумблер */}
         <div className="mt-2 ml-5">
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={handleToggleComplete}
             className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity duration-150 select-none",
+              "w-auto h-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity duration-150 select-none",
               theme.isCompleted
                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
                 : "bg-stone-100 text-stone-600 border border-stone-200/60 hover:bg-stone-200/70"
@@ -457,7 +460,7 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
               className={theme.isCompleted ? "text-emerald-500" : "text-stone-400"}
             />
             <span>{theme.isCompleted ? "Тема пройдена" : "Отметить пройденной"}</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -520,11 +523,12 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
             onCancel={() => setIsAdding(false)}
           />
         ) : (
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={() => setIsAdding(true)}
             className={cn(
-              "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl",
+              "w-auto h-auto w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl",
               "text-sm font-medium text-[#1B4F72]",
               "border border-dashed border-[#1B4F72]/25 hover:border-[#1B4F72]/50 hover:bg-[#1B4F72]/5",
               "transition-all duration-150",
@@ -534,7 +538,7 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
           >
             <Plus size={14} strokeWidth={2} />
             Добавить задание
-          </button>
+          </Button>
         )}
       </div>
 

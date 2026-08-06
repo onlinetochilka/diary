@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, User, Users, Archive, LayoutGrid } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
+import Button from '../ui/Button.jsx';
 
 export default function StudentsFilterBar({
   activeStatus,
@@ -35,12 +36,13 @@ export default function StudentsFilterBar({
             const isActive = activeStatus === tab.id;
             const Icon = tab.icon;
             return (
-              <button
+              <Button
+                variant="ghost"
                 key={tab.id}
                 onClick={() => onStatusChange(tab.id)}
                 data-action={`status_${tab.id}`}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue",
+                  "flex items-center gap-2 px-4 py-2 h-auto border-none rounded-md text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue",
                   isActive 
                     ? "bg-white text-stone-900 shadow-sm" 
                     : "text-stone-500 hover:text-stone-700 hover:bg-stone-50"
@@ -48,7 +50,7 @@ export default function StudentsFilterBar({
               >
                 {Icon && <Icon size={16} strokeWidth={2} />}
                 <span>{tab.label}</span>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -59,12 +61,13 @@ export default function StudentsFilterBar({
             const isActive = activeFormat === segment.id;
             const Icon = segment.icon;
             return (
-              <button
+              <Button
+                variant="ghost"
                 key={segment.id}
                 onClick={() => onFormatChange(segment.id)}
                 data-action={`format_${segment.id}`}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-academic-blue",
+                  "flex items-center gap-1.5 px-3 py-1.5 h-auto border-none rounded-md text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-academic-blue",
                   isActive
                     ? "bg-academic-blue/10 text-academic-blue"
                     : "text-stone-500 hover:bg-stone-100 hover:text-stone-700"
@@ -80,7 +83,7 @@ export default function StudentsFilterBar({
                 )}>
                   {formatCounts[segment.id] ?? 0}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -89,11 +92,12 @@ export default function StudentsFilterBar({
       {/* Правая часть: Поиск и Должники */}
       <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto shrink-0">
         {/* Debtors Toggle */}
-        <button
+        <Button
+          variant="ghost"
           onClick={() => onToggleDebtors(!showDebtorsOnly)}
           data-action="toggle_debtors"
           className={cn(
-            "flex items-center justify-center sm:justify-start gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm ring-1 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue whitespace-nowrap w-full sm:w-auto",
+            "flex items-center justify-center sm:justify-start gap-2 px-4 py-2 h-auto border-none rounded-lg text-sm font-medium transition-all duration-200 shadow-sm ring-1 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue whitespace-nowrap w-full sm:w-auto",
             showDebtorsOnly
               ? "bg-red-50 text-red-700 ring-red-200"
               : "bg-white text-stone-600 ring-slate-200 hover:bg-stone-50"
@@ -104,7 +108,7 @@ export default function StudentsFilterBar({
             showDebtorsOnly ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" : "bg-stone-300"
           )} />
           Неоплаченные занятия
-        </button>
+        </Button>
 
         {/* Search */}
         <div className="relative w-full sm:w-64">

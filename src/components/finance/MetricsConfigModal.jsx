@@ -66,17 +66,18 @@ export function MetricsConfigModal({ isOpen, selectedMetrics, onSave, onClose })
       <Button variant="ghost" onClick={requestClose}>
         Отмена
       </Button>
-      <button
+      <Button
+        variant={canSave ? "filled" : "ghost"}
         onClick={() => { if (canSave) { onSave(local); onClose(); } }}
         disabled={!canSave}
-        className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition-all ${
+        className={`w-auto h-auto border-none px-6 py-2 rounded-xl text-sm font-bold text-white transition-all ${
           canSave
             ? "bg-teal-600 hover:bg-teal-700 shadow-sm shadow-teal-600/20 active:scale-[0.98]"
             : "bg-stone-200 text-stone-400 cursor-not-allowed"
         }`}
       >
         Сохранить
-      </button>
+      </Button>
     </div>
   );
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle2, BookOpen } from 'lucide-react';
 import { getPlural } from '../../../utils/plural.js';
 import Tooltip from '../../ui/Tooltip.jsx';
+import Button from '../../ui/Button.jsx';
 
 export default function StudentTileStats({
   studentId,
@@ -39,12 +40,13 @@ export default function StudentTileStats({
             </div>
             {subjectStats.pendingHomeworks > 0 && (
               <Tooltip text={`Долг по ДЗ: ${subjectStats.pendingHomeworks}`} position="top">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onHomeworkClick) onHomeworkClick(studentId, activeSubjectId);
                   }}
-                  className="w-3.5 h-3.5 bg-[#006584] rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-academic-blue"
+                  className="w-3.5 h-3.5 p-0 bg-[#006584] border-none rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-academic-blue"
                 />
               </Tooltip>
             )}

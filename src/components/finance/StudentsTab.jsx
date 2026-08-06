@@ -173,23 +173,25 @@ export default function StudentsTab({ studentData, onRefresh }) {
                           <div className="flex justify-between items-center mb-4">
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-widest">Акт сверки (Уроки и Оплаты)</h4>
                             <div className="flex gap-2">
-                              <button
+                              <Button
+                                variant="ghost"
                                 onClick={(e) => { e.stopPropagation(); handleCopy(s); }}
-                                className="px-2 py-1 text-[10px] font-bold text-stone-600 bg-white border border-stone-200 rounded hover:bg-stone-100 transition-colors"
+                                className="w-auto h-auto px-2 py-1 text-[10px] font-bold text-stone-600 bg-white border border-stone-200 rounded hover:bg-stone-100 transition-colors"
                               >
                                 {copied ? "Скопировано!" : "Напомнить"}
-                              </button>
-                              <button
+                              </Button>
+                              <Button
+                                variant="ghost"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setExpandedId(null);
                                   setActiveAction({ studentId: s.id, type: "pay" });
                                   setPayAmount(Math.abs(s.balance || 0).toString());
                                 }}
-                                className="px-2 py-1 text-[10px] font-bold text-white bg-indigo-600 rounded hover:bg-indigo-700 transition-colors"
+                                className="w-auto h-auto border-none px-2 py-1 text-[10px] font-bold text-white bg-indigo-600 rounded hover:bg-indigo-700 transition-colors"
                               >
                                 + Оплата
-                              </button>
+                              </Button>
                             </div>
                           </div>
 
@@ -268,9 +270,9 @@ export default function StudentsTab({ studentData, onRefresh }) {
                                 >
                                   {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : showSuccess ? <Check size={18} className="animate-in zoom-in" /> : "Подтвердить оплату"}
                                 </Button>
-                                <button onClick={() => setActiveAction(null)} className="text-stone-400 hover:text-stone-600 p-1">
+                                <Button variant="ghost" size="icon" onClick={() => setActiveAction(null)} className="w-auto h-auto border-none text-stone-400 hover:text-stone-600 p-1">
                                   <X size={16} />
-                                </button>
+                                </Button>
                               </div>
                             </div>
                           </div>

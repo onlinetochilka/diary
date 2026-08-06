@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, Check, Wallet, Loader2 } from "lucide-react";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import EmptyState from '../ui/EmptyState.jsx';
 import { usePayments } from "../../hooks/usePayments.js";
+import Button from '../ui/Button.jsx';
 
 export default function PaymentsTab({ students }) {
   const { 
@@ -92,7 +93,7 @@ export default function PaymentsTab({ students }) {
                     </td>
                     <td className="py-3 px-5">
                       {p.note
-                        ? <span className="text-sm font-medium text-stone-500">{p.note}</span>
+                        ? <span className="text-sm font-medium text-stone-500">{p.note.replace(/\[.*?\]\s*/g, '') || "Оплата"}</span>
                         : <span className="text-stone-300">—</span>
                       }
                     </td>
@@ -114,15 +115,16 @@ export default function PaymentsTab({ students }) {
       {/* Pagination */}
       {hasNextPage && (
         <div className="p-4 border-t border-stone-100 text-center bg-stone-50/50">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
-            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center mx-auto"
+            className="w-auto h-auto border-none text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center mx-auto"
           >
             {isFetchingNextPage ? (
               <><Loader2 size={14} className="animate-spin mr-2" /> Загружаем...</>
             ) : "Загрузить ещё"}
-          </button>
+          </Button>
         </div>
       )}
     </>

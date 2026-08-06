@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ymd } from './scheduleUtils.jsx';
+import Button from '../ui/Button.jsx';
 
 const MONTH_NAMES = [
   'Январь','Февраль','Март','Апрель','Май','Июнь',
@@ -50,21 +51,25 @@ export default function DayMiniCalendar({ currentDate, lessonsByDate = {}, onDat
 
       {/* ── Заголовок месяца ── */}
       <div className="flex items-center justify-between mb-3">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={prevMonth}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors p-0 border-none"
         >
           <ChevronLeft size={15} strokeWidth={2} />
-        </button>
+        </Button>
         <span className="text-[13px] font-bold text-stone-800">
           {MONTH_NAMES[calMonth]} {calYear}
         </span>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={nextMonth}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors p-0 border-none"
         >
           <ChevronRight size={15} strokeWidth={2} />
-        </button>
+        </Button>
       </div>
 
       {/* ── Дни недели ── */}
@@ -94,31 +99,32 @@ export default function DayMiniCalendar({ currentDate, lessonsByDate = {}, onDat
           const isWeekend = dow >= 5;
 
           return (
-            <button
+            <Button
               key={dateStr}
+              variant="ghost"
               onClick={() => onDateSelect(new Date(dateStr + 'T12:00:00'))}
               className={[
-                'relative flex items-center justify-center h-8 w-full rounded-xl',
-                'text-[13px] font-semibold transition-all duration-100 outline-none',
+                'relative flex items-center justify-center h-8 w-full rounded-xl p-0 border-none',
+                'text-[13px] font-semibold transition-all duration-100 outline-none hover:text-stone-900',
                 isSel
                   // Выбранный: filled circle
-                  ? 'bg-[#006584] text-white shadow-sm font-bold'
+                  ? 'bg-[#006584] text-white hover:text-white hover:bg-[#00526a] shadow-sm font-bold'
                   : isToday
                   // Сегодня: ring без заливки
-                  ? 'ring-2 ring-[#006584]/50 text-[#006584] font-bold hover:bg-[#006584]/8'
+                  ? 'ring-2 ring-[#006584]/50 text-[#006584] font-bold hover:bg-[#006584]/8 hover:text-[#006584]'
                   : hasLessons
                   // Занятый день: более заметный тинт
                   ? isWeekend
-                    ? 'text-rose-500 bg-rose-100 hover:bg-rose-200'
-                    : 'text-[#006584] bg-[#006584]/18 hover:bg-[#006584]/28'
+                    ? 'text-rose-500 bg-rose-100 hover:bg-rose-200 hover:text-rose-600'
+                    : 'text-[#006584] bg-[#006584]/18 hover:bg-[#006584]/28 hover:text-[#006584]'
                   // Пустой день
                   : isWeekend
-                    ? 'text-rose-300 hover:bg-rose-50'
-                    : 'text-stone-400 hover:bg-stone-100',
+                    ? 'text-rose-300 hover:bg-rose-50 hover:text-rose-400'
+                    : 'text-stone-400 hover:bg-stone-100 text-stone-600',
               ].join(' ')}
             >
               {day}
-            </button>
+            </Button>
           );
         })}
       </div>

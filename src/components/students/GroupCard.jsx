@@ -4,6 +4,7 @@ import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import { cn } from "../../utils/cn.js";
 import { getPlural } from "../../utils/plural.js";
 import Tooltip from '../ui/Tooltip.jsx';
+import Button from '../ui/Button.jsx';
 
 const GroupCard = memo(({
   group,
@@ -89,43 +90,49 @@ const GroupCard = memo(({
           </div>
           <div className="flex items-center gap-1">
             <Tooltip text="История занятий" position="top">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={(e) => { e.stopPropagation(); onOpenLessonHistory?.(group); }}
                 className={cn(
-                  "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                  "w-auto h-auto p-2 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
                   "focus-visible:ring-2 focus-visible:ring-academic-blue",
                   "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                 )}
               >
                 <Clock size={16} strokeWidth={2} />
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip text="Собрать отчёт" position="top">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={(e) => { e.stopPropagation(); onOpenReport?.(group); }}
                 className={cn(
-                  "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                  "w-auto h-auto p-2 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
                   "focus-visible:ring-2 focus-visible:ring-academic-blue",
                   "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                 )}
               >
                 <FileText size={16} strokeWidth={2} />
-              </button>
+              </Button>
             </Tooltip>
             <Tooltip text="Редактировать группу" position="top">
-              <button 
+              <Button 
+                variant="ghost"
+                size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenDrawer(group);
                 }}
                 className={cn(
-                  "p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                  "w-auto h-auto p-2 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
                   "focus-visible:ring-2 focus-visible:ring-academic-blue",
                   "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                 )}
               >
                 <Pencil size={16} strokeWidth={2} />
-              </button>
+              </Button>
             </Tooltip>
           </div>
         </div>
@@ -203,23 +210,27 @@ const GroupCard = memo(({
                   </span>
                   {activePrograms.length > 1 && (
                     <div className="flex gap-0.5 items-center bg-stone-100 rounded-md px-1 py-0.5 shrink-0 ml-1">
-                      <button 
+                      <Button 
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); setCurrentProgramIndex(p => Math.max(0, p - 1)); }} 
                         disabled={safeProgramIndex === 0} 
-                        className="p-0.5 text-stone-400 hover:text-stone-700 disabled:opacity-30 disabled:hover:text-stone-400 transition-colors"
+                        className="w-auto h-auto p-0.5 border-none text-stone-400 hover:text-stone-700 disabled:opacity-30 disabled:hover:text-stone-400 transition-colors"
                       >
                         <ChevronLeft size={12} />
-                      </button>
+                      </Button>
                       <span className="text-[10px] text-stone-500 font-medium px-0.5">
                         {safeProgramIndex + 1}/{activePrograms.length}
                       </span>
-                      <button 
+                      <Button 
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); setCurrentProgramIndex(p => Math.min(activePrograms.length - 1, p + 1)); }} 
                         disabled={safeProgramIndex === activePrograms.length - 1} 
-                        className="p-0.5 text-stone-400 hover:text-stone-700 disabled:opacity-30 disabled:hover:text-stone-400 transition-colors"
+                        className="w-auto h-auto p-0.5 border-none text-stone-400 hover:text-stone-700 disabled:opacity-30 disabled:hover:text-stone-400 transition-colors"
                       >
                         <ChevronRight size={12} />
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>

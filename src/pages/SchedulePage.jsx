@@ -247,7 +247,7 @@ export default function SchedulePage() {
         {/* Область с видами */}
         <div className="max-w-[1400px] mx-auto w-full flex-1 min-h-0 flex overflow-hidden rounded-2xl p-0 sm:p-2 px-2 sm:px-0 gap-4 sm:gap-6">
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-            <WidgetErrorBoundary className="h-full w-full">
+            <WidgetErrorBoundary className="h-full w-full flex flex-col min-h-0">
             {view === "month" && (
               <MonthView
                 currentDate={currentDate}
@@ -349,7 +349,7 @@ export default function SchedulePage() {
                 style={{ top: '-100vh', height: '200vh' }}
               />
             )}
-            <WidgetErrorBoundary className="h-full w-full">
+            <WidgetErrorBoundary className="h-full w-full flex flex-col min-h-0">
               {rightPanelMode === 'students' ? (
               <ScheduleSidebar
                 lessons={selectedDateStr ? periodLessons.filter(l => l.date === selectedDateStr) : periodLessons}

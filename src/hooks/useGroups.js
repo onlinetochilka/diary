@@ -1,77 +1,41 @@
-import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getGroups as apiGetGroups, getGroup as apiGetGroup, addGroup as apiAddGroup, updateGroup as apiUpdateGroup, deleteGroup as apiDeleteGroup } from '../services/database.js';
 
 export function useGroups() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
 
-  const getGroups = useCallback(async (tutorId) => {
-    setLoading(true);
-    try {
-      return await apiGetGroups(tutorId);
-    } catch (err) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const query = useQuery({
+    queryKey: ['groups'],
+    queryFn: () => apiGetGroups(),
+  });
 
-  const getGroup = useCallback(async (id) => {
-    setLoading(true);
-    try {
-      return await apiGetGroup(id);
-    } catch (err) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const addMut = useMutation({
+    mutationFn: apiAddGroup,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  });
 
-  const addGroup = useCallback(async (data) => {
-    setLoading(true);
-    try {
-      return await apiAddGroup(data);
-    } catch (err) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }) => apiUpdateGroup(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  });
 
-  const updateGroup = useCallback(async (id, data) => {
-    setLoading(true);
-    try {
-      return await apiUpdateGroup(id, data);
-    } catch (err) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const deleteGroup = useCallback(async (id) => {
-    setLoading(true);
-    try {
-      return await apiDeleteGroup(id);
-    } catch (err) {
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const deleteMut = useMutation({
+    mutationFn: apiDeleteGroup,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  });
 
   return {
-    loading,
-    error,
-    getGroups,
-    getGroup,
-    addGroup,
-    updateGroup,
-    deleteGroup,
+    // React Query state
+    groups: query.data || [],
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+
+    // Backward compatibility methods
+    getGroups: apiGetGroups,
+    getGroup: apiGetGroup,
+    addGroup: addMut.mutateAsync,
+    updateGroup: async (id, data) => updateMut.mutateAsync({ id, data }),
+    deleteGroup: deleteMut.mutateAsync,
   };
 }

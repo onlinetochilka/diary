@@ -83,18 +83,19 @@ export default function GroupReportBuilderModal({ isOpen, onClose, group, onGene
         <p className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-3">Период</p>
         <div className="flex gap-2 flex-wrap">
           {PERIODS.map(p => (
-            <button
+            <Button
+              variant="ghost"
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={cn(
-                "px-5 py-2 rounded-full text-[15px] font-medium border transition-all",
+                "w-auto h-auto px-5 py-2 rounded-full text-[15px] font-medium border transition-all",
                 period === p.key
                   ? "border-stone-800 bg-stone-800 text-white"
                   : "border-stone-200 text-stone-600 hover:border-stone-300 hover:bg-stone-50"
               )}
             >
               {p.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -135,11 +136,12 @@ export default function GroupReportBuilderModal({ isOpen, onClose, group, onGene
             const Icon = sec.icon;
             const on = sections[sec.key];
             return (
-              <button
+              <Button
+                variant="ghost"
                 key={sec.key}
                 onClick={() => toggle(sec.key)}
                 className={cn(
-                  "w-full flex items-center gap-4 px-5 py-4 text-left transition-colors",
+                  "w-full h-auto border-none flex items-center gap-4 px-5 py-4 text-left transition-colors",
                   on ? "bg-white" : "bg-stone-50/60"
                 )}
               >
@@ -166,7 +168,7 @@ export default function GroupReportBuilderModal({ isOpen, onClose, group, onGene
                     on ? "translate-x-[1.375rem]" : "translate-x-1"
                   )} />
                 </div>
-              </button>
+              </Button>
             );
           })}
         </div>

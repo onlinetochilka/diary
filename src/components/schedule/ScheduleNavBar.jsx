@@ -17,6 +17,7 @@
  *   onCreateLesson  — () => void
  */
 import { ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
+import Button from "../ui/Button.jsx";
 
 const VIEW_LABELS = { month: "Месяц", week: "Неделя", day: "День" };
 
@@ -34,24 +35,27 @@ export function ScheduleNavBar({
       {/* Навигация по периоду + заголовок */}
       <div className="flex items-center gap-3">
         <div className="flex p-1 bg-stone-100 rounded-lg shadow-sm ring-1 ring-stone-200 shrink-0">
-          <button
+          <Button
+            variant="ghost"
             onClick={onPrev}
-            className="w-9 h-9 flex items-center justify-center rounded-md text-stone-500 hover:text-stone-700 hover:bg-white hover:shadow-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-academic-blue"
+            className="w-9 h-9 flex items-center justify-center rounded-md text-stone-500 hover:text-stone-700 hover:bg-white hover:shadow-sm transition-all outline-none p-0 border-none h-auto"
           >
             <ChevronLeft size={20} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={onToday}
-            className="px-4 h-9 flex items-center justify-center rounded-md text-stone-600 font-medium text-sm hover:text-stone-800 hover:bg-white hover:shadow-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-academic-blue"
+            className="px-4 h-9 flex items-center justify-center rounded-md text-stone-600 font-medium text-sm hover:text-stone-800 hover:bg-white hover:shadow-sm transition-all outline-none border-none h-auto"
           >
             Сегодня
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={onNext}
-            className="w-9 h-9 flex items-center justify-center rounded-md text-stone-500 hover:text-stone-700 hover:bg-white hover:shadow-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-academic-blue"
+            className="w-9 h-9 flex items-center justify-center rounded-md text-stone-500 hover:text-stone-700 hover:bg-white hover:shadow-sm transition-all outline-none p-0 border-none h-auto"
           >
             <ChevronRight size={20} />
-          </button>
+          </Button>
         </div>
         <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 tracking-tight whitespace-nowrap min-w-[140px]">
           {headerTitle}
@@ -62,27 +66,29 @@ export function ScheduleNavBar({
       <div className="flex items-center justify-between md:justify-end gap-4 flex-wrap">
         <div className="flex p-1 bg-stone-100 rounded-lg shadow-sm ring-1 ring-stone-200 shrink-0">
           {["month", "week", "day"].map((v) => (
-            <button
+            <Button
               key={v}
+              variant="ghost"
               onClick={() => onViewChange(v)}
-              className={`px-4 h-9 rounded-md text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-academic-blue ${
+              className={`px-4 h-9 rounded-md text-sm font-medium transition-all outline-none border-none h-auto ${
                 view === v
-                  ? "bg-white text-stone-900 shadow-sm font-semibold"
+                  ? "bg-white text-stone-900 shadow-sm font-semibold hover:bg-white hover:text-stone-900"
                   : "text-stone-500 hover:text-stone-700 hover:bg-stone-50"
               }`}
             >
               {VIEW_LABELS[v]}
-            </button>
+            </Button>
           ))}
         </div>
 
-        <button
+        <Button
+          variant="filled"
           onClick={onCreateLesson}
-          className="ml-2 flex items-center justify-center gap-2 px-5 py-2.5 bg-[#1B4F72] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1B4F72] active:scale-[0.98]"
+          className="ml-2 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium h-auto shadow-sm outline-none active:scale-[0.98]"
         >
           <CalendarPlus size={18} strokeWidth={1.75} />
           Новый урок
-        </button>
+        </Button>
       </div>
     </div>
   );

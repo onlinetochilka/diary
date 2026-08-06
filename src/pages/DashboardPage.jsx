@@ -86,12 +86,14 @@ export default function DashboardPage() {
       noGlobalScroll={true}
       actionRight={
         <Tooltip text="Настроить метрики" position="bottom-right">
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => setIsSettingsOpen(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 hover:bg-stone-50 active:scale-95 transition-all text-stone-500 hover:text-stone-700 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="w-10 h-10 flex items-center justify-center p-0 border-stone-200 shadow-sm bg-white text-stone-500 hover:bg-stone-50 hover:text-stone-700 active:scale-95 transition-all"
           >
             <Settings2 size={20} />
-          </button>
+          </Button>
         </Tooltip>
       }
     >
@@ -102,17 +104,17 @@ export default function DashboardPage() {
             const config = METRICS_DISPLAY[metricId];
             if (!config) return null;
             return (
-              <button
+              <Button
                 key={i}
+                variant="ghost"
                 onClick={() => onNavigate(config.nav)}
-                type="button"
-                className="group animate-scale-in flex flex-col items-start justify-center p-5 rounded-[24px] border border-stone-100 bg-white shadow-sm hover:shadow-md card-hover-lift active:scale-[0.98] transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer select-none overflow-hidden"
+                className="group animate-scale-in flex flex-col items-start justify-center h-auto w-full p-5 rounded-[24px] border border-stone-100 bg-white shadow-sm hover:shadow-md hover:bg-white active:scale-[0.98] transition-all duration-300 cursor-pointer overflow-hidden font-normal"
               >
                 <p className="text-[28px] leading-tight font-bold mb-1 transition-transform duration-200 group-hover:scale-[1.02] text-stone-900 truncate w-full text-left">
                   {loading ? "..." : config.value}
                 </p>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-left text-stone-400 truncate w-full">{loading ? "Загрузка..." : config.label}</p>
-              </button>
+              </Button>
             );
           })}
         </div>

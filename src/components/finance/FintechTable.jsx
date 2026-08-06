@@ -12,6 +12,7 @@ import React, { useState } from "react";
 import DebtorsTab  from "./DebtorsTab.jsx";
 import StudentsTab from "./StudentsTab.jsx";
 import PaymentsTab from "./PaymentsTab.jsx";
+import Button from '../ui/Button.jsx';
 
 export default function FintechTable({ students, payments, studentData, debtors, onRefresh, className = "mt-8" }) {
   const [activeTab, setActiveTab] = useState("debtors");
@@ -31,10 +32,11 @@ export default function FintechTable({ students, payments, studentData, debtors,
       {/* Tab bar */}
       <div className="flex items-center gap-1 p-2 bg-stone-50/50 border-b border-stone-100 overflow-x-auto scrollbar-none">
         {tabs.map(tab => (
-          <button
+          <Button
+            variant="ghost"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+            className={`w-auto h-auto border-none flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === tab.id
                 ? "bg-white text-stone-900 shadow-sm ring-1 ring-stone-200/50"
                 : "text-stone-500 hover:text-stone-700 hover:bg-stone-100"
@@ -48,7 +50,7 @@ export default function FintechTable({ students, payments, studentData, debtors,
                 {tab.count}
               </span>
             )}
-          </button>
+          </Button>
         ))}
       </div>
 

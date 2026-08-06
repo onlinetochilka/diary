@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import StudentMiniCard from "./StudentMiniCard.jsx";
+import Button from "../ui/Button.jsx";
 
 export default function ScheduleSidebar({ lessons, students, groups, periodLabel = "на неделе", onCreateLesson, onCreateStudent, onAddLesson, onGoToProfile, selectedEntityId, onCardClick, isTimelineMode, selectedDateStr }) {
   const cardsData = useMemo(() => {
@@ -61,14 +62,13 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
     return (
       <div className="flex flex-col h-full bg-white relative shadow-sm rounded-[28px] overflow-hidden border border-stone-100">
         <div className="flex flex-1 flex-col items-center justify-center py-16 px-4 text-center animate-fade-in w-full">
-          <button 
+          <Button 
+            variant="ghost"
             onClick={onCreateStudent}
-            className="outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 rounded-full"
+            className="w-16 h-16 rounded-full flex items-center justify-center p-0 mb-5 bg-blue-100 text-blue-600 hover:bg-blue-200 shadow-sm hover:shadow-md transition-all border-none"
           >
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5 transition-all bg-blue-100 text-blue-600 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md cursor-pointer">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-            </div>
-          </button>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+          </Button>
           <h3 className="text-xl font-bold text-stone-900 mb-2 tracking-tight">Здесь пока пусто</h3>
           <p className="text-stone-500 text-sm font-medium">Чтобы составить расписание, сначала добавьте учеников</p>
         </div>
@@ -80,14 +80,13 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
     return (
       <div className="flex flex-col h-full bg-white relative shadow-sm rounded-[28px] overflow-hidden border border-stone-100">
         <div className="flex flex-1 flex-col items-center justify-center py-16 px-4 text-center animate-fade-in w-full">
-          <button 
-            onClick={onCreateLesson} 
-            className="outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 rounded-full"
+          <Button 
+            variant="ghost"
+            onClick={onCreateLesson}
+            className="w-16 h-16 rounded-full flex items-center justify-center p-0 mb-5 bg-indigo-100 text-indigo-600 hover:bg-indigo-200 shadow-sm hover:shadow-md transition-all border-none"
           >
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5 transition-all bg-indigo-100 text-indigo-600 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md cursor-pointer">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="10" x2="14" y1="16" y2="16"/><line x1="12" x2="12" y1="14" y2="18"/></svg>
-            </div>
-          </button>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="10" x2="14" y1="16" y2="16"/><line x1="12" x2="12" y1="14" y2="18"/></svg>
+          </Button>
           <h3 className="text-xl font-bold text-stone-900 mb-2 tracking-tight">Уроков пока нет</h3>
           <p className="text-stone-500 text-sm font-medium">Нажмите на иконку, чтобы запланировать первое занятие.</p>
         </div>
@@ -114,16 +113,17 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
                 const title = entity ? entity.name : 'Неизвестно';
                 const colorStr = entity?.colorOklch ? `oklch(${entity.colorOklch.l} ${entity.colorOklch.c ?? 0.12} ${entity.colorOklch.h})` : '#e7e5e4';
                 return (
-                  <button 
+                  <Button 
                     key={lesson.id}
+                    variant="ghost"
                     onClick={() => onCardClick({ id: lesson.id, type: 'lesson' })}
-                    className="flex flex-col p-3 bg-white border border-stone-200 rounded-xl hover:border-[#006584]/30 hover:shadow-sm transition-all text-left"
+                    className="flex flex-col items-start w-full h-auto p-3 bg-white border border-stone-200 rounded-xl hover:border-[#006584]/30 hover:shadow-sm hover:bg-white transition-all text-left font-normal"
                     style={{ borderLeft: `4px solid ${colorStr}` }}
                   >
                     <div className="text-xs font-bold text-stone-500 mb-1">{lesson.startTime} - {lesson.endTime}</div>
                     <div className="text-sm font-semibold text-stone-800">{title}</div>
                     {lesson.subjectName && <div className="text-[11px] text-stone-400 mt-0.5">{lesson.subjectName}</div>}
-                  </button>
+                  </Button>
                 );
               })}
             </div>

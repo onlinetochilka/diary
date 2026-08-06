@@ -2,6 +2,7 @@ import React from 'react';
 import { Pencil, MessageCircle, Link2, FileText, Clock } from 'lucide-react';
 import { cn } from '../../../utils/cn.js';
 import Tooltip from '../../ui/Tooltip.jsx';
+import Button from '../../ui/Button.jsx';
 
 export default function StudentTileHeader({
   student,
@@ -68,80 +69,90 @@ export default function StudentTileHeader({
 
         <div className="flex items-center gap-0.5">
           <Tooltip text="Гостевая ссылка" position="top">
-            <button 
+            <Button 
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenGuestLink && onOpenGuestLink(student);
               }}
               className={cn(
-                "p-1.5 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-blue-50 hover:text-blue-600",
+                "w-auto h-auto p-1.5 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-blue-50 hover:text-blue-600",
                 "focus-visible:ring-2 focus-visible:ring-academic-blue",
                 "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               )}
             >
               <Link2 size={16} strokeWidth={2} />
-            </button>
+            </Button>
           </Tooltip>
 
           <Tooltip text="Сводный отчёт" position="top">
-            <button 
+            <Button 
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenReport && onOpenReport(student);
               }}
               className={cn(
-                "p-1.5 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-emerald-50 hover:text-emerald-600",
+                "w-auto h-auto p-1.5 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-emerald-50 hover:text-emerald-600",
                 "focus-visible:ring-2 focus-visible:ring-academic-blue",
                 "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               )}
             >
               <FileText size={16} strokeWidth={2} />
-            </button>
+            </Button>
           </Tooltip>
 
           <Tooltip text="История уроков" position="top">
-            <button 
+            <Button 
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenLessonHistory && onOpenLessonHistory(student);
               }}
               className={cn(
-                "p-1.5 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-indigo-50 hover:text-indigo-600",
+                "w-auto h-auto p-1.5 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-indigo-50 hover:text-indigo-600",
                 "focus-visible:ring-2 focus-visible:ring-academic-blue",
                 "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               )}
             >
               <Clock size={16} strokeWidth={2} />
-            </button>
+            </Button>
           </Tooltip>
 
           <Tooltip text="Связаться" position="top">
-            <button 
+            <Button 
+              variant="ghost"
+              size="icon"
               onClick={onContactClick}
               className={cn(
-                "p-1.5 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                "w-auto h-auto p-1.5 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
                 "focus-visible:ring-2 focus-visible:ring-academic-blue",
                 "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               )}
             >
               <MessageCircle size={16} strokeWidth={2} />
-            </button>
+            </Button>
           </Tooltip>
           
           <Tooltip text="Редактировать профиль" position="top">
-            <button 
+            <Button 
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(student.id);
               }}
               className={cn(
-                "p-1.5 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                "w-auto h-auto p-1.5 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
                 "focus-visible:ring-2 focus-visible:ring-academic-blue",
                 "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               )}
             >
               <Pencil size={16} strokeWidth={2} />
-            </button>
+            </Button>
           </Tooltip>
         </div>
       </div>

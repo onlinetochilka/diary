@@ -57,7 +57,7 @@ export function useDashboardData() {
     };
   }, []);
 
-  const { data: students = EMPTY_ARRAY, isLoading: loadingStudents } = useQuery({
+  const { data: students = EMPTY_ARRAY, isLoading: loadingStudents, refetch: refetchStudents } = useQuery({
     queryKey: ['students'],
     queryFn: () => getStudents(),
   });
@@ -86,6 +86,7 @@ export function useDashboardData() {
   const loading = loadingStudents || loadingLessons || loadingPayments;
 
   const refresh = () => {
+    refetchStudents();
     refetchLessons();
     refetchPayments();
   };

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Check, AlertCircle, BookCheck, BarChart3, Users, UserCheck } from 'lucide-react';
 import Switch from '../ui/Switch.jsx';
 import Select from '../ui/Select.jsx';
+import Button from '../ui/Button.jsx';
 
 const LABEL_CLS = "block text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-1.5";
 
@@ -156,13 +157,13 @@ export function NotificationsSettings({ value, onSave, students = [] }) {
                           { k: "includeHomework",   l: "Домашние задания" },
                           { k: "includeFinancials", l: "Финансы" },
                         ].map(({ k, l }) => (
-                          <button key={k} onClick={() => update(key, k, !section[k])}
-                            className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all
+                          <Button key={k} variant="ghost" onClick={() => update(key, k, !section[k])}
+                            className={`h-auto px-3 py-1.5 text-xs rounded-lg border font-medium transition-all
                               ${section[k]
-                                ? "bg-emerald-600 text-white border-emerald-600"
-                                : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"}`}>
+                                ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 hover:text-white"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"}`}>
                             {section[k] && "✓ "}{l}
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     </div>
@@ -176,15 +177,15 @@ export function NotificationsSettings({ value, onSave, students = [] }) {
                         { val: "all",      label: "Все ученики",  Icon: Users },
                         { val: "selected", label: "По выбору",    Icon: UserCheck },
                       ].map(({ val, label, Icon: Ic }) => (
-                        <button key={val}
+                        <Button key={val} variant="ghost"
                           onClick={() => update(key, "sendTo", val)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all
+                          className={`h-auto px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all
                             ${section.sendTo === val
-                              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                              : "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300"}`}>
+                              ? "bg-blue-600 text-white border-blue-600 shadow-sm hover:bg-blue-700 hover:text-white"
+                              : "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-100"}`}>
                           <Ic size={13} />
                           {label}
-                        </button>
+                        </Button>
                       ))}
                     </div>
 
@@ -194,14 +195,14 @@ export function NotificationsSettings({ value, onSave, students = [] }) {
                         {students.map(s => {
                           const isSelected = selected.includes(s.id);
                           return (
-                            <button key={s.id}
+                            <Button key={s.id} variant="ghost"
                               onClick={() => toggleStudent(key, s.id)}
-                              className={`text-xs px-3 py-1 rounded-lg border font-medium transition-all
+                              className={`h-auto px-3 py-1 text-xs rounded-lg border font-medium transition-all
                                 ${isSelected
-                                  ? "bg-blue-100 text-blue-800 border-blue-200"
-                                  : "bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300"}`}>
+                                  ? "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200"
+                                  : "bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-100"}`}>
                               {isSelected && "✓ "}{s.name}
-                            </button>
+                            </Button>
                           );
                         })}
                         {students.length === 0 && (

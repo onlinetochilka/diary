@@ -245,14 +245,14 @@ export default function AuthPage() {
           )}
 
           <div className="pt-2 text-center">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={() => { setMode("login"); setError(""); setSuccess(""); }}
-              className="inline-flex items-center gap-1 text-sm font-medium text-stone-500 hover:text-stone-800 transition-colors"
+              className="text-stone-500 hover:text-stone-800"
               disabled={isLoading}
             >
               <ArrowLeft size={14} /> Вернуться ко входу
-            </button>
+            </Button>
           </div>
         </form>
       );
@@ -307,14 +307,15 @@ export default function AuthPage() {
           <div className="flex justify-between items-center ml-1 mr-1">
             <label className="text-sm font-medium text-stone-700">{mode === "reset" ? "Новый пароль" : "Пароль"}</label>
             {mode === "login" && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => { setMode("forgot"); setError(""); setSuccess(""); }}
-                className="text-xs font-medium text-stone-400 hover:text-stone-700 transition-colors"
+                className="h-auto px-2 py-1 text-xs text-stone-400 hover:text-stone-700 hover:bg-transparent"
                 disabled={isLoading}
               >
                 Забыли пароль?
-              </button>
+              </Button>
             )}
           </div>
           <div className="relative">
@@ -326,14 +327,15 @@ export default function AuthPage() {
               className="h-12 pr-12"
               disabled={isLoading}
             />
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none p-1 rounded-md"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 text-stone-400 hover:text-stone-600 rounded-md"
               disabled={isLoading}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -398,14 +400,14 @@ export default function AuthPage() {
 
         {mode !== "reset" && (
           <div className="pt-2 text-center">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setSuccess(""); }}
-              className="text-sm font-medium text-stone-500 hover:text-stone-800 transition-colors"
+              className="text-stone-500 hover:text-stone-800"
               disabled={isLoading}
             >
               {mode === "login" ? "Ещё нет аккаунта? Создать" : "Уже есть аккаунт? Войти"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -457,12 +459,13 @@ export default function AuthPage() {
       {/* Правая часть - Форма */}
       <div className="w-full lg:w-[55%] flex flex-col items-center justify-center p-6 sm:p-12 relative bg-[#FAFAF9]">
         <div className="w-full max-w-[400px]">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => navigate("/")}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-400 hover:text-stone-700 transition-colors mb-4"
+            className="text-stone-400 hover:text-stone-700 mb-4 px-2"
           >
             <ArrowLeft size={14} /> На главную
-          </button>
+          </Button>
           <div className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-xl shadow-stone-200/40 ring-1 ring-stone-900/5">
             {renderFormContent()}
           </div>

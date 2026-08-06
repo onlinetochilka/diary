@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import StudentsDirectoryView from "../components/students/StudentsDirectoryView.jsx";
 import StudentEditorView from "../components/students/StudentEditorView.jsx";
@@ -16,9 +16,9 @@ import pb from "../services/pocketbase.js";
 import { useToast } from "../components/ui/Toast.jsx";
 
 export default function StudentsPage() {
-  const { fetchStudents, createStudent, patchStudent, deleteStudent } = useStudents();
-  const { getGroups, addGroup, updateGroup, deleteGroup } = useGroups();
-  const { getPrograms } = usePrograms();
+  const { students, createStudent, patchStudent, deleteStudent, refetch: refetchStudents } = useStudents();
+  const { groups, addGroup, updateGroup, deleteGroup, refetch: refetchGroups } = useGroups();
+  const { programs } = usePrograms();
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
@@ -34,13 +34,12 @@ export default function StudentsPage() {
   // ID ученика, которого нужно подсветить в директории
   const [highlightStudentId, setHighlightStudentId] = useState(null);
 
-  const [programs, setPrograms] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [groups, setGroups] = useState([]);
-
   // Данные редактируемой группы (null = создание новой)
   const [editingGroup, setEditingGroup] = useState(null);
-  const [existingSubjects, setExistingSubjects] = useState([]);
+  
+  const existingSubjects = useMemo(() => {
+    return [...new Set(groups.map((g) => g.subjectName).filter(Boolean))];
+  }, [groups]);
   
   // Модалка гостевой ссылки
   const [guestLinkStudent, setGuestLinkStudent] = useState(null);
@@ -56,25 +55,6 @@ export default function StudentsPage() {
   const [lessonHistoryGroup,  setLessonHistoryGroup]  = useState(null);
   const [reportBuilderGroup,  setReportBuilderGroup]  = useState(null);
 
-  const loadData = () => {
-    getPrograms().then(setPrograms).catch(console.error);
-    fetchStudents().then(setStudents).catch(console.error);
-    loadGroupsData();
-  };
-
-  const loadGroupsData = () => {
-    getGroups()
-      .then((fetchedGroups) => {
-        setGroups(fetchedGroups);
-        const subjects = [...new Set(fetchedGroups.map((g) => g.subjectName).filter(Boolean))];
-        setExistingSubjects(subjects);
-      })
-      .catch(console.error);
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   useEffect(() => {
     if (pageState?.action === "restore_draft") {
@@ -87,6 +67,8 @@ export default function StudentsPage() {
       setCurrentView("directory");
       setEditingStudentId(null);
       setHighlightStudentId(pageState.studentId);
+      const timer = setTimeout(() => setHighlightStudentId(null), 3000);
+      return () => clearTimeout(timer);
     }
   }, [pageState]);
 
@@ -108,7 +90,6 @@ export default function StudentsPage() {
     } else {
       await createStudent({ ...studentData, tutorId });
     }
-    loadData();
     setCurrentView("directory");
     setEditingStudentId(null);
   };
@@ -120,14 +101,12 @@ export default function StudentsPage() {
 
   const handleStudentDelete = async (studentId) => {
     await deleteStudent(studentId);
-    loadData();
     setCurrentView('directory');
     setEditingStudentId(null);
   };
 
   const handleStudentArchive = async (studentId, archive) => {
     await patchStudent(studentId, { isArchived: archive });
-    loadData();
     setCurrentView('directory');
     setEditingStudentId(null);
   };
@@ -145,22 +124,21 @@ export default function StudentsPage() {
     } else {
       await addGroup({ ...groupData, tutorId });
     }
-    // Обновляем список групп и предметов
-    loadGroupsData();
+    // React Query автоматически обновит список групп
     setCurrentView("directory");
     setEditingGroup(null);
   };
 
   const handleGroupDelete = async (groupId) => {
     await deleteGroup(groupId);
-    loadGroupsData();
+
     setCurrentView("directory");
     setEditingGroup(null);
   };
 
   const handleGroupArchive = async (groupId, archive) => {
     await updateGroup(groupId, { isArchived: archive });
-    loadGroupsData();
+
     setCurrentView("directory");
     setEditingGroup(null);
   };

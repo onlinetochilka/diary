@@ -13,6 +13,7 @@ import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
 import { cn } from "../../utils/cn.js";
 import { TypeBadge } from "./InspectorPanelAtoms.jsx";
+import Button from '../ui/Button.jsx';
 
 // ─── Токены типов заданий ──────────────────────────────────────────────────
 export const POP_TYPES = [
@@ -99,19 +100,20 @@ export function TaskComposer({ initialText = "", initialType = "", onSave, onCan
           {POP_TYPES.map((t) => {
             const isActive = (t === "Свой вариант" && isCustom) || (t === type && !isCustom);
             return (
-              <button
+              <Button
+                variant="ghost"
                 key={t}
                 type="button"
                 onClick={() => toggleType(t)}
                 className={cn(
-                  "px-2 py-1 rounded-full text-[11px] font-medium transition-all duration-150 border",
+                  "w-auto h-auto px-2 py-1 rounded-full text-[11px] font-medium transition-all duration-150 border",
                   isActive
                     ? "bg-[#1B4F72]/10 text-[#1B4F72] border-[#1B4F72]/30 shadow-sm"
                     : "bg-white text-stone-600 border-stone-200 hover:border-stone-300 hover:bg-stone-50 shadow-sm"
                 )}
               >
                 {t}
-              </button>
+              </Button>
             );
           })}
           {isCustom && (
@@ -132,30 +134,32 @@ export function TaskComposer({ initialText = "", initialType = "", onSave, onCan
           <span className="text-[10px] text-stone-400 mr-1 hidden sm:inline">
             Ctrl+Enter
           </span>
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={onCancel}
             className={cn(
-              "px-2.5 py-1.5 rounded-lg text-xs font-medium",
+              "w-auto h-auto border-none px-2.5 py-1.5 rounded-lg text-xs font-medium",
               "text-stone-500 hover:bg-stone-100 hover:text-stone-700",
               "transition-colors duration-150 active:scale-[0.97]",
             )}
           >
             Отмена
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="filled"
             type="button"
             onClick={handleSave}
             disabled={!text.trim() || (isCustom && !customType.trim())}
             className={cn(
-              "px-2.5 py-1.5 rounded-lg text-xs font-medium",
+              "w-auto h-auto border-none px-2.5 py-1.5 rounded-lg text-xs font-medium",
               "bg-[#1B4F72] text-white hover:bg-[#154060]",
               "transition-all duration-150 active:scale-[0.97]",
               "disabled:opacity-40 disabled:pointer-events-none",
             )}
           >
             Сохранить
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -194,12 +198,14 @@ export function TaskCard({ item, isDone, onToggleDone, onDelete, onEdit, isDelet
       )}
     >
       {/* Чекбокс сессии */}
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         type="button"
         aria-label={isDone ? "Убрать отметку" : "Отметить как использованное"}
         onClick={() => onToggleDone(item.id)}
         className={cn(
-          "mt-0.5 flex-shrink-0 transition-all duration-150",
+          "w-auto h-auto border-none mt-0.5 flex-shrink-0 transition-all duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
           "active:scale-[0.85]",
         )}
@@ -208,7 +214,7 @@ export function TaskCard({ item, isDone, onToggleDone, onDelete, onEdit, isDelet
           ? <CheckCircle2 size={14} strokeWidth={2} className="text-emerald-500" />
           : <Circle size={14} strokeWidth={2} className="text-stone-300 hover:text-stone-500" />
         }
-      </button>
+      </Button>
 
       {/* Текст задания */}
       <div className="flex-1 min-w-0 space-y-1">
@@ -223,25 +229,29 @@ export function TaskCard({ item, isDone, onToggleDone, onDelete, onEdit, isDelet
 
       {/* Actions */}
       <div className="flex flex-col gap-0.5 opacity-0 group-hover/hw:opacity-100 transition-opacity">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           aria-label="Редактировать задание"
           onClick={() => setIsEditing(true)}
           disabled={isDeleting}
           className={cn(
-            "p-1 rounded text-stone-300 hover:text-[#1B4F72] hover:bg-[#1B4F72]/10",
+            "w-auto h-auto border-none p-1 rounded text-stone-300 hover:text-[#1B4F72] hover:bg-[#1B4F72]/10",
             "transition-all duration-150 active:scale-[0.85]",
           )}
         >
           <Pencil size={13} strokeWidth={2} />
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           aria-label="Удалить задание"
           onClick={() => onDelete(item.id)}
           disabled={isDeleting}
           className={cn(
-            "p-1 rounded text-stone-300 hover:text-red-400 hover:bg-red-50",
+            "w-auto h-auto border-none p-1 rounded text-stone-300 hover:text-red-400 hover:bg-red-50",
             "transition-all duration-150 active:scale-[0.85]",
           )}
         >
@@ -249,7 +259,7 @@ export function TaskCard({ item, isDone, onToggleDone, onDelete, onEdit, isDelet
             ? <div className="w-3 h-3 rounded-full border-2 border-stone-300 border-t-transparent animate-spin" />
             : <Trash2 size={13} strokeWidth={2} />
           }
-        </button>
+        </Button>
       </div>
     </div>
   );

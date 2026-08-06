@@ -16,6 +16,7 @@ import { Trash2, Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 import UISelect from '../ui/Select.jsx';
 import Tooltip from '../ui/Tooltip.jsx';
+import Button from '../ui/Button.jsx';
 
 export const Label = ({ children, required }) => (
   <label className="block text-sm font-medium text-stone-700 mb-1.5">
@@ -32,6 +33,7 @@ export const Input = ({ className, error, success, isLoading, ...props }) => (
         "hover:ring-stone-300",
         "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-academic-blue focus-visible:shadow-md",
         "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-stone-50",
+        props.type === 'number' && "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
         error   ? "ring-red-300 focus-visible:ring-red-500" :
         success ? "ring-green-300 focus-visible:ring-green-500" :
                   "ring-stone-200",
@@ -58,28 +60,39 @@ export const Select = ({ className, error, success, isLoading, children, ...prop
   </UISelect>
 );
 
-export const SegmentedToggle = ({ options, value, onChange }) => (
-  <div className="flex p-1 bg-stone-100 rounded-xl ring-1 ring-slate-200">
-    {options.map((opt) => {
-      const isActive = value === opt.value;
-      return (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value)}
-          className={cn(
-            "flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue active:scale-[0.98]",
-            isActive
-              ? "bg-white text-stone-900 shadow-sm ring-1 ring-slate-200"
-              : "text-stone-500 hover:text-stone-700 hover:bg-stone-50"
-          )}
-        >
-          {opt.label}
-        </button>
-      );
-    })}
-  </div>
-);
+export const SegmentedToggle = ({ options, value, onChange }) => {
+  const isSpecialThree = options.length === 3 && options[2].value === 'mixed';
+  
+  return (
+    <div className={cn(
+      "p-1 bg-stone-100 rounded-xl ring-1 ring-slate-200",
+      isSpecialThree ? "grid grid-cols-2 gap-1" : "flex"
+    )}>
+      {options.map((opt, index) => {
+        const isActive = value === opt.value;
+        return (
+          <Button
+            variant="ghost"
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              "w-auto h-auto border-none rounded-lg font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue active:scale-[0.98]",
+              isActive
+                ? "bg-white text-stone-900 shadow-sm ring-1 ring-slate-200"
+                : "text-stone-500 hover:text-stone-700 hover:bg-stone-50",
+              isSpecialThree
+                ? (index === 2 ? "col-span-2 px-4 py-1.5 text-[13px]" : "px-4 py-2 text-sm")
+                : "flex-1 px-4 py-2 text-sm"
+            )}
+          >
+            {opt.label}
+          </Button>
+        );
+      })}
+    </div>
+  );
+};
 
 export function SectionHeading({ number, children }) {
   return (
@@ -109,17 +122,19 @@ export function ParentCard({ idx, parent, formData, handleContactChange }) {
   return (
     <div className="p-5 bg-stone-50 rounded-2xl ring-1 ring-slate-200 relative group">
       <Tooltip text="Удалить контакт" position="top" wrapperClassName="absolute top-3 right-3 opacity-0 group-hover:opacity-100 z-10">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           onClick={() => {
             const newParents = [...formData.contacts.parents];
             newParents.splice(idx, 1);
             handleContactChange('parents', newParents);
           }}
-          className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+          className="w-auto h-auto p-1.5 border-none text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
         >
           <Trash2 size={16} />
-        </button>
+        </Button>
       </Tooltip>
       <input
         type="text"

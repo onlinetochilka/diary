@@ -11,6 +11,7 @@
  */
 import { createPortal } from "react-dom";
 import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
+import Button from "../ui/Button.jsx";
 
 const STATUS_OPTIONS = [
   { status: "conducted",    label: "Проведён",            Icon: CheckCircle2, colors: { active: "bg-emerald-100 text-emerald-800 font-bold", idle: "text-emerald-700 hover:bg-emerald-50" } },
@@ -60,14 +61,15 @@ export function StatusPopover({ popover, onClose, onQuickStatus }) {
           const isActive = currentStatus === status;
           const toggledStatus = isActive ? "scheduled" : status;
           return (
-            <button
+            <Button
               key={status}
-              className={`w-full text-left px-3 py-1.5 text-sm rounded-lg flex items-center gap-2 ${isActive ? colors.active : colors.idle}`}
+              variant="ghost"
+              className={`w-full text-left px-3 py-1.5 h-auto border-none justify-start font-normal text-sm rounded-lg flex items-center gap-2 ${isActive ? colors.active : colors.idle}`}
               onClick={() => onQuickStatus(lesson, toggledStatus)}
             >
               <Icon size={14} />
               {label}
-            </button>
+            </Button>
           );
         })}
       </div>

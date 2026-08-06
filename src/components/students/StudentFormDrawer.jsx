@@ -501,13 +501,15 @@ export default function StudentFormDrawer({
                 </h3>
                 {formData.subjects.length > 1 && (
                   <Tooltip text="Удалить предмет">
-                    <button 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       type="button" 
                       onClick={() => removeSubject(index)}
-                      className="text-stone-400 hover:text-red-500 transition-colors p-1"
+                      className="w-auto h-auto p-1 border-none text-stone-400 hover:text-red-500 transition-colors"
                     >
                       <X size={16} strokeWidth={2} />
-                    </button>
+                    </Button>
                   </Tooltip>
                 )}
               </div>
@@ -620,13 +622,15 @@ export default function StudentFormDrawer({
                               </p>
                             </div>
                             <Tooltip text="Удалить программу">
-                              <button
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 type="button"
                                 onClick={() => handleRemoveProgram(index, pIdx)}
-                                className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                                className="w-auto h-auto p-1.5 border-none text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                               >
                                 <Trash2 size={16} />
-                              </button>
+                              </Button>
                             </Tooltip>
                           </div>
                         );

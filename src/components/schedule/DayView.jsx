@@ -203,13 +203,14 @@ export default function DayView({
         {/* Кнопка назад (только если пришли из месяца) */}
         {navigatedFromMonth && (
           <div className="px-6 pt-3 shrink-0">
-            <button
+            <Button
+              variant="ghost"
               onClick={() => { setView('month'); setNavigatedFromMonth(false); }}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-400 hover:text-[#006584] transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-400 hover:text-[#006584] hover:bg-transparent p-0 h-auto border-none transition-colors"
             >
               <ArrowLeft size={13} />
               К месяцу
-            </button>
+            </Button>
           </div>
         )}
 

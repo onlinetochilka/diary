@@ -12,6 +12,7 @@ import Select from '../ui/Select.jsx';
 import Checkbox from '../ui/Checkbox.jsx';
 import Tooltip from '../ui/Tooltip.jsx';
 import Input from '../ui/Input.jsx';
+import Button from '../ui/Button.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { getUserConfig } from '../../services/database.js';
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
@@ -109,18 +110,19 @@ function StatusBlock({ formData, onPatch }) {
         {STATUS_OPTIONS.map(opt => {
           const isActive = (formData.status || 'scheduled') === opt.value;
           return (
-            <button
+            <Button
               key={opt.value}
+              variant="ghost"
               onClick={() => onPatch({ status: opt.value })}
               className={cn(
-                'flex-1 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none',
+                'flex-1 px-3 py-1.5 h-auto rounded-lg text-[11px] font-bold transition-all duration-100 outline-none border-none',
                 isActive 
                   ? activeColors[opt.value] 
                   : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50'
               )}
             >
               {opt.label}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -263,14 +265,14 @@ function NotesBlock({ notes, onPatch }) {
 
   return (
     <div className="px-4 py-2">
-      <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-stone-50 transition-colors">
+      <Button variant="ghost" onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between px-4 py-2.5 h-auto border-none hover:bg-stone-50 transition-colors">
         <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-stone-700 uppercase">
           <FileText size={12} />
           Скрытые заметки
           {localNotes && <span className="w-1.5 h-1.5 rounded-full bg-[#006584]/50" />}
         </div>
         {open ? <ChevronUp size={14} className="text-stone-400" /> : <ChevronDown size={14} className="text-stone-400" />}
-      </button>
+      </Button>
       {open && (
         <div className="px-4 pb-3">
           <textarea
@@ -400,18 +402,19 @@ function HwIndividualBlock({ formData, onPatch }) {
               <p className="text-xs font-bold tracking-wider text-stone-700 uppercase mb-2">Статус выполнения</p>
               <div className="flex gap-1.5">
                 {HW_OPTIONS.map(opt => (
-                  <button
+                  <Button
                     key={opt.value}
+                    variant="ghost"
                     onClick={() => handleStatusChange(opt.value)}
                     className={cn(
-                      'flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-100 outline-none',
+                      'flex-1 py-1.5 h-auto rounded-lg text-[11px] font-bold transition-all duration-100 outline-none border-none',
                       hwStatus === opt.value
                         ? opt.value === 'not_done' ? 'bg-rose-500 text-white shadow-sm' : opt.value === 'on_time' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-amber-500 text-white shadow-sm'
                         : 'bg-stone-50 text-stone-500 hover:bg-stone-100 ring-1 ring-stone-200/50'
                     )}
                   >
                     {opt.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -529,15 +532,15 @@ function GroupStudentsTracker({ formData, students, groups, onPatch, requisites 
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] font-bold tracking-wider text-stone-500 uppercase">Посещаемость</span>
                     <div className="flex bg-stone-100 p-0.5 rounded-lg w-full">
-                      <button onClick={() => {
+                      <Button variant="ghost" onClick={() => {
                         onPatch({ attendance: { ...attendances, [st.id]: 'present' } });
-                      }} className={cn("flex-1 px-1 py-1 text-[10px] font-bold rounded-md transition-colors", attendance === 'present' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Присутствовал</button>
-                      <button onClick={() => {
+                      }} className={cn("flex-1 px-1 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", attendance === 'present' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Присутствовал</Button>
+                      <Button variant="ghost" onClick={() => {
                         onPatch({ attendance: { ...attendances, [st.id]: 'skipped_paid' } });
-                      }} className={cn("flex-1 px-1 py-1 text-[10px] font-bold rounded-md transition-colors", attendance === 'skipped_paid' ? 'bg-amber-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Пропуск (плат.)</button>
-                      <button onClick={() => {
+                      }} className={cn("flex-1 px-1 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", attendance === 'skipped_paid' ? 'bg-amber-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Пропуск (плат.)</Button>
+                      <Button variant="ghost" onClick={() => {
                         onPatch({ attendance: { ...attendances, [st.id]: 'skipped_free' } });
-                      }} className={cn("flex-1 px-1 py-1 text-[10px] font-bold rounded-md transition-colors", attendance === 'skipped_free' ? 'bg-stone-300 text-stone-700 shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Пропуск (б/о)</button>
+                      }} className={cn("flex-1 px-1 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", attendance === 'skipped_free' ? 'bg-stone-300 text-stone-700 shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Пропуск (б/о)</Button>
                     </div>
                   </div>
 
@@ -546,19 +549,19 @@ function GroupStudentsTracker({ formData, students, groups, onPatch, requisites 
                     <div className="flex flex-col gap-1.5">
                       <span className="text-[10px] font-bold tracking-wider text-stone-500 uppercase">Домашнее задание</span>
                       <div className="flex bg-stone-100 p-0.5 rounded-lg w-full">
-                        <button onClick={() => {
+                        <Button variant="ghost" onClick={() => {
                           const hw = hwDoneBy.filter(id => id !== st.id);
                           const stObj = {...hwStatuses}; delete stObj[st.id];
                           onPatch({hwDoneBy: hw, hwStatuses: stObj});
-                        }} className={cn("flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-colors", hwStatus === 'not_done' ? 'bg-white text-stone-700 shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Не выполнено</button>
-                        <button onClick={() => {
+                        }} className={cn("flex-1 px-2 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", hwStatus === 'not_done' ? 'bg-white text-stone-700 shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Не выполнено</Button>
+                        <Button variant="ghost" onClick={() => {
                           const hw = hwDoneBy.includes(st.id) ? hwDoneBy : [...hwDoneBy, st.id];
                           onPatch({hwDoneBy: hw, hwStatuses: {...hwStatuses, [st.id]: 'on_time'}});
-                        }} className={cn("flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-colors", hwStatus === 'on_time' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Вовремя</button>
-                        <button onClick={() => {
+                        }} className={cn("flex-1 px-2 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", hwStatus === 'on_time' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Вовремя</Button>
+                        <Button variant="ghost" onClick={() => {
                           const hw = hwDoneBy.includes(st.id) ? hwDoneBy : [...hwDoneBy, st.id];
                           onPatch({hwDoneBy: hw, hwStatuses: {...hwStatuses, [st.id]: 'late'}});
-                        }} className={cn("flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-colors", hwStatus === 'late' ? 'bg-amber-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Позже</button>
+                        }} className={cn("flex-1 px-2 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", hwStatus === 'late' ? 'bg-amber-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}>Позже</Button>
                       </div>
                     </div>
                   )}
@@ -793,12 +796,12 @@ export default function DayInspector({
         <h3 className="text-[13px] font-semibold text-stone-700 truncate flex-1">{entityTitle}</h3>
         {mode === 'lesson' && student && onGoToProfile && (
           <Tooltip text="Перейти в профиль" position="bottom" wrapperClassName="shrink-0">
-            <button onClick={() => onGoToProfile(student.id)} className="w-7 h-7 flex items-center justify-center rounded-xl text-stone-300 hover:text-[#006584] hover:bg-stone-100 transition-colors">
+            <Button variant="ghost" size="icon" onClick={() => onGoToProfile(student.id)} className="w-7 h-7 flex items-center justify-center rounded-xl text-stone-300 hover:text-[#006584] hover:bg-stone-100 transition-colors border-none p-0">
               <ArrowRight size={14} />
-            </button>
+            </Button>
           </Tooltip>
         )}
-        <button onClick={async () => { 
+        <Button variant="ghost" size="icon" onClick={async () => { 
           if (isDirty) {
             const proceed = await confirm({
               title: "Несохраненные изменения",
@@ -810,17 +813,17 @@ export default function DayInspector({
           }
           onClose(); 
           onClearCreate?.(); 
-        }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-xl text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-colors">
+        }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-xl text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-colors border-none p-0">
           <X size={16} />
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto pb-24 hide-scrollbar">
         {mode === 'create' && (
           <div className="px-4 py-4 space-y-4 border-b border-stone-100 bg-stone-50/30">
             <div className="flex gap-2 p-1 bg-stone-100/50 rounded-xl">
-              <button onClick={() => handlePatch({ type: 'individual', groupId: '' })} className={cn("flex-1 py-1.5 text-xs font-bold rounded-lg transition-all", formData.type === 'individual' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Индивидуальный</button>
-              <button onClick={() => handlePatch({ type: 'group', studentId: '' })} className={cn("flex-1 py-1.5 text-xs font-bold rounded-lg transition-all", formData.type === 'group' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Групповой</button>
+              <Button variant="ghost" onClick={() => handlePatch({ type: 'individual', groupId: '' })} className={cn("flex-1 py-1.5 h-auto text-xs font-bold rounded-lg transition-all border-none", formData.type === 'individual' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Индивидуальный</Button>
+              <Button variant="ghost" onClick={() => handlePatch({ type: 'group', studentId: '' })} className={cn("flex-1 py-1.5 h-auto text-xs font-bold rounded-lg transition-all border-none", formData.type === 'group' ? "bg-white text-stone-800 shadow-sm" : "text-stone-500")}>Групповой</Button>
             </div>
             
             {formData.type === 'individual' ? (
@@ -878,10 +881,10 @@ export default function DayInspector({
             {saveError}
           </p>
         )}
-        <button onClick={handleSave} disabled={isSubmitting || (mode === 'create' && !formData.studentId && !formData.groupId)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#006584] text-white font-bold hover:bg-[#00526a] disabled:opacity-50 transition-colors shadow-sm">
+        <Button onClick={handleSave} disabled={isSubmitting || (mode === 'create' && !formData.studentId && !formData.groupId)} className="w-full flex items-center justify-center gap-2 py-3 h-auto rounded-xl bg-[#006584] text-white font-bold hover:bg-[#00526a] disabled:opacity-50 transition-colors shadow-sm border-none">
           <CheckCircle2 size={18} />
           {mode === 'create' ? "Создать урок" : "Сохранить изменения"}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { calcProgramProgress } from '../../../services/studentsAdapter.js';
 import Tooltip from '../../ui/Tooltip.jsx';
+import Button from '../../ui/Button.jsx';
 
 export default function StudentTileProgram({
   student,
@@ -22,16 +23,17 @@ export default function StudentTileProgram({
             </span>
             {student.subjects && student.subjects.length > 1 && (
               <Tooltip text="Следующий предмет" position="top">
-                <button 
+                <Button
+                  variant="ghost" 
                   onClick={(e) => {
                     e.stopPropagation();
                     setCurrentSubjectIndex((prev) => (prev + 1) % student.subjects.length);
                     setCurrentProgramIndex(0);
                   }}
-                  className="text-[10px] font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 hover:text-stone-700 transition-colors px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 cursor-pointer"
+                  className="h-auto border-none text-[10px] font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 hover:text-stone-700 transition-colors px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 cursor-pointer"
                 >
                   {currentSubjectIndex + 1} ИЗ {student.subjects.length}
-                </button>
+                </Button>
               </Tooltip>
             )}
           </div>
@@ -45,23 +47,27 @@ export default function StudentTileProgram({
                   </span>
                   {activePrograms.length > 1 && (
                     <div className="flex gap-0.5 items-center bg-stone-100 rounded-md px-1 py-0.5 shrink-0 ml-1">
-                      <button 
+                      <Button 
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); setCurrentProgramIndex(p => Math.max(0, p - 1)); }} 
                         disabled={safeProgramIndex === 0} 
-                        className="p-0.5 text-stone-400 hover:text-stone-700 disabled:opacity-30 disabled:hover:text-stone-400 transition-colors"
+                        className="w-auto h-auto p-0.5 border-none text-stone-400 hover:text-stone-700 disabled:opacity-30 disabled:hover:text-stone-400 transition-colors"
                       >
                         <ChevronLeft size={12} />
-                      </button>
+                      </Button>
                       <span className="text-[10px] text-stone-500 font-medium px-0.5">
                         {safeProgramIndex + 1}/{activePrograms.length}
                       </span>
-                      <button 
+                      <Button 
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); setCurrentProgramIndex(p => Math.min(activePrograms.length - 1, p + 1)); }} 
                         disabled={safeProgramIndex === activePrograms.length - 1} 
-                        className="p-0.5 text-stone-400 hover:text-stone-700 disabled:opacity-30 disabled:hover:text-stone-400 transition-colors"
+                        className="w-auto h-auto p-0.5 border-none text-stone-400 hover:text-stone-700 disabled:opacity-30 disabled:hover:text-stone-400 transition-colors"
                       >
                         <ChevronRight size={12} />
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>

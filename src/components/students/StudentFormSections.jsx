@@ -18,6 +18,7 @@ import { Label, Input, Select, SegmentedToggle, SectionHeading, ParentCard } fro
 // Реэкспортируем атомы для обратной совместимости
 export { Label, Input, Select, SegmentedToggle } from './StudentFormAtoms.jsx';
 import Tooltip from '../ui/Tooltip.jsx';
+import Button from '../ui/Button.jsx';
 
 
 // ── Секция 1: Личные данные ───────────────────────────────────────────────────
@@ -132,13 +133,15 @@ export function SubjectsSection({
             <div key={subject.id || index} className="bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-200 flex flex-col gap-6 relative group">
               {formData.subjects.length > 1 && (
                 <Tooltip text="Удалить предмет" position="top" wrapperClassName="absolute top-4 right-4 z-10">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     type="button"
                     onClick={() => handleRemoveSubject(index)}
-                    className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                    className="w-auto h-auto p-2 border-none text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                   >
                     <Trash2 size={18} />
-                  </button>
+                  </Button>
                 </Tooltip>
               )}
 
@@ -178,14 +181,15 @@ export function SubjectsSection({
                 <div className="md:col-span-2">
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-sm font-medium text-stone-700">Программа обучения</label>
-                    <button
+                    <Button
+                      variant="ghost"
                       onClick={handleNavigateToPrograms}
                       type="button"
                       data-action="create_new_program_shortcut"
-                      className="text-xs font-medium text-[#7A404D] hover:text-[#8A4C5A] flex items-center gap-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#7A404D] rounded-sm px-1"
+                      className="w-auto h-auto border-none text-xs font-medium text-[#7A404D] hover:text-[#8A4C5A] flex items-center gap-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#7A404D] rounded-sm px-1"
                     >
                       + Новая программа
-                    </button>
+                    </Button>
                   </div>
                   <Select
                     value={subject.programs?.[0]?.id || ''}
@@ -281,14 +285,15 @@ export function SubjectsSection({
           );
         })}
 
-        <button
+        <Button
+          variant="outline"
           type="button"
           onClick={handleAddSubject}
-          className="flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-dashed border-stone-200 text-stone-500 hover:text-[#7A404D] hover:bg-[#7A404D]/5 hover:border-[#7A404D]/30 transition-colors font-medium text-sm w-full"
+          className="w-auto h-auto flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-dashed border-stone-200 text-stone-500 hover:text-[#7A404D] hover:bg-[#7A404D]/5 hover:border-[#7A404D]/30 transition-colors font-medium text-sm w-full"
         >
           <Plus size={18} />
           Добавить ещё предмет
-        </button>
+        </Button>
 
         {/* Кто оплачивает занятия */}
         <div className="bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-200">
@@ -359,7 +364,9 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                         className="flex-1 bg-transparent border-0 px-4 py-2.5 text-stone-900 placeholder:text-stone-400 !outline-none !ring-0 !shadow-none focus:ring-0 focus:shadow-none focus:outline-none w-full min-w-0"
                       />
                       <Tooltip text={channel.isPrimary ? "Основной канал связи" : "Сделать основным"} position="top" wrapperClassName="shrink-0 flex">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           type="button"
                           onClick={() => {
                             const newChannels = (formData.contacts.studentChannels || []).map((ch, i) => ({
@@ -369,45 +376,48 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                             handleContactChange('studentChannels', newChannels);
                           }}
                           className={cn(
-                            "px-3 border-l border-stone-200 h-full flex items-center justify-center transition-colors outline-none",
+                            "w-auto px-3 border-l border-stone-200 h-full flex items-center justify-center transition-colors outline-none",
                             channel.isPrimary ? "bg-[#7A404D]/10 text-[#7A404D] border-[#7A404D]/20" : "bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600"
                           )}
                         >
                           {/* If no channel is marked primary, fallback to first in consumer code. So explicit true is visually indicated. */}
                           <svg width="16" height="16" viewBox="0 0 24 24" fill={channel.isPrimary ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        </button>
+                        </Button>
                       </Tooltip>
                     </div>
                   </div>
                   <Tooltip text="Удалить канал" position="top" wrapperClassName="shrink-0 self-end mb-[2px] z-10">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       type="button"
                       onClick={() => {
                         const newChannels = [...(formData.contacts.studentChannels || [])];
                         newChannels.splice(idx, 1);
                         handleContactChange('studentChannels', newChannels);
                       }}
-                      className="p-3 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                      className="w-auto h-auto p-3 border-none text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                     >
                       <Trash2 size={18} />
-                    </button>
+                    </Button>
                   </Tooltip>
                 </div>
               </div>
             ))}
 
-            <button
+            <Button
+              variant="outline"
               type="button"
               onClick={() => {
                 const newChannels = [...(formData.contacts.studentChannels || [])];
                 newChannels.push({ type: 'telegram', value: '' });
                 handleContactChange('studentChannels', newChannels);
               }}
-              className="flex items-center justify-center gap-2 py-3 mt-2 rounded-xl border border-dashed border-stone-300 text-stone-500 hover:text-[#7A404D] hover:bg-[#7A404D]/5 hover:border-[#7A404D]/30 transition-colors font-medium text-sm w-full"
+              className="w-auto h-auto flex items-center justify-center gap-2 py-3 mt-2 rounded-xl border border-dashed border-stone-300 text-stone-500 hover:text-[#7A404D] hover:bg-[#7A404D]/5 hover:border-[#7A404D]/30 transition-colors font-medium text-sm w-full"
             >
               <Plus size={16} />
               Добавить канал ученика
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -429,18 +439,19 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                 />
               ))
             )}
-            <button
+            <Button
+              variant="outline"
               type="button"
               onClick={() => {
                 const newParents = [...(formData.contacts.parents || [])];
                 newParents.push({ role: '', name: '', gender: 'unknown', channel: { type: 'telegram', value: '' } });
                 handleContactChange('parents', newParents);
               }}
-              className="flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-stone-300 text-stone-500 hover:text-[#7A404D] hover:bg-[#7A404D]/5 hover:border-[#7A404D]/30 transition-colors font-medium text-sm w-full"
+              className="w-auto h-auto flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-stone-300 text-stone-500 hover:text-[#7A404D] hover:bg-[#7A404D]/5 hover:border-[#7A404D]/30 transition-colors font-medium text-sm w-full"
             >
               <Plus size={16} />
               Добавить представителя
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -450,17 +461,18 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
 
 // ── Плавающая кнопка сохранения ───────────────────────────────────────────────
 
-export function SaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchive, isArchived }) {
+export function SaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchive, isArchived, hasHistory }) {
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 p-3 px-4 bg-white/95 backdrop-blur-md border border-stone-200/80 rounded-2xl flex justify-between items-center z-50 shadow-2xl shadow-stone-900/10 w-[calc(100%-2rem)] max-w-4xl transition-all duration-300">
       <div className="flex w-full justify-between items-center">
         <div className="flex items-center gap-2">
-          {isEditMode && onArchive && (
-            <button
+          {isEditMode && onArchive && (hasHistory || isArchived) && (
+            <Button
+              variant="ghost"
               onClick={onArchive}
               disabled={isSaving}
               data-action="archive_student"
-              className={`px-4 py-2.5 rounded-xl font-medium transition-colors outline-none focus-visible:ring-2 flex items-center gap-2 ${
+              className={`w-auto h-auto px-4 py-2.5 border-none rounded-xl font-medium transition-colors outline-none focus-visible:ring-2 flex items-center gap-2 ${
                 isArchived
                   ? 'text-teal-700 hover:bg-teal-50 focus-visible:ring-teal-400'
                   : 'text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400'
@@ -470,38 +482,40 @@ export function SaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArch
               <span className="hidden sm:inline">
                 {isArchived ? 'Восстановить' : 'В архив'}
               </span>
-            </button>
+            </Button>
           )}
-          {isEditMode && onDelete && (
-            <button
+          {isEditMode && onDelete && (!hasHistory || isArchived) && (
+            <Button
+              variant="ghost"
               onClick={onDelete}
               disabled={isSaving}
               data-action="delete_student"
-              className="px-4 py-2.5 rounded-xl font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400 flex items-center gap-2"
+              className="w-auto h-auto px-4 py-2.5 border-none rounded-xl font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400 flex items-center gap-2"
             >
               <Trash2 size={18} />
               <span className="hidden sm:inline">Удалить</span>
-            </button>
+            </Button>
           )}
         </div>
         <div className="flex gap-4">
-          <button
+          <Button
+            variant="ghost"
             onClick={onBack}
             disabled={isSaving}
             data-action="cancel_edit"
-            className="px-6 py-2.5 rounded-xl font-medium text-stone-600 hover:bg-stone-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-stone-400 active:scale-[0.98] disabled:opacity-50"
+            className="w-auto h-auto px-6 py-2.5 border-none rounded-xl font-medium text-stone-600 hover:bg-stone-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-stone-400 active:scale-[0.98] disabled:opacity-50"
           >
             Отмена
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onSave}
             disabled={isSaving}
             data-action="save_student"
-            className="px-8 py-2.5 bg-[#7A404D] text-white rounded-xl font-medium shadow-sm hover:bg-[#8A4C5A] transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A404D] active:scale-[0.98] disabled:opacity-70 flex items-center gap-2"
+            className="w-auto h-auto px-8 py-2.5 border-none bg-[#7A404D] text-white rounded-xl font-medium shadow-sm hover:bg-[#8A4C5A] transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A404D] active:scale-[0.98] disabled:opacity-70 flex items-center gap-2"
           >
             {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             Сохранить
-          </button>
+          </Button>
         </div>
       </div>
     </div>

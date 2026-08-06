@@ -38,6 +38,7 @@ import {
 } from "../../services/excelAdapter.js";
 import { batchImportProgram } from "../../services/database.js";
 import { useToast } from "../ui/Toast.jsx";
+import Button from '../ui/Button.jsx';
 
 // ─── Утилиты ──────────────────────────────────────────────────────────────────
 function pluralRu(n, one, few, many) {
@@ -91,12 +92,13 @@ function DropScreen({ onFilePicked, onExportTemplate, program }) {
             нужные темы и загрузите файл обратно.
           </p>
         </div>
-        <button
+        <Button
+          variant="filled"
           type="button"
           onClick={handleExport}
           disabled={isExporting}
           className={cn(
-            "flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl",
+            "w-auto h-auto border-none flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl",
             "text-sm font-medium text-white bg-[#1B4F72] hover:bg-[#154060]",
             "transition-all duration-150 active:scale-[0.97]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
@@ -109,7 +111,7 @@ function DropScreen({ onFilePicked, onExportTemplate, program }) {
             <Download size={14} strokeWidth={2} />
           )}
           {isExporting ? "Готовим..." : "Скачать"}
-        </button>
+        </Button>
       </div>
 
       {/* ── Dropzone ─────────────────────────────────────────────── */}
@@ -306,26 +308,28 @@ function DiffPreviewScreen({ diff, parsed, onConfirm, onBack, isSaving }) {
 
       {/* ── Кнопки ──────────────────────────────────────────────── */}
       <div className="flex gap-2">
-        <button
+        <Button
+          variant="secondary"
           type="button"
           onClick={onBack}
           disabled={isSaving}
           className={cn(
-            "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium",
-            "text-stone-600 bg-stone-100 hover:bg-stone-200",
-            "transition-colors duration-150 active:scale-[0.98]",
+            "w-auto h-auto px-4 py-2.5 rounded-xl text-sm font-medium",
+            "text-stone-600 bg-stone-100 hover:bg-stone-200 border-none",
+            "transition-colors duration-150 active:scale-[0.98] flex-1",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400",
             "disabled:opacity-40 disabled:pointer-events-none",
           )}
         >
           ← Изменить файл
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="filled"
           type="button"
           onClick={onConfirm}
           disabled={isSaving || (added === 0 && updated === 0)}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl",
+            "w-auto h-auto flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-none",
             "text-sm font-medium text-white bg-[#1B4F72] hover:bg-[#154060]",
             "transition-all duration-150 active:scale-[0.98]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
@@ -343,7 +347,7 @@ function DiffPreviewScreen({ diff, parsed, onConfirm, onBack, isSaving }) {
               Подтвердить импорт
             </>
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -364,11 +368,12 @@ function ErrorScreen({ message, onRetry }) {
           {message}
         </p>
       </div>
-      <button
+      <Button
+        variant="outline"
         type="button"
         onClick={onRetry}
         className={cn(
-          "flex items-center gap-2 px-4 py-2.5 rounded-xl",
+          "w-auto h-auto flex items-center gap-2 px-4 py-2.5 rounded-xl",
           "text-sm font-medium text-[#1B4F72]",
           "border border-[#1B4F72]/25 hover:bg-[#1B4F72]/5 hover:border-[#1B4F72]/40",
           "transition-all duration-150 active:scale-[0.98]",
@@ -377,7 +382,7 @@ function ErrorScreen({ message, onRetry }) {
       >
         <RefreshCw size={14} strokeWidth={2} />
         Попробовать другой файл
-      </button>
+      </Button>
     </div>
   );
 }
@@ -525,20 +530,22 @@ export default function ExcelImportFlow({ program, onClose, onImportComplete }) 
           </div>
 
           {/* Кнопка закрытия */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             type="button"
             onClick={onClose}
             disabled={isSaving}
             aria-label="Закрыть"
             className={cn(
-              "p-1.5 rounded-xl text-stone-400 hover:text-stone-600 hover:bg-stone-100",
+              "w-auto h-auto border-none p-1.5 rounded-xl text-stone-400 hover:text-stone-600 hover:bg-stone-100",
               "transition-all duration-150 active:scale-[0.90]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400",
               "disabled:opacity-40 disabled:pointer-events-none",
             )}
           >
             <X size={16} strokeWidth={2} />
-          </button>
+          </Button>
         </div>
 
         {/* ── Тело (переключение экранов) ──────────────────────── */}

@@ -2,10 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import Modal from './Modal.jsx';
 
-const BTN_BASE =
-  "inline-flex items-center justify-center font-medium text-sm rounded-xl " +
-  "transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 " +
-  "disabled:opacity-40 disabled:cursor-not-allowed";
+import Button from './Button.jsx';
 
 export function ConfirmModal({ isOpen, onClose, onConfirm, title, description, bullets, confirmLabel, isLoading }) {
   return (
@@ -22,15 +19,12 @@ export function ConfirmModal({ isOpen, onClose, onConfirm, title, description, b
           </ul>
         )}
         <div className="flex gap-3 pt-1">
-          <button onClick={onClose}
-            className={`${BTN_BASE} flex-1 h-10 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-300`}>
+          <Button variant="secondary" onClick={onClose} className="flex-1">
             Отмена
-          </button>
-          <button onClick={onConfirm} disabled={isLoading}
-            className={`${BTN_BASE} flex-1 h-10 bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm`}>
-            {isLoading && <Loader2 size={14} className="animate-spin mr-1.5" />}
+          </Button>
+          <Button variant="danger" onClick={onConfirm} loading={isLoading} className="flex-1 shadow-sm">
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

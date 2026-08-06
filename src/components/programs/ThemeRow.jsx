@@ -16,6 +16,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "../../utils/cn.js";
 import Tooltip from '../../components/ui/Tooltip.jsx';
+import Button from '../ui/Button.jsx';
 
 /**
  * @param {object}   props
@@ -79,17 +80,19 @@ export default function ThemeRow({
       )}
     >
       {/* ── DnD Grip ─────────────────────────────────────────────── */}
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         ref={setActivatorNodeRef}
         {...listeners}
         type="button"
         aria-label="Перетащить тему"
         tabIndex={-1}                        // не попадает в Tab-order страницы
-        className="pe-grip touch-none"
+        className="w-auto h-auto border-none pe-grip touch-none"
         onClick={(e) => e.stopPropagation()} // не выбирать тему при захвате
       >
         <GripVertical size={14} strokeWidth={2} />
-      </button>
+      </Button>
 
       {/* ── Порядковый номер ─────────────────────────────────────── */}
       <span className="text-xs tabular-nums text-stone-400 flex-shrink-0 w-6 text-right select-none">
@@ -130,7 +133,9 @@ export default function ThemeRow({
         )}
 
         {/* Кнопка завершения */}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           aria-label={theme.isCompleted ? "Отметить как незавершённую" : "Отметить как завершённую"}
           onClick={(e) => {
@@ -138,7 +143,7 @@ export default function ThemeRow({
             onToggleComplete?.(theme.id, theme.isCompleted);
           }}
           className={cn(
-            "p-0.5 rounded-md transition-all duration-150",
+            "w-auto h-auto border-none p-0.5 rounded-md transition-all duration-150",
             "opacity-0 group-hover/row:opacity-100",
             "focus-visible:opacity-100 focus-visible:outline-none",
             "focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
@@ -152,7 +157,7 @@ export default function ThemeRow({
             ? <CheckCircle2 size={14} strokeWidth={2} />
             : <Circle size={14} strokeWidth={2} />
           }
-        </button>
+        </Button>
       </div>
     </div>
   );

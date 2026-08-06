@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { cn } from '../../../utils/cn.js';
+import Button from '../../ui/Button.jsx';
 
 export default function StudentTileFinance({
   studentId,
@@ -21,7 +22,8 @@ export default function StudentTileFinance({
         </span>
       </div>
       
-      <button
+      <Button
+        variant="outline"
         onClick={(e) => {
           e.stopPropagation();
           onPayment(studentId);
@@ -30,7 +32,7 @@ export default function StudentTileFinance({
       >
         <Plus size={16} strokeWidth={2.5} className={balanceData.isDebtor ? "text-red-500" : "text-emerald-500"} />
         <span>Оплата</span>
-      </button>
+      </Button>
     </div>
   );
 }

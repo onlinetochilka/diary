@@ -79,17 +79,25 @@ class MockCollection {
 
   async getOne(id) {
     const item = this.items.find((i) => i.id === id);
-    if (!item) return Promise.reject(new Error(`ClientResponseError 404: Record ${id} not found`));
+    if (!item) {
+      const err = new Error(`ClientResponseError 404: Record ${id} not found`);
+      err.status = 404;
+      return Promise.reject(err);
+    }
     return Promise.resolve(item);
   }
 
   async create(data) {
     const db = this.getDb();
+    const newId = data.id || ("mock_" + Math.random().toString(36).slice(2, 11));
+    const cleanData = { ...data };
+    delete cleanData.id;
+
     const newItem = {
-      id: "mock_" + Math.random().toString(36).slice(2, 11),
+      id: newId,
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
-      ...data
+      ...cleanData
     };
     if (!db[this.name]) db[this.name] = [];
     db[this.name].push(newItem);
@@ -101,7 +109,11 @@ class MockCollection {
     const db = this.getDb();
     if (!db[this.name]) db[this.name] = [];
     const index = db[this.name].findIndex(i => i.id === id);
-    if (index === -1) return Promise.reject(new Error(`ClientResponseError 404: Record ${id} not found`));
+    if (index === -1) {
+      const err = new Error(`ClientResponseError 404: Record ${id} not found`);
+      err.status = 404;
+      return Promise.reject(err);
+    }
     
     db[this.name][index] = {
       ...db[this.name][index],
@@ -126,7 +138,22 @@ export function getMockDatabase() {
   const stored = localStorage.getItem("demo_db");
   if (stored) {
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      let needsSave = false;
+      Object.keys(parsed).forEach(colName => {
+        if (Array.isArray(parsed[colName])) {
+          parsed[colName].forEach(item => {
+            if (!item.id) {
+              item.id = "mock_" + Math.random().toString(36).slice(2, 11);
+              needsSave = true;
+            }
+          });
+        }
+      });
+      if (needsSave) {
+        localStorage.setItem("demo_db", JSON.stringify(parsed));
+      }
+      return parsed;
     } catch (e) {
       console.error("Failed to parse demo_db", e);
     }
