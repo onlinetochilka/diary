@@ -338,7 +338,6 @@ export default function WeekView({
           Ctrl / Alt — скопировать
         </span>
       </div>
-      </div>
 
       {activeNotesDate && (
         <DayNotesPopover 
