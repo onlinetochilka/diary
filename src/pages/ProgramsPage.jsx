@@ -14,14 +14,18 @@
  */
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { BookOpen, Plus, FilePlus2 } from "lucide-react";
+import { BookOpen, Plus, FilePlus2, Users } from "lucide-react";
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '../components/ui/Card.jsx';
 import Button from '../components/ui/Button.jsx';
 import Input from '../components/ui/Input.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import { ProgramCardSkeleton } from '../components/ui/Skeletons.jsx';
 import { usePrograms } from "../hooks/usePrograms.js";
+import { useStudents } from "../hooks/useStudents.js";
+import { useGroups } from "../hooks/useGroups.js";
 import { useToast } from "../components/ui/Toast.jsx";
+import Tooltip from '../components/ui/Tooltip.jsx';
 import ProgramEditorPage from "../components/programs/ProgramEditorPage.jsx";
 import ProgramStructure from "../components/programs/ProgramStructure.jsx";
 import InspectorPanel from "../components/programs/InspectorPanel.jsx";
@@ -34,8 +38,156 @@ import ProgramsFilterBar from "../components/programs/ProgramsFilterBar.jsx";
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
 
+// ─── Модалка привязки учеников и групп ────────────────────────
+function ProgramAssignModal({ isOpen, onClose, programId, programName, programs }) {
+  const { students, patchStudent } = useStudents();
+  const { groups, updateGroup } = useGroups();
+  const queryClient = useQueryClient();
+  const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [selectedGroups, setSelectedGroups] = useState(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = useToast();
+
+  const program = programs.find(p => p.id === programId);
+
+  useEffect(() => {
+    if (isOpen && program) {
+      const st = new Set();
+      students.forEach(s => {
+        if (s.subjects?.some(sub => sub.programs?.some(p => p.id === programId))) st.add(s.id);
+      });
+      setSelectedStudents(st);
+
+      const gr = new Set();
+      groups.forEach(g => {
+        if (g.programs?.some(p => p.id === programId)) gr.add(g.id);
+      });
+      setSelectedGroups(gr);
+    }
+  }, [isOpen, programId, students, groups, program]);
+
+  if (!isOpen || !program) return null;
+
+  const toggleStudent = (id) => {
+    const next = new Set(selectedStudents);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedStudents(next);
+  };
+
+  const toggleGroup = (id) => {
+    const next = new Set(selectedGroups);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedGroups(next);
+  };
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      const promises = [];
+      for (const s of students) {
+        const hasItNow = s.subjects?.some(sub => sub.programs?.some(p => p.id === programId));
+        const shouldHaveIt = selectedStudents.has(s.id);
+        if (hasItNow !== shouldHaveIt) {
+          const newSubjects = [...(s.subjects || [])];
+          if (newSubjects.length === 0 && shouldHaveIt) {
+            newSubjects.push({
+               id: Math.random().toString(36).substring(2, 9),
+               name: program.subject || "Предмет", format: 'online', price: 0, duration: 60,
+               programs: [{ id: program.id, name: program.name, topics: program.topics, colorOklch: program.colorOklch }]
+            });
+          } else if (newSubjects.length > 0) {
+            const targetIdx = newSubjects.findIndex(sub => sub.name === program.subject);
+            const idx = targetIdx !== -1 ? targetIdx : 0;
+            const sub = { ...newSubjects[idx] };
+            let currentProgs = [...(sub.programs || [])];
+            if (shouldHaveIt) {
+              currentProgs.push({ id: program.id, name: program.name, topics: program.topics, colorOklch: program.colorOklch });
+            } else {
+              currentProgs = currentProgs.filter(p => p.id !== programId);
+            }
+            sub.programs = currentProgs;
+            newSubjects[idx] = sub;
+          }
+          promises.push(patchStudent(s.id, { subjects: newSubjects }));
+        }
+      }
+
+      for (const g of groups) {
+        const hasItNow = g.programs?.some(p => p.id === programId);
+        const shouldHaveIt = selectedGroups.has(g.id);
+        if (hasItNow !== shouldHaveIt) {
+          let currentProgs = [...(g.programs || [])];
+          if (shouldHaveIt) {
+            currentProgs.push({ id: program.id, name: program.name, topics: program.topics, colorOklch: program.colorOklch });
+          } else {
+            currentProgs = currentProgs.filter(p => p.id !== programId);
+          }
+          promises.push(updateGroup(g.id, { programs: currentProgs }));
+        }
+      }
+
+      await Promise.all(promises);
+      await queryClient.invalidateQueries({ queryKey: ['students'] });
+      await queryClient.invalidateQueries({ queryKey: ['groups'] });
+      showToast({ message: "Привязки успешно обновлены", type: "success" });
+      onClose();
+    } catch (err) {
+      console.error(err);
+      showToast({ message: "Ошибка при сохранении", type: "error" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 animate-scale-in max-h-[85vh] flex flex-col">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-stone-900">Назначить программу</h2>
+          <p className="text-sm text-stone-500">Выберите, кому назначить «{programName}»</p>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-2">
+          {groups.length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-2">Группы</h3>
+              <div className="space-y-2">
+                {groups.map(g => (
+                  <label key={g.id} className="flex items-center gap-3 p-3 rounded-xl border border-stone-200 hover:bg-stone-50 cursor-pointer transition-colors">
+                    <input type="checkbox" className="w-4 h-4 rounded border-stone-300 text-[#7A5299] focus:ring-[#7A5299]" checked={selectedGroups.has(g.id)} onChange={() => toggleGroup(g.id)} />
+                    <span className="text-sm font-medium text-stone-800">{g.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          {students.filter(s => !s.isArchived).length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-2">Ученики</h3>
+              <div className="space-y-2">
+                {students.filter(s => !s.isArchived).map(s => (
+                  <label key={s.id} className="flex items-center gap-3 p-3 rounded-xl border border-stone-200 hover:bg-stone-50 cursor-pointer transition-colors">
+                    <input type="checkbox" className="w-4 h-4 rounded border-stone-300 text-[#7A5299] focus:ring-[#7A5299]" checked={selectedStudents.has(s.id)} onChange={() => toggleStudent(s.id)} />
+                    <span className="text-sm font-medium text-stone-800">{s.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          {groups.length === 0 && students.length === 0 && <p className="text-sm text-stone-500">Нет доступных учеников и групп.</p>}
+        </div>
+        <div className="mt-6 pt-4 border-t border-stone-100 flex justify-end gap-3 shrink-0">
+          <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Отмена</Button>
+          <Button variant="filled" onClick={handleSave} disabled={isSubmitting} className="bg-[#7A5299] text-white hover:bg-[#684185] border-none">
+            {isSubmitting ? "Сохранение..." : "Сохранить"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Список карточек программ ─────────────────────────────────────────────────
-function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreateNew }) {
+function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreateNew, onAssignProgram }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("name_asc");
 
@@ -134,12 +286,25 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
           {processedPrograms.map((prog) => (
-            <ProgramCard 
-               key={prog.id}
-               program={prog}
-               onOpenEditor={onOpenEditor}
-               onDelete={onDelete}
-            />
+            <div key={prog.id} className="relative group">
+              <ProgramCard 
+                 program={prog}
+                 onOpenEditor={onOpenEditor}
+                 onDelete={onDelete}
+              />
+              <div className="absolute top-[18px] right-[52px] opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
+                <Tooltip text="Назначить ученикам" position="top">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={(e) => { e.stopPropagation(); onAssignProgram(prog.id); }} 
+                    className="w-auto h-auto p-2 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-[#7A5299] transition-colors bg-white/50 backdrop-blur-sm border-none outline-none"
+                  >
+                    <Users size={16} />
+                  </Button>
+                </Tooltip>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -159,6 +324,7 @@ export default function ProgramsPage() {
 
   // State-роутинг: null = список, string = редактор
   const [selectedProgramId, setSelectedProgramId] = useState(null);
+  const [assignProgramId, setAssignProgramId] = useState(null);
 
   // ── Создание новой программы ────────────────────────────────────────
   const handleCreate = useCallback(async () => {
@@ -237,13 +403,23 @@ export default function ProgramsPage() {
 
   // ── Список карточек ──────────────────────────────────────────────────
   return (
-    <ProgramsListView
-      programs={programs}
-      isLoading={isLoading}
-      onOpenEditor={setSelectedProgramId}
-      onDelete={handleDelete}
-      onCreateNew={handleCreate}
-    />
+    <>
+      <ProgramsListView
+        programs={programs}
+        isLoading={isLoading}
+        onOpenEditor={setSelectedProgramId}
+        onDelete={handleDelete}
+        onCreateNew={handleCreate}
+        onAssignProgram={setAssignProgramId}
+      />
+      <ProgramAssignModal
+        isOpen={!!assignProgramId}
+        onClose={() => setAssignProgramId(null)}
+        programId={assignProgramId}
+        programName={programs.find(p => p.id === assignProgramId)?.name}
+        programs={programs}
+      />
+    </>
   );
 }
 

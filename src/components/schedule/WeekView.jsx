@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Tooltip from '../ui/Tooltip.jsx';
 import DroppableSlot from './DroppableSlot.jsx';
 import { LessonCard } from './LessonCard.jsx';
 import { ymd, renderStatusIcon } from './scheduleUtils.jsx';
+import DayNotesPopover from './DayNotesPopover.jsx';
+import { useAllDayNotes } from '../../hooks/useDayNotes.js';
 
 export default function WeekView({
   currentDate,
@@ -25,16 +27,23 @@ export default function WeekView({
   onCardClick,
   onDateClick,
   onDateDoubleClick,
+  onQuickModal,
 }) {
+  const [activeNotesDate, setActiveNotesDate] = useState(null);
+  
   const d = new Date(currentDate);
   const dayOfWeek = d.getDay() === 0 ? 6 : d.getDay() - 1;
   d.setDate(d.getDate() - dayOfWeek); // Start of week (Monday)
   
   const weekDays = [];
+  const weekDateStrs = [];
   for (let i = 0; i < 7; i++) {
     weekDays.push(new Date(d));
+    weekDateStrs.push(ymd(d));
     d.setDate(d.getDate() + 1);
   }
+
+  const allNotes = useAllDayNotes(weekDateStrs);
 
   const todayStr = ymd(new Date());
   
@@ -137,8 +146,22 @@ export default function WeekView({
                   </div>
                 )}
                 <div className={`text-[9px] sm:text-[10px] font-bold tracking-widest uppercase mb-1 ${isToday ? 'text-academic-blue' : 'text-stone-400'}`}>{dayName}</div>
-                <div className={`text-lg sm:text-2xl font-bold leading-none flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full ${isToday ? 'bg-academic-blue text-white shadow-sm' : 'text-stone-800'}`}>
-                  {wd.getDate()}
+                <div className="relative group">
+                  <div className={`text-lg sm:text-2xl font-bold leading-none flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full ${isToday ? 'bg-academic-blue text-white shadow-sm' : 'text-stone-800'}`}>
+                    {wd.getDate()}
+                  </div>
+                  {/* Скрепка для заметок */}
+                  <div 
+                    className="absolute -top-1 -right-3 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1 z-20"
+                    onClick={(e) => { e.stopPropagation(); setActiveNotesDate(dateStr); }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 hover:text-slate-600 transition-colors">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                    </svg>
+                    {allNotes[dateStr] && allNotes[dateStr].items?.some(i => !i.done) && (
+                      <div className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-slate-600 border border-white" />
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -280,6 +303,7 @@ export default function WeekView({
                             }}
                             onFinClick={onFinClick}
                             onHwClick={onHwClick}
+                            onQuickModalClick={() => onQuickModal?.(l)}
                             onMoreClick={(e) => {
                               e.stopPropagation();
                               const rect = e.currentTarget.getBoundingClientRect();
@@ -315,5 +339,13 @@ export default function WeekView({
         </span>
       </div>
       </div>
+
+      {activeNotesDate && (
+        <DayNotesPopover 
+          dateStr={activeNotesDate} 
+          onClose={() => setActiveNotesDate(null)} 
+        />
+      )}
+    </div>
   );
 }

@@ -12,7 +12,8 @@ export const LessonCard = ({
   onMoreClick, 
   topic,
   onHwClick,
-  onFinClick
+  onFinClick,
+  onQuickModalClick
 }) => {
   const { title, isFaded, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt } = displayData;
   
@@ -29,6 +30,7 @@ export const LessonCard = ({
       onMoreClick={onMoreClick}
       onHwClick={onHwClick}
       onFinClick={onFinClick}
+      onQuickModalClick={onQuickModalClick}
       compact={compact}
       layout={layout}
       isOverlay={false}

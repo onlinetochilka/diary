@@ -133,16 +133,14 @@ export function useDashboardData() {
         return { student: s, count: data.count, lessons: data.lessons };
       })
       .filter(x => x.student)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+      .sort((a, b) => b.count - a.count);
   }, [lessons, students, loading]);
 
   const moneyDebts = useMemo(() => {
     if (loading) return [];
     return students
       .filter(s => s.balance < 0)
-      .sort((a, b) => a.balance - b.balance)
-      .slice(0, 5);
+      .sort((a, b) => a.balance - b.balance);
   }, [students, loading]);
 
   const actionItems = useMemo(() => {
@@ -161,6 +159,50 @@ export function useDashboardData() {
       })),
     ].sort((a, b) => b.priority - a.priority);
   }, [moneyDebts, hwDebts, loading]);
+
+  const tutorDebts = useMemo(() => {
+    if (loading) return [];
+    const nowStr = now.toTimeString().substring(0, 5); // "HH:MM"
+    const todayIs = todayStr;
+    const debts = [];
+
+    lessons.forEach(l => {
+      // 1. Unmarked lesson
+      const isPast = l.date < todayIs || (l.date === todayIs && l.endTime < nowStr);
+      if (l.status === "scheduled" && isPast && l.status !== "cancelled" && l.status !== "skipped_free") {
+        let name = "Неизвестно";
+        let studentObj = null;
+        if (l.type === "individual" && l.studentId) {
+          const s = students.find(x => x.id === l.studentId);
+          if (s) { name = s.name; studentObj = s; }
+        } else if (l.type === "group") {
+          name = "Группа";
+        }
+        debts.push({ id: `unmarked-${l.id}`, type: "unmarked_lesson", lesson: { ...l, displayName: name, studentObj }, priority: 2000 });
+      }
+
+      // 2. Unset HW
+      const hasHwText = typeof l.homework === "string" ? l.homework.trim().length > 0 : (l.homework?.text?.trim()?.length > 0);
+      const isExplicitlyNotAssigned = l.isHwNotAssigned === true;
+      if (l.status === "conducted" && !hasHwText && !isExplicitlyNotAssigned) {
+        let name = "Неизвестно";
+        let studentObj = null;
+        if (l.type === "individual" && l.studentId) {
+          const s = students.find(x => x.id === l.studentId);
+          if (s) { name = s.name; studentObj = s; }
+        } else if (l.type === "group") {
+          name = "Группа";
+        }
+        debts.push({ id: `unsethw-${l.id}`, type: "unset_hw", lesson: { ...l, displayName: name, studentObj }, priority: 1000 });
+      }
+    });
+
+    return debts.sort((a, b) => {
+      if (b.priority !== a.priority) return b.priority - a.priority;
+      // Secondary sort by date (oldest first)
+      return a.lesson.date.localeCompare(b.lesson.date);
+    });
+  }, [lessons, students, loading, todayStr, now]);
 
   const stats = useMemo(() => {
     if (loading) return INITIAL_STATS;
@@ -229,5 +271,5 @@ export function useDashboardData() {
     monthStart, nextMonthStart, monthStartStr, nextMonthStartStr, weekStartStr, weekEndStr, todayLessons.length
   ]);
 
-  return { loading, todayLessons, hwDebts, moneyDebts, actionItems, stats, metricsConfig, setMetricsConfig, refresh };
+  return { loading, todayLessons, hwDebts, moneyDebts, actionItems, tutorDebts, stats, metricsConfig, setMetricsConfig, refresh, students };
 }

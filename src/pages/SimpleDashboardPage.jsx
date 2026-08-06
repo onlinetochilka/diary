@@ -22,6 +22,7 @@ import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
 import Tooltip from '../components/ui/Tooltip.jsx';
 import Select from '../components/ui/Select.jsx';
+import LitePaymentModal from '../components/finance/LitePaymentModal.jsx';
 
 import { usePayments } from "../hooks/usePayments.js";
 import { useStudents } from "../hooks/useStudents.js";
@@ -182,58 +183,7 @@ function StatsBento({ stats }) {
   );
 }
 
-// ── CUSTOM PAYMENT MODAL FOR LITE MODE ───────────────────────────────────────
-function LitePaymentModal({ isOpen, onClose, students, onConfirm }) {
-  const [amount, setAmount] = useState("");
-  const [studentId, setStudentId] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      setAmount("");
-      setStudentId("");
-    }
-  }, [isOpen]);
-
-  const activeStudents = students.filter(s => !s.isArchived);
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Отметить оплату" maxWidth="max-w-sm">
-      <div className="space-y-4">
-        <div className="pt-2">
-          <Select 
-            label="Ученик"
-            name="studentId"
-            value={studentId} 
-            onChange={e => setStudentId(e.target.value)}
-          >
-            <option value="" disabled hidden>Выберите ученика...</option>
-            {activeStudents.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </Select>
-        </div>
-        <div className="pt-2">
-          <Input 
-            label="Сумма (₽)"
-            type="number" 
-            value={amount} 
-            onChange={e => setAmount(e.target.value)}
-            placeholder="Например, 1500"
-          />
-        </div>
-        <div className="pt-2">
-          <Button 
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" 
-            disabled={!studentId || !amount || Number(amount) <= 0}
-            onClick={() => onConfirm(studentId, Number(amount))}
-          >
-            Сохранить оплату
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
 
 // ── MAIN PAGE COMPONENT ─────────────────────────────────────────────────────
 export default function SimpleDashboardPage() {

@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import StudentMiniCard from "./StudentMiniCard.jsx";
 import Button from "../ui/Button.jsx";
 
-export default function ScheduleSidebar({ lessons, students, groups, periodLabel = "на неделе", onCreateLesson, onCreateStudent, onAddLesson, onGoToProfile, selectedEntityId, onCardClick, isTimelineMode, selectedDateStr }) {
+export default function ScheduleSidebar({ lessons, students, groups, periodLabel = "на неделе", onCreateLesson, onCreateStudent, onAddLesson, onGoToProfile, selectedEntityId, onCardClick, isTimelineMode, selectedDateStr, onQuickModal, onOpenInspector }) {
   const cardsData = useMemo(() => {
     if (!lessons || lessons.length === 0) return [];
     
@@ -113,17 +113,30 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
                 const title = entity ? entity.name : 'Неизвестно';
                 const colorStr = entity?.colorOklch ? `oklch(${entity.colorOklch.l} ${entity.colorOklch.c ?? 0.12} ${entity.colorOklch.h})` : '#e7e5e4';
                 return (
-                  <Button 
-                    key={lesson.id}
-                    variant="ghost"
-                    onClick={() => onCardClick({ id: lesson.id, type: 'lesson' })}
-                    className="flex flex-col items-start w-full h-auto p-3 bg-white border border-stone-200 rounded-xl hover:border-[#006584]/30 hover:shadow-sm hover:bg-white transition-all text-left font-normal"
-                    style={{ borderLeft: `4px solid ${colorStr}` }}
-                  >
-                    <div className="text-xs font-bold text-stone-500 mb-1">{lesson.startTime} - {lesson.endTime}</div>
-                    <div className="text-sm font-semibold text-stone-800">{title}</div>
-                    {lesson.subjectName && <div className="text-[11px] text-stone-400 mt-0.5">{lesson.subjectName}</div>}
-                  </Button>
+                  <div key={lesson.id} className="relative group">
+                    <Button 
+                      variant="ghost"
+                      onClick={() => onCardClick({ id: lesson.id, type: 'lesson' })}
+                      className="flex flex-col items-start w-full h-auto p-3 bg-white border border-stone-200 rounded-xl hover:border-[#006584]/30 hover:shadow-sm hover:bg-white transition-all text-left font-normal"
+                      style={{ borderLeft: `4px solid ${colorStr}` }}
+                    >
+                      <div className="text-xs font-bold text-stone-500 mb-1">{lesson.startTime} - {lesson.endTime}</div>
+                      <div className="text-sm font-semibold text-stone-800">{title}</div>
+                      {lesson.subjectName && <div className="text-[11px] text-stone-400 mt-0.5">{lesson.subjectName}</div>}
+                    </Button>
+                    
+                    {onQuickModal && (
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          className="w-7 h-7 p-0 rounded-md bg-stone-100/80 backdrop-blur text-stone-500 hover:bg-emerald-100 hover:text-emerald-600 shadow-sm border border-stone-200/50 flex items-center justify-center"
+                          onClick={(e) => { e.stopPropagation(); onQuickModal(lesson, entity); }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -138,6 +151,8 @@ export default function ScheduleSidebar({ lessons, students, groups, periodLabel
                 onGoToProfile={onGoToProfile}
                 onCardClick={onCardClick}
                 isSelected={data.entity.id === selectedEntityId}
+                onQuickModal={onQuickModal}
+                onOpenInspector={onOpenInspector}
               />
             ))
           )}

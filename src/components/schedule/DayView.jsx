@@ -118,6 +118,7 @@ export default function DayView({
   setSelectedLessonId,
   createInitial,
   setCreateInitial,
+  onQuickModal,
 }) {
   const dateStr  = ymd(currentDate);
   const todayStr = ymd(new Date());
@@ -145,11 +146,18 @@ export default function DayView({
     setCreateInitial(null);
   }, [setCurrentDate]);
 
-  // Сброс выделения при смене дня (например, извне через DatePicker в шапке)
+  // Сброс выделения при смене дня (например, извне через DatePicker в шапке), 
+  // но только если выделение не принадлежит к новому дню
   useEffect(() => {
-    setSelectedLessonId(null);
-    setCreateInitial(null);
-  }, [dateStr]);
+    setSelectedLessonId(prev => {
+      if (prev && lessonsByDate[dateStr]?.some(x => x.id === prev)) return prev;
+      return null;
+    });
+    setCreateInitial(prev => {
+      if (prev && prev.date === dateStr) return prev;
+      return null;
+    });
+  }, [dateStr, lessonsByDate]);
 
   // Gap-клик — открываем форму создания в Инспекторе (без шторки)
   const handleGapClick = useCallback(({ date, startTime, endTime }) => {
@@ -284,6 +292,7 @@ export default function DayView({
                             onClick={handleCardClick}
                             onHwDebtClick={onHwClick}
                             onFinDebtClick={onFinClick}
+                            onQuickModalClick={() => onQuickModal?.(lesson)}
                           />
                         </div>
                       );

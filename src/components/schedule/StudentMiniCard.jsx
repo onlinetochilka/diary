@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { formatMoney } from "../../utils/format.js";
-import { Video, MapPin, Plus, ArrowRight } from "lucide-react";
+import { Video, MapPin, Plus, ArrowRight, Check, Search } from "lucide-react";
 import { getEntityStyle } from "../../utils/colors.js";
 import { getPlural } from "../../utils/plural.js";
 import Tooltip from "../ui/Tooltip.jsx";
@@ -14,6 +14,8 @@ export default function StudentMiniCard({
   onGoToProfile,
   onCardClick,
   isSelected,
+  onQuickModal,
+  onOpenInspector,
 }) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -83,13 +85,35 @@ export default function StudentMiniCard({
           </Tooltip>
         )}
         {onGoToProfile && (
-          <Tooltip text="К ученику" position="top">
+          <Tooltip text="Профиль ученика" position="top">
             <Button
               variant="ghost"
               onClick={(e) => { e.stopPropagation(); onGoToProfile(student); }}
               className="w-6 h-6 rounded-md p-0 bg-slate-100 hover:bg-slate-200 hover:text-slate-700 text-slate-500 flex items-center justify-center transition-colors duration-100 border-none"
             >
               <ArrowRight size={13} strokeWidth={2.5} />
+            </Button>
+          </Tooltip>
+        )}
+        {onQuickModal && nextLesson && (
+          <Tooltip text="Отметить статус" position="top">
+            <Button
+              variant="ghost"
+              onClick={(e) => { e.stopPropagation(); onQuickModal(nextLesson, student); }}
+              className="w-6 h-6 rounded-md p-0 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-600 text-slate-500 flex items-center justify-center transition-colors duration-100 border-none"
+            >
+              <Check size={13} strokeWidth={2.5} />
+            </Button>
+          </Tooltip>
+        )}
+        {onOpenInspector && nextLesson && (
+          <Tooltip text="Карточка урока" position="top">
+            <Button
+              variant="ghost"
+              onClick={(e) => { e.stopPropagation(); onOpenInspector(nextLesson, student); }}
+              className="w-6 h-6 rounded-md p-0 bg-slate-100 hover:bg-purple-100 hover:text-purple-600 text-slate-500 flex items-center justify-center transition-colors duration-100 border-none"
+            >
+              <Search size={13} strokeWidth={2.5} />
             </Button>
           </Tooltip>
         )}

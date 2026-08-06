@@ -22,6 +22,9 @@ import CommunityNewsCard, { TelegramIcon } from "../components/dashboard/Communi
 import MetricsSettingsModal from "../components/dashboard/MetricsSettingsModal.jsx";
 import { useDashboardData } from "../hooks/useDashboardData.js";
 import { CurrentDateTitle, CurrentDateSubtitle } from "../components/dashboard/CurrentDateHeader.jsx";
+import DayNotesPopover from "../components/schedule/DayNotesPopover.jsx";
+import { useDayNotes } from "../hooks/useDayNotes.js";
+import { ymd } from "../components/schedule/scheduleUtils.jsx";
 import { WidgetErrorBoundary } from "../components/ui/WidgetErrorBoundary.jsx";
 
 export default function DashboardPage() {
@@ -36,6 +39,11 @@ export default function DashboardPage() {
     loading, todayLessons = [], actionItems = [], stats = {},
     metricsConfig = [], setMetricsConfig, refresh,
   } = useDashboardData();
+
+  const todayStr = ymd(new Date());
+  const { notesRecord } = useDayNotes(todayStr);
+  const hasIncompleteNotes = notesRecord?.items?.some(i => !i.done);
+  const [showNotes, setShowNotes] = useState(false);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [actionModal, setActionModal]       = useState({ isOpen: false, item: null, mode: "remind" });
@@ -179,6 +187,18 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 mb-5 shrink-0">
               <AlertCircle size={20} className="text-stone-400" />
               <h2 className="text-lg font-bold text-stone-800">Что нужно проконтролировать</h2>
+              {/* Скрепка для заметок на сегодня */}
+              <div 
+                className="relative cursor-pointer opacity-40 hover:opacity-100 transition-opacity p-1 group ml-2"
+                onClick={() => setShowNotes(true)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-600 transition-colors">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                </svg>
+                {hasIncompleteNotes && (
+                  <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-slate-600 border-2 border-white" />
+                )}
+              </div>
               {!loading && actionItems.length > 0 && (
                 <span className="ml-auto text-xs font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full tabular-nums">
                   {actionItems.length}
@@ -243,6 +263,13 @@ export default function DashboardPage() {
           </aside>
         </WidgetErrorBoundary>
       </div>
+
+      {showNotes && (
+        <DayNotesPopover 
+          dateStr={todayStr}
+          onClose={() => setShowNotes(false)}
+        />
+      )}
 
       {/* ── Action Item Modal ─────────────────────────────────────────────── */}
       <ActionItemModal

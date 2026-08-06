@@ -26,6 +26,7 @@ export default function DayLessonCard({
   onHwDebtClick,
   onFinDebtClick,
   onTimeChange,
+  onQuickModalClick,
 }) {
   const { status, startTime, endTime, homework, subjectName } = lesson;
 
@@ -157,6 +158,15 @@ export default function DayLessonCard({
             <span className="px-1.5 py-0.5 rounded-full bg-stone-200 text-stone-500 text-[10px] font-bold">
               б/о
             </span>
+          )}
+          {onQuickModalClick && (
+            <Button
+              variant="ghost"
+              onClick={(e) => { e.stopPropagation(); onQuickModalClick(lesson); }}
+              className="flex items-center justify-center p-1 w-6 h-6 rounded-full bg-slate-100 hover:bg-emerald-100 hover:text-emerald-600 text-slate-500 transition-colors shadow-sm border-none ml-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </Button>
           )}
         </div>
       </div>

@@ -8,7 +8,7 @@ export const LessonCardView = forwardRef(({
   lesson, onClick, compact = false, isOverlay = false, 
   isDragging = false, isFaded = false, title, borderColorClass, textColorClass, bgColorClass, entityStyle, 
   hasFinDebt = false, hasHwDebt = false, layout = "horizontal",
-  listeners = {}, attributes = {}, style = {}, onMoreClick, onHwClick, onFinClick, topic
+  listeners = {}, attributes = {}, style = {}, onMoreClick, onHwClick, onFinClick, topic, onQuickModalClick
 }, ref) => {
   const isCanceled = lesson.status === 'cancelled';
   const isSkippedFree = lesson.status === 'skipped_free';
@@ -55,6 +55,16 @@ export const LessonCardView = forwardRef(({
               <span className="text-[9px] font-bold text-stone-600 bg-stone-200 px-1 rounded-sm leading-tight ml-0.5">б/о</span>
             ) : (
               renderStatusIcon(lesson.status)
+            )}
+            {!isOverlay && onQuickModalClick && (
+              <Button
+                variant="ghost" 
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); onQuickModalClick(lesson); }}
+                className="w-auto h-auto border-none ml-0.5 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </Button>
             )}
             {!isOverlay && onMoreClick && (
               <Button
@@ -118,6 +128,16 @@ export const LessonCardView = forwardRef(({
             <span className="text-[9px] font-bold text-stone-600 bg-stone-200 px-1 rounded-sm leading-tight ml-0.5">б/о</span>
           ) : (
             renderStatusIcon(lesson.status)
+          )}
+          {!isOverlay && onQuickModalClick && (
+            <Button
+              variant="ghost" 
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onQuickModalClick(lesson); }}
+              className="w-auto h-auto border-none ml-0.5 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </Button>
           )}
           {!isOverlay && onMoreClick && (
             <Button

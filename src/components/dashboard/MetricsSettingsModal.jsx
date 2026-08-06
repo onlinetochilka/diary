@@ -95,14 +95,14 @@ export default function MetricsSettingsModal({ isOpen, onClose, initialMetrics, 
     <SideDrawer
       isOpen={isOpen}
       onClose={onClose}
-      title="Настройка метрик"
+      title="Карточки статистики"
       width="max-w-md sm:max-w-xl"
       isDirty={isDirty}
       footer={drawerFooter}
     >
       <div className="space-y-4">
         <p className="text-sm text-stone-500">
-          Выберите до 4 метрик для отображения на главной странице.{" "}
+          Выберите до 4 карточек для отображения на главной странице.{" "}
           Выбрано:{" "}
           <span className={activeSelected.length === 4 ? "text-emerald-600 font-bold" : "font-bold text-stone-700"}>
             {activeSelected.length}/4

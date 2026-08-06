@@ -17,6 +17,7 @@ export default function Input({
   disabled,
   value,
   defaultValue,
+  type,
   ...rest
 }) {
   const autoId     = useId();
@@ -31,7 +32,7 @@ export default function Input({
   const isControlled = value !== undefined;
   const hasValue = isControlled ? String(value).length > 0 : false;
   
-  const isNumberFormat = rest.type === "number";
+  const isNumberFormat = type === "number";
   
   let displayValue = value;
   if (isNumberFormat && value !== undefined && value !== null && value !== "") {
@@ -76,7 +77,7 @@ export default function Input({
           value={displayValue}
           defaultValue={defaultValue}
           onChange={handleChange}
-          type={isNumberFormat ? "text" : rest.type}
+          type={isNumberFormat ? "text" : type}
           inputMode={isNumberFormat ? "numeric" : rest.inputMode}
           placeholder={label ? " " : rest.placeholder || " "}
           className={cn(

@@ -168,13 +168,26 @@ export function SubjectsSection({
                   />
                 </div>
                 {(subject.format === 'online' || subject.format === 'mixed' || !subject.format) && (
-                  <div className="md:col-span-2">
-                    <Label>Ссылка на занятие (Zoom, Meet...)</Label>
-                    <Input
-                      placeholder="https://..."
-                      value={subject.videoLink || ''}
-                      onChange={e => handleSubjectChange(index, 'videoLink', e.target.value)}
-                    />
+                  <div className="md:col-span-2 flex flex-col gap-2">
+                    <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer w-fit">
+                      <input 
+                        type="checkbox" 
+                        className="rounded text-academic-blue focus:ring-academic-blue"
+                        checked={subject.isLinkPermanent !== false && (subject.isLinkPermanent || !!subject.videoLink)}
+                        onChange={e => {
+                          handleSubjectChange(index, 'isLinkPermanent', e.target.checked);
+                          if (!e.target.checked) handleSubjectChange(index, 'videoLink', '');
+                        }}
+                      />
+                      Постоянная ссылка на занятия
+                    </label>
+                    {subject.isLinkPermanent !== false && (subject.isLinkPermanent || !!subject.videoLink) && (
+                      <Input
+                        placeholder="https://..."
+                        value={subject.videoLink || ''}
+                        onChange={e => handleSubjectChange(index, 'videoLink', e.target.value)}
+                      />
+                    )}
                   </div>
                 )}
 

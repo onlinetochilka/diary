@@ -394,6 +394,31 @@ export default function GroupEditorView({
               />
             </div>
 
+            {/* Ссылка на онлайн-урок */}
+            {(formData.format === 'online' || formData.format === 'mixed' || !formData.format) && (
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer w-fit">
+                  <input 
+                    type="checkbox" 
+                    className="rounded text-academic-blue focus:ring-academic-blue"
+                    checked={formData.isLinkPermanent !== false && (formData.isLinkPermanent || !!formData.videoLink)}
+                    onChange={e => {
+                      handleChange('isLinkPermanent', e.target.checked);
+                      if (!e.target.checked) handleChange('videoLink', '');
+                    }}
+                  />
+                  Постоянная ссылка на занятия
+                </label>
+                {formData.isLinkPermanent !== false && (formData.isLinkPermanent || !!formData.videoLink) && (
+                  <Input
+                    placeholder="https://..."
+                    value={formData.videoLink || ''}
+                    onChange={e => handleChange('videoLink', e.target.value)}
+                  />
+                )}
+              </div>
+            )}
+
           </div>
         </section>
 

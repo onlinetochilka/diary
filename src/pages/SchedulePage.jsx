@@ -12,6 +12,7 @@ import { useScheduleNavigation } from "../hooks/useScheduleNavigation.js";
 import { useScheduleLessonData } from "../hooks/useScheduleLessonData.js";
 
 import LessonInspector from "../components/schedule/LessonInspector.jsx";
+import QuickStatusModal from "../components/schedule/QuickStatusModal.jsx";
 import ScheduleSidebar from "../components/schedule/ScheduleSidebar.jsx";
 import ActionItemModal from "../components/dashboard/ActionItemModal.jsx";
 import ScheduleStatsRow from "../components/schedule/ScheduleStatsRow.jsx";
@@ -82,6 +83,7 @@ export default function SchedulePage() {
   const [selectedLessonId, setSelectedLessonId] = useState(null);
   const [createInitial, setCreateInitial] = useState(null);
   const [selectedDateStr, setSelectedDateStr] = useState(null);
+  const [quickModalLesson, setQuickModalLesson] = useState(null);
 
   const rightPanelMode = createInitial ? 'create' : selectedLessonId ? 'inspector' : 'students';
   const selectedLesson = lessons.find(l => l.id === selectedLessonId) || null;
@@ -164,6 +166,17 @@ export default function SchedulePage() {
 
   // ── Intent: открыть drawer при переходе с другого экрана ───────────────
   useEffect(() => {
+    if (pageState?.openInspectorLessonId) {
+      setTimeout(() => {
+        handleOpenDrawer({ id: pageState.openInspectorLessonId });
+        if (pageState.date) {
+          setCurrentDate(new Date(pageState.date));
+          if (pageState.view) setView(pageState.view);
+        }
+      }, 100);
+      return;
+    }
+
     const intent = localStorage.getItem("intent_schedule_entity");
     if (intent) {
       try {
@@ -178,7 +191,7 @@ export default function SchedulePage() {
         }, 300);
       } catch (e) {}
     }
-  }, []);
+  }, [pageState?.openInspectorLessonId]);
 
   // ── Обёртки над hookSave/Delete с закрытием drawer ─────────────────────
   const handleSaveLesson = async (id, data) => {
@@ -237,6 +250,7 @@ export default function SchedulePage() {
         <ScheduleNavBar
           view={view}
           headerTitle={headerTitle}
+          currentDateStr={ymd(currentDate)}
           onPrev={prevPeriod}
           onNext={nextPeriod}
           onToday={goToday}
@@ -288,6 +302,7 @@ export default function SchedulePage() {
                 getLessonTopic={getLessonTopic}
                 onFinClick={handleFinClick}
                 onHwClick={handleHwClick}
+                onQuickModal={(l) => setQuickModalLesson(l)}
                 onCreateStudent={() => onNavigate && onNavigate("students", { action: 'create' })}
                 onGoToProfile={(student) => onNavigate && onNavigate("students", { action: 'highlight', studentId: student.id })}
                 selectedEntityId={selectedEntityId}
@@ -318,6 +333,7 @@ export default function SchedulePage() {
                 getLessonTopic={getLessonTopic}
                 onFinClick={handleFinClick}
                 onHwClick={handleHwClick}
+                onQuickModal={(l) => setQuickModalLesson(l)}
                 onPatchLesson={hookPatchLesson}
                 onGoToProfile={(studentId) => onNavigate && onNavigate("students", { action: 'highlight', studentId })}
                 onSaveLesson={hookSaveLesson}
@@ -371,6 +387,12 @@ export default function SchedulePage() {
                 onCardClick={handleCardClick}
                 isTimelineMode={view === "month" && !!selectedDateStr}
                 selectedDateStr={selectedDateStr}
+                onQuickModal={(l) => setQuickModalLesson(l)}
+                onOpenInspector={(l) => {
+                  handleOpenDrawer({ id: l.id });
+                  setCurrentDate(new Date(l.date));
+                  setView("day");
+                }}
               />
             ) : (
               <LessonInspector
@@ -426,6 +448,21 @@ export default function SchedulePage() {
           }}
         />
       </div>
+      
+      <QuickStatusModal
+        isOpen={!!quickModalLesson}
+        onClose={() => setQuickModalLesson(null)}
+        lesson={quickModalLesson}
+        student={quickModalLesson?.type === "individual" ? students.find(s => s.id === quickModalLesson?.studentId) : null}
+        group={quickModalLesson?.type === "group" ? groups.find(g => g.id === quickModalLesson?.groupId) : null}
+        students={students}
+        onOpenFullInspector={(lesson) => {
+          setQuickModalLesson(null);
+          handleOpenDrawer({ id: lesson.id });
+          setCurrentDate(new Date(lesson.date));
+          setView("day");
+        }}
+      />
     </PageWrapper>
 
       {createPortal(
