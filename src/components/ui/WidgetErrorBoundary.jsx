@@ -44,6 +44,7 @@ export class WidgetErrorBoundary extends React.Component {
       );
     }
 
-    return this.props.children;
+    const { className, children } = this.props;
+    return className ? <div className={className}>{children}</div> : children;
   }
 }

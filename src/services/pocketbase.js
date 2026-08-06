@@ -9,9 +9,14 @@
 import PocketBase from "pocketbase";
 import { getMockCollection, getMockDatabase } from "./mockDatabase.js";
 
-const pb = new PocketBase(
-  import.meta.env.VITE_POCKETBASE_URL || "https://api.tochilka.app"
-);
+let url = import.meta.env.VITE_POCKETBASE_URL || "https://api.tochilka.app";
+
+// Если мы на продакшене, но URL локальный или пустой — жестко ставим боевой адрес
+if (import.meta.env.PROD && (url.includes("localhost") || url.includes("127.0.0.1") || url === "/api/pb")) {
+  url = "https://api.tochilka.app";
+}
+
+const pb = new PocketBase(url);
 
 if (typeof window !== "undefined") {
   if (localStorage.getItem("dont_remember_me") === "true" && sessionStorage.getItem("session_active") !== "true") {
