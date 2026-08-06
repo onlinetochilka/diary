@@ -9,11 +9,11 @@
 import PocketBase from "pocketbase";
 import { getMockCollection, getMockDatabase } from "./mockDatabase.js";
 
-let url = import.meta.env.VITE_POCKETBASE_URL || "https://api.tochilka.app";
+let url = import.meta.env.VITE_POCKETBASE_URL || "/api/pb";
 
-// Если мы на продакшене, но URL локальный или пустой — жестко ставим боевой адрес
-if (import.meta.env.PROD && (url.includes("localhost") || url.includes("127.0.0.1") || url === "/api/pb")) {
-  url = "https://api.tochilka.app";
+// Если мы на продакшене, но URL локальный — жестко ставим относительный путь для прокси
+if (import.meta.env.PROD && (url.includes("localhost") || url.includes("127.0.0.1"))) {
+  url = "/api/pb";
 }
 
 const pb = new PocketBase(url);
