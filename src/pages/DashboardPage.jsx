@@ -38,8 +38,10 @@ export default function DashboardPage() {
   const pageState = location.state;
 
   const {
-    loading, todayLessons = [], actionItems = [], tutorDebts = [], stats = {},
-    metricsConfig = [], setMetricsConfig, refresh, students = []
+    todayLessons = [], nextLessons = [], metrics = {}, loading,
+    actionItems = [], tutorDebts = [], getMoneyText, getHwText,
+    metricsConfig = [], setMetricsConfig, refresh, students = [],
+    hwDebts = []
   } = useDashboardData();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -204,6 +206,9 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {todayLessons.filter(l => l.status !== "conducted").map((l) => {
                 const c = getEntityColorClasses();
+                const isPast = l.endTime < new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const isPaid = l.type === 'individual' ? l.isPaid : false;
+                
                 return (
                   <div
                     key={l.id}
@@ -212,9 +217,122 @@ export default function DashboardPage() {
                     onClick={() => onNavigate("schedule")}
                   >
                     <div className="min-w-0 flex-1 pl-1">
-                      <p className="text-sm font-semibold text-stone-900 truncate transition-colors">
-                        {l.displayName}
-                      </p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-stone-900 truncate transition-colors">
+                          {l.displayName}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          {isPaid ? (
+                            <Tooltip text="Оплачено" position="top">
+                              <span className="flex items-center justify-center px-1.5 py-0.5 h-auto rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold shadow-sm ring-1 ring-emerald-200/60">
+                                <CreditCard size={9} strokeWidth={2.5} />
+                              </span>
+                            </Tooltip>
+                          ) : l.type === 'individual' ? (
+                            <Tooltip text="Не оплачено" position="top">
+                              <span className="flex items-center justify-center px-1.5 py-0.5 h-auto rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-sm border-none">
+                                <CreditCard size={9} strokeWidth={2.5} />
+                              </span>
+                            </Tooltip>
+                          ) : null}
+                          
+                          {(() => {
+                            if (!isPast) {
+                              let hasDebt = false;
+                              if (l.type === 'individual') {
+                                hasDebt = hwDebts.some(d => d.student.id === l.studentId);
+                              } else if (l.type === 'group') {
+                                hasDebt = (l.groupStudentIds || []).some(sid => hwDebts.some(d => d.student.id === sid));
+                              }
+                              if (hasDebt) {
+                                return (
+                                  <Tooltip text="Долг по ДЗ с прошлых уроков" position="top">
+                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-sm border-none">
+                                      <BookOpen size={9} strokeWidth={2.5} /> ДЗ
+                                    </span>
+                                  </Tooltip>
+                                );
+                              } else {
+                                return (
+                                  <Tooltip text="Нет долгов по ДЗ" position="top">
+                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold shadow-sm ring-1 ring-emerald-200/60">
+                                      <BookOpen size={9} strokeWidth={2.5} /> ДЗ
+                                    </span>
+                                  </Tooltip>
+                                );
+                              }
+                            } else {
+                              const isHwAssigned = !!l.homework || (l.hwDoneBy && l.hwDoneBy.length > 0) || (l.hwStatuses && Object.keys(l.hwStatuses).length > 0);
+                              const isExplicitlyNotAssigned = l.hwAssigned === false || l.isHwNotAssigned === true;
+                              if (isHwAssigned) {
+                                const totalStudents = l.type === 'group' ? (l.groupStudentIds?.length || 0) : 1;
+                                const isDone = (l.hwDoneBy?.length || 0) >= totalStudents && totalStudents > 0;
+                                return (
+                                  <Tooltip text={isDone ? "ДЗ выполнено" : "ДЗ задано"} position="top">
+                                    <span className={`flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full text-[10px] font-bold shadow-sm ${isDone ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
+                                      <BookOpen size={9} strokeWidth={2.5} /> ДЗ
+                                    </span>
+                                  </Tooltip>
+                                );
+                              } else if (isExplicitlyNotAssigned) {
+                                return (
+                                  <Tooltip text="ДЗ не задано" position="top">
+                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+                                      <BookOpen size={9} strokeWidth={2.5} />
+                                    </span>
+                                  </Tooltip>
+                                );
+                              } else if (l.status === 'conducted') {
+                                return (
+                                  <Tooltip text="Не отмечено ДЗ" position="top">
+                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold shadow-sm ring-1 ring-amber-200">
+                                      <BookOpen size={9} strokeWidth={2.5} />
+                                    </span>
+                                  </Tooltip>
+                                );
+                              } else {
+                                return (
+                                  <Tooltip text="Урок не состоялся" position="top">
+                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+                                      <BookOpen size={9} strokeWidth={2.5} />
+                                    </span>
+                                  </Tooltip>
+                                );
+                              }
+                            }
+                          })()}
+
+                          {l.type === 'group' && (
+                            l.status === 'conducted' ? (
+                              <Tooltip text="Посещаемость" position="top">
+                                <span className={`flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full text-[10px] font-bold shadow-sm ${Object.keys(l.attendance || {}).length >= (l.groupStudentIds?.length || 0) ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
+                                  <Users size={9} strokeWidth={2.5} /> {Object.keys(l.attendance || {}).length}/{l.groupStudentIds?.length || 0}
+                                </span>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip text="Посещаемость (не отмечалась)" position="top">
+                                <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+                                  <Users size={9} strokeWidth={2.5} /> -/{l.groupStudentIds?.length || 0}
+                                </span>
+                              </Tooltip>
+                            )
+                          )}
+
+                          {isPast && l.status === 'scheduled' ? (
+                            <Tooltip text="Урок прошел, отметьте статус" position="top">
+                              <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold shadow-sm ring-1 ring-amber-200">
+                                <AlertCircle size={9} strokeWidth={2.5} />
+                              </span>
+                            </Tooltip>
+                          ) : l.status === 'conducted' ? (
+                            <Tooltip text="Урок проведен" position="top">
+                              <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-sm border-none">
+                                <Check size={9} strokeWidth={2.5} />
+                              </span>
+                            </Tooltip>
+                          ) : null}
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[11px] font-semibold bg-white/80 text-stone-700 px-2 py-0.5 rounded-md tabular-nums">{l.startTime} — {l.endTime}</span>
                         <span className="text-[10px] font-semibold tracking-wider uppercase text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded flex-shrink-0 truncate max-w-[80px]">
@@ -359,59 +477,57 @@ export default function DashboardPage() {
               </div>
             ) : (
                 <div className="flex flex-col gap-3 overflow-y-auto hide-scrollbar pb-4 h-full relative z-0">
-                  {tutorDebts.map(item => (
-                    <div key={`${item.type}-${item.lesson.id}`} className="flex items-center justify-between p-3 rounded-2xl border border-stone-100 bg-white hover:border-slate-300 hover:shadow-sm transition-all group">
-                      <div className="flex flex-col gap-1 min-w-0 pr-3">
-                        <p className="text-sm font-semibold text-stone-900 truncate">
-                          {item.lesson.displayName}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${item.type === 'unmarked_lesson' ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-200' : 'bg-blue-100 text-blue-800 ring-1 ring-blue-200'}`}>
-                            {item.type === 'unmarked_lesson' ? 'Не отмечен статус' : 'Не задано ДЗ'}
-                          </span>
-                          <span className="text-[11px] text-stone-500 whitespace-nowrap">
-                            {(() => {
-                              const lDate = new Date(item.lesson.date);
-                              const today = new Date();
-                              today.setHours(0,0,0,0);
-                              const diffDays = Math.floor((today - lDate) / (1000 * 60 * 60 * 24));
-                              if (diffDays === 0) return `Сегодня, ${item.lesson.startTime}`;
-                              if (diffDays === 1) return `Вчера, ${item.lesson.startTime}`;
-                              return `${item.lesson.date.slice(5).replace('-', '.')} ${item.lesson.startTime}`;
-                            })()}
-                          </span>
+                  {tutorDebts.map(item => {
+                    const style = getEntityStyle(item.lesson.displayName);
+                    return (
+                      <div 
+                        key={`${item.type}-${item.lesson.id}`} 
+                        className="entity-light-bg ring-1 ring-slate-200 border-l-[4px] entity-border-l shadow-sm p-3 rounded-[20px] flex items-center justify-between gap-3 transition-all duration-300 hover:shadow-md card-hover-lift group cursor-pointer"
+                        style={style}
+                        onClick={(e) => {
+                           e.stopPropagation();
+                           onNavigate("schedule", { openInspectorLessonId: item.lesson.id, date: item.lesson.date, view: "day" });
+                        }}
+                      >
+                        <div className="flex flex-col gap-1 min-w-0 pr-3">
+                          <p className="text-sm font-semibold text-stone-900 truncate">
+                            {item.lesson.displayName}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${item.type === 'unmarked_lesson' ? 'bg-white/80 text-amber-700 ring-1 ring-amber-200' : 'bg-white/80 text-blue-700 ring-1 ring-blue-200'}`}>
+                              {item.type === 'unmarked_lesson' ? 'Не отмечен статус' : 'Не задано ДЗ'}
+                            </span>
+                            <span className="text-[11px] font-semibold text-stone-500 bg-white/60 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                              {(() => {
+                                const lDate = new Date(item.lesson.date);
+                                const today = new Date();
+                                today.setHours(0,0,0,0);
+                                const diffDays = Math.floor((today - lDate) / (1000 * 60 * 60 * 24));
+                                if (diffDays === 0) return `Сегодня, ${item.lesson.startTime}`;
+                                if (diffDays === 1) return `Вчера, ${item.lesson.startTime}`;
+                                return `${item.lesson.date.slice(5).replace('-', '.')} ${item.lesson.startTime}`;
+                              })()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Tooltip text="Отметить статус" position="top">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="w-9 h-9 flex items-center justify-center bg-white shadow-sm hover:bg-stone-50 active:scale-95 border-stone-200 p-0 text-emerald-500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setQuickModalLesson(item.lesson);
+                              }}
+                            >
+                              <Check size={16} />
+                            </Button>
+                          </Tooltip>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Tooltip text="Отметить статус" position="top">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-8 h-8 rounded-full bg-white text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 shadow-sm ring-1 ring-slate-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setQuickModalLesson(item.lesson);
-                            }}
-                          >
-                            <Check size={16} />
-                          </Button>
-                        </Tooltip>
-                        <Tooltip text="Карточка урока" position="top">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-8 h-8 rounded-full bg-white text-stone-400 hover:bg-stone-50 hover:text-stone-600 shadow-sm ring-1 ring-slate-200 shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onNavigate("schedule", { openInspectorLessonId: item.lesson.id, date: item.lesson.date, view: "day" });
-                            }}
-                          >
-                            <Search size={16} />
-                          </Button>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
             )}
           </section>
