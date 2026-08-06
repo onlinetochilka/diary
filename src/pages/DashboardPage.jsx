@@ -41,7 +41,7 @@ export default function DashboardPage() {
     todayLessons = [], nextLessons = [], metrics = {}, loading,
     actionItems = [], tutorDebts = [], getMoneyText, getHwText,
     metricsConfig = [], setMetricsConfig, refresh, students = [],
-    hwDebts = []
+    hwDebts = [], stats = {}
   } = useDashboardData();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
