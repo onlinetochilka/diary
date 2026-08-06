@@ -21,23 +21,29 @@ export default function GuestPortalView({ hash }) {
     // TODO: В продакшене — кастомный PocketBase endpoint для гостевого доступа по hash.
     const fetchData = async () => {
       try {
-        const records = await pb.collection("students").getList(1, 1);
-        if (records.items.length > 0) {
-          const st = records.items[0];
-          setStudent(st);
-          
-          // Получаем историю уроков и настройки репетитора параллельно
-          const [loadedLessons, tutorConfig] = await Promise.all([
-            getLessons({ studentId: st.id }),
-            getUserConfig(st.tutorId)
-          ]);
-          
-          loadedLessons.sort((a, b) => new Date(b.date) - new Date(a.date));
-          setLessons(loadedLessons);
-          setConfig(tutorConfig);
+        let studentId = "";
+        if (hash?.startsWith("guest-")) {
+          studentId = hash.replace("guest-", "");
         } else {
-          throw new Error("Empty list returned due to API rules");
+          studentId = hash;
         }
+
+        if (!studentId) throw new Error("No hash provided");
+
+        // Используем getOne, чтобы срабатывало View Rule (а не List Rule), 
+        // так как List Rule должен оставаться закрытым для безопасности.
+        const st = await pb.collection("students").getOne(studentId);
+        setStudent(st);
+        
+        // Получаем историю уроков и настройки репетитора параллельно
+        const [loadedLessons, tutorConfig] = await Promise.all([
+          getLessons({ studentId: st.id }),
+          getUserConfig(st.tutorId)
+        ]);
+        
+        loadedLessons.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setLessons(loadedLessons);
+        setConfig(tutorConfig);
       } catch (err) {
         console.warn("Guest access failed, falling back to mock data for UI testing:", err);
         setError(null); // Clear any error just in case
