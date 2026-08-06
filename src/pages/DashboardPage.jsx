@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getPlural } from "../utils/plural.js";
+import { WidgetErrorBoundary } from "../components/ui/WidgetErrorBoundary.jsx";
+import QuickStatusModal from "../components/schedule/QuickStatusModal.jsx";
+import LitePaymentModal from "../components/finance/LitePaymentModal.jsx";
+import { renderStatusIcon } from "../components/schedule/scheduleUtils.jsx";
+import { useToast } from "../components/ui/Toast.jsx";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
 import Card from "../components/ui/Card.jsx";
 import Button from "../components/ui/Button.jsx";
@@ -10,7 +15,8 @@ import {
   LayoutDashboard, Users, TrendingUp, Clock, BookOpen,
   Plus, Coffee, AlertCircle, CheckCircle2, PlayCircle,
   Send, Wallet, Bell, Check, ChevronDown, ChevronUp, Settings2,
-  Smile, CheckCheck
+  Smile, CheckCheck, Search, Copy, Video, Phone, MessageCircle, X,
+  UserPlus, CreditCard
 } from "lucide-react";
 import { getUserConfig, updateUserConfig } from "../services/database.js";
 import { usePayments } from "../hooks/usePayments.js";
@@ -22,10 +28,6 @@ import CommunityNewsCard, { TelegramIcon } from "../components/dashboard/Communi
 import MetricsSettingsModal from "../components/dashboard/MetricsSettingsModal.jsx";
 import { useDashboardData } from "../hooks/useDashboardData.js";
 import { CurrentDateTitle, CurrentDateSubtitle } from "../components/dashboard/CurrentDateHeader.jsx";
-import DayNotesPopover from "../components/schedule/DayNotesPopover.jsx";
-import { useDayNotes } from "../hooks/useDayNotes.js";
-import { ymd } from "../components/schedule/scheduleUtils.jsx";
-import { WidgetErrorBoundary } from "../components/ui/WidgetErrorBoundary.jsx";
 
 export default function DashboardPage() {
   const { addPayment } = usePayments();
@@ -36,18 +38,36 @@ export default function DashboardPage() {
   const pageState = location.state;
 
   const {
-    loading, todayLessons = [], actionItems = [], stats = {},
-    metricsConfig = [], setMetricsConfig, refresh,
+    loading, todayLessons = [], actionItems = [], tutorDebts = [], stats = {},
+    metricsConfig = [], setMetricsConfig, refresh, students = []
   } = useDashboardData();
-
-  const todayStr = ymd(new Date());
-  const { notesRecord } = useDayNotes(todayStr);
-  const hasIncompleteNotes = notesRecord?.items?.some(i => !i.done);
-  const [showNotes, setShowNotes] = useState(false);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [actionModal, setActionModal]       = useState({ isOpen: false, item: null, mode: "remind" });
   const [isProcessing, setIsProcessing]     = useState(false);
+  const [quickModalLesson, setQuickModalLesson] = useState(null);
+  const [showScheduleSummary, setShowScheduleSummary] = useState(false);
+  const [scheduleSummaryText, setScheduleSummaryText] = useState("");
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const { showToast } = useToast();
+
+  const handlePaymentConfirm = async (studentId, amt) => {
+    try {
+      await addPayment({
+        studentId,
+        amount: amt,
+        currency: "RUB",
+        paidAt: new Date().toISOString(),
+        note: 'Оплата занятий'
+      });
+      showToast({ message: "Оплата успешно добавлена", type: "success" });
+      setPaymentModalOpen(false);
+      refresh();
+    } catch (e) {
+      console.error(e);
+      showToast({ message: "Ошибка при добавлении оплаты", type: "error" });
+    }
+  };
 
   const monthNamesPrep = ["январе", "феврале", "марте", "апреле", "мае", "июне", "июле", "августе", "сентябре", "октябре", "ноябре", "декабре"];
   const staticNow = new Date();
@@ -93,19 +113,40 @@ export default function DashboardPage() {
       maxWidth="max-w-[1400px]"
       noGlobalScroll={true}
       actionRight={
-        <Tooltip text="Настроить метрики" position="bottom-right">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsSettingsOpen(true)}
-            className="w-10 h-10 flex items-center justify-center p-0 border-stone-200 shadow-sm bg-white text-stone-500 hover:bg-stone-50 hover:text-stone-700 active:scale-95 transition-all"
-          >
-            <Settings2 size={20} />
-          </Button>
-        </Tooltip>
+        <div className="flex items-center gap-2">
+          <Tooltip text="Добавить ученика" position="bottom">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onNavigate("students", { action: "create" })}
+              className="w-10 h-10 border-none flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100/50 hover:bg-blue-100 active:scale-95 transition-all p-0"
+            >
+              <UserPlus size={18} />
+            </Button>
+          </Tooltip>
+          <Tooltip text="Отметить оплату" position="bottom">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPaymentModalOpen(true)}
+              className="w-10 h-10 border-none flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 shadow-sm ring-1 ring-emerald-100/50 hover:bg-emerald-100 active:scale-95 transition-all p-0"
+            >
+              <CreditCard size={18} />
+            </Button>
+          </Tooltip>
+          <Tooltip text="Настроить статистику" position="bottom-right">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSettingsOpen(true)}
+              className="w-10 h-10 border-none flex items-center justify-center rounded-xl bg-white text-stone-400 shadow-sm ring-1 ring-slate-200 hover:bg-stone-50 hover:text-stone-700 active:scale-95 transition-all p-0"
+            >
+              <Settings2 size={18} />
+            </Button>
+          </Tooltip>
+        </div>
       }
     >
-      {/* ── Stat cards (навигационная панель) ─────────────────────────── */}
       <WidgetErrorBoundary className="shrink-0 w-full" onReset={() => refresh()}>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 shrink-0">
           {metricsConfig.map((metricId, i) => {
@@ -128,12 +169,24 @@ export default function DashboardPage() {
         </div>
       </WidgetErrorBoundary>
 
-      {/* ── Расписание на сегодня (full width) ───────────────────────────── */}
       <WidgetErrorBoundary className="shrink-0 w-full" onReset={() => refresh()}>
         <section className="shrink-0 bg-white p-5 sm:p-6 rounded-[32px] shadow-sm border border-stone-100">
           <div className="flex items-center gap-2 mb-5">
             <Clock size={20} className="text-stone-400" />
             <h2 className="text-lg font-bold text-stone-800">Расписание на сегодня</h2>
+            <div className="flex-1" />
+            {todayLessons.length > 0 && (
+                <Button 
+                    variant="ghost" size="sm" className="gap-2 text-stone-500"
+                    onClick={() => {
+                        const txt = todayLessons.map(l => `${l.startTime} ${l.displayName} (${l.subjectName})`).join('\n');
+                        setScheduleSummaryText(txt);
+                        setShowScheduleSummary(true);
+                    }}
+                >
+                    <Copy size={14} /> Текст
+                </Button>
+            )}
           </div>
 
           {loading ? (
@@ -187,18 +240,6 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 mb-5 shrink-0">
               <AlertCircle size={20} className="text-stone-400" />
               <h2 className="text-lg font-bold text-stone-800">Что нужно проконтролировать</h2>
-              {/* Скрепка для заметок на сегодня */}
-              <div 
-                className="relative cursor-pointer opacity-40 hover:opacity-100 transition-opacity p-1 group ml-2"
-                onClick={() => setShowNotes(true)}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-600 transition-colors">
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                </svg>
-                {hasIncompleteNotes && (
-                  <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-slate-600 border-2 border-white" />
-                )}
-              </div>
               {!loading && actionItems.length > 0 && (
                 <span className="ml-auto text-xs font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full tabular-nums">
                   {actionItems.length}
@@ -264,13 +305,6 @@ export default function DashboardPage() {
         </WidgetErrorBoundary>
       </div>
 
-      {showNotes && (
-        <DayNotesPopover 
-          dateStr={todayStr}
-          onClose={() => setShowNotes(false)}
-        />
-      )}
-
       {/* ── Action Item Modal ─────────────────────────────────────────────── */}
       <ActionItemModal
         isOpen={actionModal.isOpen}
@@ -327,6 +361,56 @@ export default function DashboardPage() {
         onClose={() => setIsSettingsOpen(false)}
         initialMetrics={metricsConfig}
         onSave={handleSaveMetrics}
+      />
+
+      {showScheduleSummary && (
+        <>
+          <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 transition-opacity" onClick={() => setShowScheduleSummary(false)} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-24px)] max-w-sm bg-white rounded-[28px] shadow-2xl z-50 overflow-hidden flex flex-col border border-stone-100">
+            <div className="flex items-center justify-between p-5 border-b border-stone-100 bg-stone-50/50">
+              <h3 className="font-bold text-lg text-stone-900">Расписание на сегодня</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowScheduleSummary(false)} className="w-8 h-8 p-1 rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-200/50 border-none">
+                <X size={20} />
+              </Button>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 font-mono text-sm text-stone-700 whitespace-pre-wrap select-all">
+                {scheduleSummaryText}
+              </div>
+              <Button 
+                variant="filled" 
+                className="w-full rounded-xl bg-academic-blue hover:bg-[#00516A] text-white shadow-md shadow-[#006584]/20 transition-all font-bold text-sm border-none flex items-center justify-center gap-2"
+                onClick={() => {
+                  navigator.clipboard.writeText(scheduleSummaryText);
+                  showToast({ message: "Расписание скопировано в буфер обмена", type: "success" });
+                  setShowScheduleSummary(false);
+                }}
+              >
+                <Copy size={16} /> Скопировать текст
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <QuickStatusModal
+        isOpen={!!quickModalLesson}
+        onClose={() => setQuickModalLesson(null)}
+        lesson={quickModalLesson}
+        student={quickModalLesson?.studentObj}
+        group={{ id: quickModalLesson?.groupId, balance: 0 }}
+        students={[]}
+        onOpenFullInspector={(lesson) => {
+          setQuickModalLesson(null);
+          onNavigate("schedule", { openInspectorLessonId: lesson.id, date: lesson.date, view: "day" });
+        }}
+      />
+
+      <LitePaymentModal
+        isOpen={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        students={students}
+        onConfirm={handlePaymentConfirm}
       />
     </PageWrapper>
   );
