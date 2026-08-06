@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ArrowLeft, Plus, Calendar } from 'lucide-react';
-import { Button, EmptyState } from '../ui/index.js';
+import Button from '../ui/Button.jsx';
+import EmptyState from '../ui/EmptyState.jsx';
 import { ymd } from './scheduleUtils.jsx';
 import DayLessonCard from './DayLessonCard.jsx';
 import DayActionableGap from './DayActionableGap.jsx';

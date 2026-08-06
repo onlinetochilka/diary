@@ -3,7 +3,7 @@ import { Pencil, CheckCircle2, BookOpen, ChevronLeft, ChevronRight, Clock, FileT
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import { cn } from "../../utils/cn.js";
 import { getPlural } from "../../utils/plural.js";
-import { Tooltip } from "../ui/index.js";
+import Tooltip from '../ui/Tooltip.jsx';
 
 const GroupCard = memo(({
   group,

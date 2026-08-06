@@ -14,7 +14,8 @@
 
 import { Trash2, Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
-import { Select as UISelect, Tooltip } from '../ui/index.js';
+import UISelect from '../ui/Select.jsx';
+import Tooltip from '../ui/Tooltip.jsx';
 
 export const Label = ({ children, required }) => (
   <label className="block text-sm font-medium text-stone-700 mb-1.5">

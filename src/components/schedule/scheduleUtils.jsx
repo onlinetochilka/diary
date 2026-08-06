@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { Tooltip } from '../ui/index.js';
+import Tooltip from '../ui/Tooltip.jsx';
 
 export const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 

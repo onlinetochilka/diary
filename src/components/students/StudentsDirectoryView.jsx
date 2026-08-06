@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Users, UserPlus, FolderPlus } from 'lucide-react';
 import StudentsFilterBar from './StudentsFilterBar.jsx';
 import StudentTile from './StudentTile.jsx';
@@ -6,15 +7,19 @@ import ActionItemModal from '../dashboard/ActionItemModal.jsx';
 import GroupCard from './GroupCard.jsx';
 import { useStudentsFilter } from '../../hooks/useStudentsFilter.js';
 import StudentsEmptyState from './StudentsEmptyState.jsx';
-import { addPayment, getLessons, updateLesson } from '../../services/database.js';
+import { useLessons } from '../../hooks/useLessons.js';
 import { useToast } from '../ui/Toast.jsx';
+import { usePayments } from "../../hooks/usePayments.js";
 
 export default function StudentsDirectoryView({ students = [], groups = [], onEdit, onEditGroup, onCreate, onCreateGroup, highlightStudentId, onHighlightDone, onOpenGuestLink, onOpenReport, onOpenLessonHistory, onOpenGroupLessonHistory, onOpenGroupReport }) {
+  const queryClient = useQueryClient();
   // Состояние модалки ДЗ
-  const [hwModal, setHwModal] = useState({ isOpen: false, item: null });
+  const [hwModal, setHwModal] = useState({ isOpen: false, item: null, isGroup: false });
   // Состояние модалки оплаты
   const [payModal, setPayModal] = useState({ isOpen: false, item: null });
   const { showToast } = useToast();
+  const { addPayment } = usePayments();
+  const { getLessons, updateLesson } = useLessons();
 
   // Логика фильтрации вынесена в кастомный хук
   const {
@@ -112,7 +117,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
         });
       }
       await Promise.all(updates);
-      window.dispatchEvent(new CustomEvent("force-refresh-data"));
+      queryClient.invalidateQueries();
     } catch (err) {
       console.error("Ошибка при сохранении ДЗ:", err);
       showToast({ message: "Не удалось сохранить статусы ДЗ", type: "error" });
@@ -249,11 +254,9 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
               paidAt:      new Date().toISOString(),
               note:        note || 'Оплата занятий',
             });
-          } catch (e) {
-            console.error(e);
           } finally {
             setPayModal({ isOpen: false, item: null });
-            window.dispatchEvent(new CustomEvent('force-refresh-data'));
+            queryClient.invalidateQueries();
           }
         }}
       />

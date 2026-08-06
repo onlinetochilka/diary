@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button, Tooltip } from "../components/ui/index.js";
+import Card from '../components/ui/Card.jsx';
+import Button from '../components/ui/Button.jsx';
+import Tooltip from '../components/ui/Tooltip.jsx';
 import pb from "../services/pocketbase.js";
 import { getEntityStyle } from "../utils/colors.js";
 import { Phone, BookOpen, LogOut, Loader2 } from "lucide-react";
 
-import { getLessons, getUserConfig } from "../services/database.js";
+import { getUserConfig } from "../services/database.js";
+import { useLessons } from "../hooks/useLessons.js";
 
 export default function GuestPortalView({ hash }) {
+  const { getLessons } = useLessons();
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

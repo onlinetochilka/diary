@@ -15,7 +15,7 @@ import { GripVertical, CheckCircle2, Circle } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "../../utils/cn.js";
-import { Tooltip } from "../../components/ui/index.js";
+import Tooltip from '../../components/ui/Tooltip.jsx';
 
 /**
  * @param {object}   props

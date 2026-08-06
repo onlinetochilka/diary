@@ -3,7 +3,7 @@ import { Pencil, Users, TrendingUp, Layers, BookOpen } from 'lucide-react';
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import { cn } from "../../utils/cn.js";
 import { getPlural } from "../../utils/plural.js";
-import { Tooltip } from "../../components/ui/index.js";
+import Tooltip from '../../components/ui/Tooltip.jsx';
 
 export default function ProgramCard({ program, onOpenEditor }) {
   const c = getEntityColorClasses();

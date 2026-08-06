@@ -2,10 +2,14 @@ import { useState, useEffect, useId } from "react";
 import { Loader2, Plus, X, Trash2, ArrowRight } from "lucide-react";
 import { useConfirm } from "../../contexts/ConfirmContext.jsx";
 
-import { 
-  SideDrawer, Button, Input, SegmentedControl, 
-  Select, Checkbox, Tooltip, Card
-} from "../ui/index.js";
+import SideDrawer from '../ui/SideDrawer.jsx';
+import Button from '../ui/Button.jsx';
+import Input from '../ui/Input.jsx';
+import SegmentedControl from '../ui/SegmentedControl.jsx';
+import Select from '../ui/Select.jsx';
+import Checkbox from '../ui/Checkbox.jsx';
+import Tooltip from '../ui/Tooltip.jsx';
+import Card from '../ui/Card.jsx';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -292,9 +296,7 @@ export default function StudentFormDrawer({
     try {
       await onSubmit(studentData, initialData?.id);
       onClose();
-    } catch (err) {
-      console.error(err);
-      setIsSubmitting(false);
+    } finally {setIsSubmitting(false);
     }
   };
 

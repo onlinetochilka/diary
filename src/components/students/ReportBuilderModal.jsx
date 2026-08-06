@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { SideDrawer, Button } from '../ui/index.js';
+import SideDrawer from '../ui/SideDrawer.jsx';
+import Button from '../ui/Button.jsx';
 import { BarChart2, Clock, BookOpen, Target, CreditCard, ChevronRight, Download, Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
-import { getLessons } from '../../services/database.js';
+import { useLessons } from '../../hooks/useLessons.js';
 
 const SECTIONS = [
   { key: 'summary',  title: 'Сводка',           desc: 'Уроков, посещаемость, % ДЗ',    icon: BarChart2,  color: { bg: 'bg-blue-100',    text: 'text-blue-600' } },
@@ -23,6 +24,7 @@ function today()    { return new Date().toISOString().slice(0, 10); }
 function monthAgo() { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10); }
 
 export default function ReportBuilderModal({ isOpen, onClose, student, onGenerate }) {
+  const { getLessons } = useLessons();
   const [period, setPeriod] = useState('month');
   const [dateFrom, setDateFrom] = useState(monthAgo);
   const [dateTo,   setDateTo]   = useState(today);

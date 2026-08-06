@@ -5,7 +5,8 @@
  * но с групповыми секциями: посещаемость по участникам, агрегаты ДЗ и т.д.
  */
 import React, { useState } from 'react';
-import { SideDrawer, Button } from '../ui/index.js';
+import SideDrawer from '../ui/SideDrawer.jsx';
+import Button from '../ui/Button.jsx';
 import { BarChart2, Clock, Users, BookOpen, Target, CreditCard, ChevronRight, Download } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 

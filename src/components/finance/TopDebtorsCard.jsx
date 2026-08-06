@@ -4,7 +4,7 @@
  */
 import React, { useMemo } from "react";
 import { AlertCircle, CheckCircle } from "lucide-react";
-import { Card } from "../ui/index.js";
+import Card from '../ui/Card.jsx';
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
 export function TopDebtorsCard({ studentData, maxItems = 5, className = "" }) {

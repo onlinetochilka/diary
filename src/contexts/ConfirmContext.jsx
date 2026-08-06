@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState, useRef } from "react";
-import { Modal, Button } from "../components/ui/index.js";
+import Modal from '../components/ui/Modal.jsx';
+import Button from '../components/ui/Button.jsx';
 import { AlertTriangle, Trash2, Info } from "lucide-react";
 import { cn } from "../utils/cn.js";
 

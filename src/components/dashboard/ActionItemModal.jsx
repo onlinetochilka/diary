@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Modal, Button } from "../ui/index.js";
+import Modal from '../ui/Modal.jsx';
+import Button from '../ui/Button.jsx';
 import { Copy, Check, Bell, CheckCircle2 } from "lucide-react";
 
 export default function ActionItemModal({ isOpen, onClose, item, mode, onConfirm }) {

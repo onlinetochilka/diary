@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pencil, MessageCircle, Link2, FileText, Clock } from 'lucide-react';
 import { cn } from '../../../utils/cn.js';
-import { Tooltip } from '../../ui/index.js';
+import Tooltip from '../../ui/Tooltip.jsx';
 
 export default function StudentTileHeader({
   student,

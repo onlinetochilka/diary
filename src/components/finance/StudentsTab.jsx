@@ -8,8 +8,9 @@ import {
   Check, Loader2, X, Wallet
 } from "lucide-react";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
-import { Button, EmptyState } from "../ui/index.js";
-import { addPayment } from "../../services/database.js";
+import Button from '../ui/Button.jsx';
+import EmptyState from '../ui/EmptyState.jsx';
+import { usePayments } from "../../hooks/usePayments.js";
 
 function generateReminderText(student) {
   const debt      = Math.abs(student.balance || 0);
@@ -26,6 +27,7 @@ function SortIcon({ field, sortField, sortOrder }) {
 }
 
 export default function StudentsTab({ studentData, onRefresh }) {
+  const { addPayment } = usePayments();
   const [sortField,      setSortField]      = useState("balance");
   const [sortOrder,      setSortOrder]      = useState("asc");
   const [expandedId,     setExpandedId]     = useState(null);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { SideDrawer } from '../ui/index.js';
+import SideDrawer from '../ui/SideDrawer.jsx';
 import { Send, CheckCircle2, XCircle, Loader2, Clock } from 'lucide-react';
-import { getLessons } from '../../services/database.js';
+import { useLessons } from '../../hooks/useLessons.js';
 import { cn } from '../../utils/cn.js';
 
 function today()    { return new Date().toISOString().slice(0, 10); }
@@ -29,31 +29,24 @@ const FILTERS = [
 ];
 
 export default function LessonHistoryModal({ isOpen, onClose, student }) {
-  const [lessons, setLessons]   = useState([]);
-  const [loading, setLoading]   = useState(false);
+  const { 
+    lessons, 
+    isLoading: loading, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = useLessons({ studentId: student?.id });
+
   const [filter, setFilter]     = useState('all');
   const [dateFrom, setDateFrom] = useState(monthAgo);
   const [dateTo, setDateTo]     = useState(today);
 
   useEffect(() => {
-    if (!student || !isOpen) return;
-    setLessons([]); setFilter('all');
-    setDateFrom(monthAgo()); setDateTo(today());
-    setLoading(true);
-
-    getLessons({ studentId: student.id })
-      .then(data => {
-        const safeData = Array.isArray(data) ? data : [];
-        safeData.sort((a, b) => {
-          const dateA = a.date ? new Date(a.date).getTime() : 0;
-          const dateB = b.date ? new Date(b.date).getTime() : 0;
-          return dateB - dateA;
-        });
-        setLessons(safeData);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [student, isOpen]);
+    if (!isOpen) return;
+    setFilter('all');
+    setDateFrom(monthAgo()); 
+    setDateTo(today());
+  }, [isOpen]);
 
   const stats = useMemo(() => {
     const conducted = lessons.filter(l => l.status === 'conducted');
@@ -63,7 +56,7 @@ export default function LessonHistoryModal({ isOpen, onClose, student }) {
       total:  conducted.length,
       hwRate: withHw.length > 0 ? Math.round((hwDone.length / withHw.length) * 100) : null,
     };
-  }, [lessons, student]);
+  }, [lessons, student?.id]);
 
   const filtered = useMemo(() => {
     let r = lessons;
@@ -246,7 +239,7 @@ export default function LessonHistoryModal({ isOpen, onClose, student }) {
                         </span>
                         {hwOverdue && (
                           <button
-                            onClick={() => window.open(`https://t.me/share/url?url=&text=${encodeURIComponent(`Напоминаю про ДЗ: ${lesson.homework}`)}`, '_blank')}
+                            onClick={() => window.open(`tg://msg?text=${encodeURIComponent(`Напоминаю про ДЗ: ${lesson.homework}`)}`, '_self')}
                             className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-colors"
                           >
                             <Send size={11} /> Напомнить
@@ -261,6 +254,23 @@ export default function LessonHistoryModal({ isOpen, onClose, student }) {
           </div>
         </div>
       ))}
+
+      {/* ── Кнопка подгрузки (Infinite Scroll) ───────────────── */}
+      {hasNextPage && (
+        <div className="flex justify-center pt-2 pb-6">
+          <button
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-[#006584] bg-[#006584]/5 hover:bg-[#006584]/10 transition-colors disabled:opacity-50"
+          >
+            {isFetchingNextPage ? (
+              <><Loader2 size={14} className="animate-spin" /> Загрузка...</>
+            ) : (
+              'Загрузить ещё'
+            )}
+          </button>
+        </div>
+      )}
     </SideDrawer>
   );
 }

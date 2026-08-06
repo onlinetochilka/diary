@@ -1,13 +1,15 @@
 import PocketBase from 'pocketbase';
 
-const pb = new PocketBase('https://api.tochilka.app');
+const pb = new PocketBase(process.env.POCKETBASE_URL || 'https://api.tochilka.app');
+const testEmail = process.env.TEST_EMAIL || 'testuser_debug@example.com';
+const testPassword = process.env.TEST_PASSWORD || 'TestPass123!';
 
 // Try to create with already-existing email to reproduce the 400 error
 try {
   await pb.collection('users').create({
-    email: 'testuser_debug@example.com', // this email was created earlier
-    password: 'TestPass123!',
-    passwordConfirm: 'TestPass123!',
+    email: testEmail,
+    password: testPassword,
+    passwordConfirm: testPassword,
   });
 } catch (err) {
   console.log('=== PocketBase SDK Error Structure ===');

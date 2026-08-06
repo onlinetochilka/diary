@@ -17,10 +17,15 @@ import { StatusPopover } from "../components/schedule/StatusPopover.jsx";
 import LessonInspector from "../components/schedule/LessonInspector.jsx";
 import StudentFormDrawer from "../components/students/StudentFormDrawer.jsx";
 import ActionItemModal from "../components/dashboard/ActionItemModal.jsx";
-import { Modal, Input, Button, Tooltip, Select } from "../components/ui/index.js";
+import Modal from '../components/ui/Modal.jsx';
+import Input from '../components/ui/Input.jsx';
+import Button from '../components/ui/Button.jsx';
+import Tooltip from '../components/ui/Tooltip.jsx';
+import Select from '../components/ui/Select.jsx';
 
-import { addPayment, getPrograms } from "../services/database.js";
-import { createStudent, patchStudent } from "../services/studentsAdapter.js";
+import { usePayments } from "../hooks/usePayments.js";
+import { useStudents } from "../hooks/useStudents.js";
+import { usePrograms } from "../hooks/usePrograms.js";
 import pb from "../services/pocketbase.js";
 
 // ── BENTO COMPONENTS ────────────────────────────────────────────────────────
@@ -232,6 +237,9 @@ function LitePaymentModal({ isOpen, onClose, students, onConfirm }) {
 
 // ── MAIN PAGE COMPONENT ─────────────────────────────────────────────────────
 export default function SimpleDashboardPage() {
+  const { addPayment } = usePayments();
+  const { createStudent, patchStudent } = useStudents();
+  const { getPrograms } = usePrograms();
   const navigate = useNavigate();
   const location = useLocation();
   const pageState = location.state;
@@ -242,6 +250,9 @@ export default function SimpleDashboardPage() {
     }
   }, [navigate]);
 
+  const [view, setView] = useState(pageState?.view || "week");
+  const [currentDate, setCurrentDate] = useState(new Date());
+
   // 1. Data for Dashboard (Stats)
   const { stats, refresh: refreshDashboard } = useDashboardData();
 
@@ -249,7 +260,7 @@ export default function SimpleDashboardPage() {
   const {
     lessons, students, groups, handleSaveLesson, handleCopyLesson,
     handleDeleteLesson, handleQuickStatus, handleQuickHomework, handlePatchLesson
-  } = useSchedule();
+  } = useSchedule({ currentDate, view });
 
   const [programs, setPrograms] = useState([]);
   useEffect(() => { getPrograms().then(setPrograms).catch(console.error); }, []);
@@ -277,9 +288,8 @@ export default function SimpleDashboardPage() {
 
   // 4. Schedule Navigation
   const {
-    view, setView, currentDate, setCurrentDate,
     headerTitle, periodLessons, prevPeriod, nextPeriod, goToday
-  } = useScheduleNavigation({ pageState, lessons });
+  } = useScheduleNavigation({ pageState, lessons, currentDate, setCurrentDate, view, setView });
   
   // Force view to week for Lite Mode
   useEffect(() => {

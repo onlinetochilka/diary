@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Tooltip } from '../ui/index.js';
+import Tooltip from '../ui/Tooltip.jsx';
 import { MoreVertical } from 'lucide-react';
 import { ymd, renderStatusIcon } from './scheduleUtils.jsx';
 

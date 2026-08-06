@@ -8,8 +8,8 @@ import {
   Check, Wallet, CheckCircle, Copy, Loader2,
 } from "lucide-react";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
-import { Button } from "../ui/index.js";
-import { addPayment } from "../../services/database.js";
+import Button from '../ui/Button.jsx';
+import { usePayments } from "../../hooks/usePayments.js";
 
 function generateReminderText(student) {
   const debt      = Math.abs(student.balance || 0);
@@ -26,6 +26,7 @@ function SortIcon({ field, sortField, sortOrder }) {
 }
 
 export default function DebtorsTab({ debtors, onRefresh }) {
+  const { addPayment } = usePayments();
   const [sortField,   setSortField]   = useState("balance");
   const [sortOrder,   setSortOrder]   = useState("asc");
   const [activeAction, setActiveAction] = useState(null);   // { studentId, type: 'pay'|'remind' }

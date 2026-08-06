@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle2, BookOpen } from 'lucide-react';
 import { getPlural } from '../../../utils/plural.js';
-import { Tooltip } from '../../ui/index.js';
+import Tooltip from '../../ui/Tooltip.jsx';
 
 export default function StudentTileStats({
   studentId,

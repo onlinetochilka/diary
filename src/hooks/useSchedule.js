@@ -1,39 +1,55 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { 
-  getLessons, updateLesson, addLesson, deleteLesson,
-  getStudents, getGroups 
-} from "../services/database.js";
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getStudents } from "../services/database.js";
+import { useLessons } from "./useLessons.js";
+import { useGroups } from "./useGroups.js";
 import { useConfirm } from '../contexts/ConfirmContext.jsx';
 
-export function useSchedule() {
+const EMPTY_ARRAY = [];
+
+export function useSchedule({ currentDate, view } = {}) {
+  const queryClient = useQueryClient();
+  const { getLessons, updateLesson, addLesson, patchLesson, deleteLesson } = useLessons();
+  const { getGroups } = useGroups();
   const updatingStatusRef = useRef(new Set());
   const [lessons, setLessons] = useState([]);
   const confirm = useConfirm();
-  const [students, setStudents] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [lessonsData, studentsData, groupsData] = await Promise.all([
-        getLessons(),
-        getStudents(),
-        getGroups(),
-      ]);
-      setLessons(lessonsData);
-      setStudents(studentsData);
-      setGroups(groupsData);
-    } catch (err) {
-      console.error("Error fetching schedule data:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const { dateFrom, dateTo } = useMemo(() => {
+    const d = currentDate ? new Date(currentDate) : new Date();
+    // Fetch a 3-month window for smooth calendar scrolling
+    const start = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 2, 0);
+    return {
+      dateFrom: start.toISOString().split('T')[0],
+      dateTo: end.toISOString().split('T')[0],
+    };
+  }, [currentDate]);
+
+  const { data: serverLessons = EMPTY_ARRAY, isLoading: lessonsLoading, refetch: refetchLessons } = useQuery({
+    queryKey: ['schedule-lessons', dateFrom, dateTo],
+    queryFn: () => getLessons({ dateFrom, dateTo }),
+  });
+
+  const { data: students = EMPTY_ARRAY, isLoading: studentsLoading } = useQuery({
+    queryKey: ['students'],
+    queryFn: () => getStudents(),
+  });
+
+  const { data: groups = EMPTY_ARRAY, isLoading: groupsLoading } = useQuery({
+    queryKey: ['groups'],
+    queryFn: () => getGroups(),
+  });
+
+  const isLoading = lessonsLoading || studentsLoading || groupsLoading;
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    setLessons(serverLessons);
+  }, [serverLessons]);
+
+  const fetchData = async () => {
+    await refetchLessons();
+  };
 
   const handleSaveLesson = async (id, data) => {
     if (id) {
@@ -50,7 +66,7 @@ export function useSchedule() {
       data.topicId
     ) {
       try {
-        const { updateTheme } = await import('../services/database.js');
+        const { updateTheme } = await import('../api/databaseApi.js');
         await updateTheme(data.programId, data.topicId, { isCompleted: true });
       } catch (err) {
         console.error('Failed to mark topic as completed:', err);
@@ -114,13 +130,12 @@ export function useSchedule() {
       // Optimistic update
       setLessons(prev => prev.map(l => l.id === lesson.id ? { ...l, status } : l));
 
-      const { patchLesson } = await import('../services/database.js');
       await patchLesson(lesson.id, { status });
 
       // Если урок стал «проведён» и у него есть тема — отмечаем тему пройденной
       if (status === 'conducted' && lesson.programId && lesson.topicId) {
         try {
-          const { updateTheme } = await import('../services/database.js');
+          const { updateTheme } = await import('../api/databaseApi.js');
           await updateTheme(lesson.programId, lesson.topicId, { isCompleted: true });
         } catch (err) {
           console.error('Failed to mark topic as completed on status change:', err);
@@ -128,6 +143,7 @@ export function useSchedule() {
       }
 
       await fetchData();
+      queryClient.invalidateQueries();
     } finally {
       updatingStatusRef.current.delete(lesson.id);
     }
@@ -144,7 +160,6 @@ export function useSchedule() {
     // Оптимистичное обновление
     setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, ...partial } : l));
 
-    const { patchLesson } = await import('../services/database.js');
     await patchLesson(lessonId, partial);
 
     // Если изменился статус на conducted и есть тема — отмечаем пройденной
@@ -152,7 +167,7 @@ export function useSchedule() {
       const lesson = lessons.find(l => l.id === lessonId);
       if (lesson?.programId && lesson?.topicId) {
         try {
-          const { updateTheme } = await import('../services/database.js');
+          const { updateTheme } = await import('../api/databaseApi.js');
           await updateTheme(lesson.programId, lesson.topicId, { isCompleted: true });
         } catch (err) {
           console.error('Failed to mark topic as completed:', err);
@@ -164,6 +179,7 @@ export function useSchedule() {
     const needsRefetch = ['status', 'paymentAmount', 'paymentStatus', 'studentPayments', 'attendance'].some(k => k in partial);
     if (needsRefetch) {
       await fetchData();
+      queryClient.invalidateQueries();
     }
   };
 

@@ -17,7 +17,8 @@
  */
 import React, { useState } from "react";
 import { TrendingUp, TrendingDown, BarChart2 } from "lucide-react";
-import { Card, EmptyState } from "../ui/index.js";
+import Card from '../ui/Card.jsx';
+import EmptyState from '../ui/EmptyState.jsx';
 
 const BAR_HEIGHT_FULL    = 148; // px — полный размер
 const BAR_HEIGHT_COMPACT = 156;  // px — компактный режим (чтобы Card был 192px)

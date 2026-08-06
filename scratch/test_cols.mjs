@@ -1,6 +1,8 @@
 import PocketBase from '../node_modules/pocketbase/dist/pocketbase.es.mjs';
-const pb = new PocketBase('https://api.tochilka.app');
-await pb.collection('users').authWithPassword('debugtest2_xyz@tochilka.app', 'Demo_abc1234!1');
+const pb = new PocketBase(process.env.POCKETBASE_URL || 'https://api.tochilka.app');
+const email = process.env.TEST_EMAIL || 'debugtest2_xyz@tochilka.app';
+const password = process.env.TEST_PASSWORD || 'Demo_abc1234!1';
+await pb.collection('users').authWithPassword(email, password);
 const uid = pb.authStore.record.id;
 console.log('Auth OK, uid:', uid);
 

@@ -13,97 +13,76 @@
  *   studentData, debtors,
  *   onRefresh
  */
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { getStudents, getPayments, getLessons, recalculateStudentBalance } from "../services/database.js";
+import { useMemo, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useStudents } from "./useStudents.js";
+import { getLessons, getPayments } from "../api/databaseApi.js";
+import { calculateStudentBalances, calculateIncomeForPeriod } from "../utils/financeCalculators.js";
 
 export function useFinanceData() {
-  const [loading, setLoading]   = useState(true);
-  const [students, setStudents] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [lessons, setLessons]   = useState([]);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { getStudents } = useStudents();
+  const queryClient = useQueryClient();
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const [st, p, l] = await Promise.all([
-      getStudents(),
-      getPayments(),
-      getLessons(),
-    ]);
-    setStudents(st);
-    setPayments(p);
-    setLessons(l);
-    setLoading(false);
+  const { now, currentMonthStartStr, nextMonthStartStr, sixMonthsAgoStr, lastMonthStart, lastMonthEnd } = useMemo(() => {
+    const now = new Date();
+    
+    // Bounds for lessons
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart    = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    
+    // Bounds for payments (last 6 months chart + this month)
+    const sixMonthsAgo      = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    
+    // Bounds for last month KPIs
+    const lastMonthStartObj = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    
+    return {
+      now,
+      currentMonthStartStr: currentMonthStart.toISOString().split("T")[0],
+      nextMonthStartStr: nextMonthStart.toISOString().split("T")[0],
+      sixMonthsAgoStr: sixMonthsAgo.toISOString().replace("T", " "), // PB uses YYYY-MM-DD HH:mm:ss for dates
+      lastMonthStart: lastMonthStartObj,
+      lastMonthEnd: currentMonthStart,
+    };
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData, refreshKey]);
+  const { data: students = [], isLoading: loadingStudents } = useQuery({
+    queryKey: ['students'],
+    queryFn: () => getStudents(),
+  });
 
-  const onRefresh = useCallback(() => {
-    setRefreshKey(k => k + 1);
-  }, []);
+  const { data: payments = [], isLoading: loadingPayments } = useQuery({
+    queryKey: ['payments', { dateFrom: sixMonthsAgoStr }],
+    queryFn: () => getPayments({ dateFrom: sixMonthsAgoStr }),
+  });
 
-  // Fix #6: Listen for the cross-page 'force-refresh-data' event that Schedule page
-  // fires after accepting a payment, so Finance page picks up fresh data automatically.
-  useEffect(() => {
-    const handleForceRefresh = () => setRefreshKey(k => k + 1);
-    window.addEventListener('force-refresh-data', handleForceRefresh);
-    return () => window.removeEventListener('force-refresh-data', handleForceRefresh);
-  }, []);
+  const { data: lessons = [], isLoading: loadingLessons } = useQuery({
+    queryKey: ['lessons', { dateFrom: currentMonthStartStr, dateTo: nextMonthStartStr }],
+    queryFn: () => getLessons({ dateFrom: currentMonthStartStr, dateTo: nextMonthStartStr }),
+  });
 
-  // FIX-2: Background balance integrity check — silently recalculates any
-  // drifted balances without blocking UI. Runs once when finance page loads.
-  const hasCheckedBalancesRef = useRef(false);
-  useEffect(() => {
-    if (loading || students.length === 0 || hasCheckedBalancesRef.current) return;
-    hasCheckedBalancesRef.current = true;
-    let cancelled = false;
-    (async () => {
-      let anyCorrected = false;
-      for (const s of students) {
-        if (cancelled) break;
-        try {
-          const result = await recalculateStudentBalance(s.id);
-          if (result.corrected) {
-            anyCorrected = true;
-            console.warn(`[FinanceData] Balance corrected for ${s.name}: ${result.stored} → ${result.calculated}`);
-          }
-        } catch {
-          // Don't crash the UI if recalc fails for one student
-        }
-      }
-      // If any balance was corrected, refresh data to show updated numbers
-      if (!cancelled && anyCorrected) {
-        setRefreshKey(k => k + 1);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [loading, students.length]); // Only re-run when students list changes
+  const loading = loadingStudents || loadingPayments || loadingLessons;
 
-  // ── Временные границы ───────────────────────────────────────────────────────
-  const { now, currentMonthStart, nextMonthStart, lastMonthStart, lastMonthEnd } =
-    useMemo(() => {
-      const now = new Date();
-      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const nextMonthStart    = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const lastMonthStart    = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd      = currentMonthStart;
-      return { now, currentMonthStart, nextMonthStart, lastMonthStart, lastMonthEnd };
-    }, []);
+  const onRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['students'] });
+    queryClient.invalidateQueries({ queryKey: ['payments'] });
+    queryClient.invalidateQueries({ queryKey: ['lessons'] });
+  };
 
-  // ── KPI: доходы ─────────────────────────────────────────────────────────────
+
+
+  const { currentMonthStart, nextMonthStartObj } = useMemo(() => ({
+    currentMonthStart: new Date(now.getFullYear(), now.getMonth(), 1),
+    nextMonthStartObj: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+  }), [now]);
+
   const incomeThisMonth = useMemo(() =>
-    payments
-      .filter(p => new Date(p.paidAt) >= currentMonthStart && new Date(p.paidAt) < nextMonthStart)
-      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
-    [payments, currentMonthStart, nextMonthStart]
+    calculateIncomeForPeriod(payments, currentMonthStart, nextMonthStartObj),
+    [payments, currentMonthStart, nextMonthStartObj]
   );
 
   const incomeLastMonth = useMemo(() =>
-    payments
-      .filter(p => new Date(p.paidAt) >= lastMonthStart && new Date(p.paidAt) < lastMonthEnd)
-      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
+    calculateIncomeForPeriod(payments, lastMonthStart, lastMonthEnd),
     [payments, lastMonthStart, lastMonthEnd]
   );
 
@@ -112,12 +91,8 @@ export function useFinanceData() {
     return Math.round(((incomeThisMonth - incomeLastMonth) / incomeLastMonth) * 100);
   }, [incomeThisMonth, incomeLastMonth]);
 
-  // ── KPI: уроки ──────────────────────────────────────────────────────────────
   const { lessonsConductedThisMonth, lessonsScheduledThisMonth, cancelledThisMonth, averageReceipt } =
     useMemo(() => {
-      const currentMonthStartStr = currentMonthStart.toISOString().split("T")[0];
-      const nextMonthStartStr    = nextMonthStart.toISOString().split("T")[0];
-
       let conducted = 0;
       let scheduled = 0;
       let cancelled = 0;
@@ -141,33 +116,11 @@ export function useFinanceData() {
         cancelledThisMonth: cancelled,
         averageReceipt: conducted > 0 ? Math.round(totalConductedPrice / conducted) : 0,
       };
-    }, [lessons, currentMonthStart, nextMonthStart]);
+    }, [lessons, currentMonthStartStr, nextMonthStartStr]);
 
-  // ── KPI: долги и авансы ─────────────────────────────────────────────────────
   const { totalDebt, totalAdvances, debtorsCount, unpaidLessonsCount } =
-    useMemo(() => {
-      let totalDebt = 0;
-      let totalAdvances = 0;
-      let debtorsCount = 0;
-      let unpaidLessonsCount = 0;
+    useMemo(() => calculateStudentBalances(students), [students]);
 
-      students.forEach(s => {
-        const balance = s.balance || 0;
-        if (balance < 0) {
-          totalDebt += Math.abs(balance);
-          debtorsCount++;
-          const price = s.subjects?.[0]?.price || 0;
-          unpaidLessonsCount += price > 0 ? Math.ceil(Math.abs(balance) / price) : 1;
-        }
-        if (balance > 0) {
-          totalAdvances += balance;
-        }
-      });
-
-      return { totalDebt, totalAdvances, debtorsCount, unpaidLessonsCount };
-    }, [students]);
-
-  // ── График: последние 6 месяцев ─────────────────────────────────────────────
   const { chartData, maxMonthIncome } = useMemo(() => {
     const data = [];
     let maxIncome = 0;
@@ -177,9 +130,7 @@ export function useFinanceData() {
       const mStart = new Date(d.getFullYear(), d.getMonth(), 1);
       const mEnd   = new Date(d.getFullYear(), d.getMonth() + 1, 1);
 
-      const mIncome = payments
-        .filter(p => new Date(p.paidAt) >= mStart && new Date(p.paidAt) < mEnd)
-        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const mIncome = calculateIncomeForPeriod(payments, mStart, mEnd);
 
       if (mIncome > maxIncome) maxIncome = mIncome;
 
@@ -193,7 +144,6 @@ export function useFinanceData() {
     return { chartData: data, maxMonthIncome: maxIncome };
   }, [payments, now]);
 
-  // ── Обогащённые данные для таблицы ──────────────────────────────────────────
   const studentData = useMemo(() =>
     students.map(s => {
       const stLessons = lessons.filter(l =>
@@ -204,7 +154,6 @@ export function useFinanceData() {
       const balance    = s.balance || 0;
       const subjectName = s.subjects?.[0]?.name || "Ученик";
 
-      // Ledger: хронология уроков и оплат
       const ledger = [
         ...stLessons.map(l => ({
           type: "lesson",
@@ -226,7 +175,7 @@ export function useFinanceData() {
         ...s,
         balance,
         subjectName,
-        totalLessons: stLessons.length,
+        totalLessons: stLessons.length, // Only reflects lessons this month now
         totalPaymentsCount: stPayments.length,
         totalPaymentsSum: stPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0),
         ledger,
@@ -247,7 +196,6 @@ export function useFinanceData() {
     students,
     payments,
     lessons,
-    // KPI
     incomeThisMonth,
     incomeLastMonth,
     incomeGrowthPct,
@@ -256,17 +204,13 @@ export function useFinanceData() {
     totalAdvances,
     debtorsCount,
     unpaidLessonsCount,
-    // Уроки
     lessonsConductedThisMonth,
     lessonsScheduledThisMonth,
     cancelledThisMonth,
-    // График
     chartData,
     maxMonthIncome,
-    // Таблица
     studentData,
     debtors,
-    // Управление
     onRefresh,
   };
 }

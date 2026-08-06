@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Check, Bell, Copy, Send, MessageCircle, Mail, CheckCircle2 } from "lucide-react";
-import { Tooltip } from "../ui";
+import Tooltip from '../ui/Tooltip.jsx';
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
 function getHwText(n) {
@@ -48,7 +48,13 @@ export default function ActionItemCard({ item, onMarkDone }) {
   };
 
   const encoded = encodeURIComponent(text);
-  const MAX_MESSENGER_URL = "https://max.ru/share";
+  const tgChannel = item.student?.contacts?.studentChannels?.find(c => c.type === 'telegram');
+  const waChannel = item.student?.contacts?.studentChannels?.find(c => c.type === 'whatsapp');
+  const tgValue = tgChannel?.value ? tgChannel.value.replace('@', '') : '';
+  const waValue = waChannel?.value ? waChannel.value.replace(/[^0-9]/g, '') : '';
+  
+  const tgLink = tgValue ? `https://t.me/${tgValue}?text=${encoded}` : `tg://msg?text=${encoded}`;
+  const waLink = waValue ? `https://wa.me/${waValue}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
 
   const btnClass = `w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#006584] transition-all ${
     !text.trim() 
@@ -152,7 +158,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
               </Tooltip>
               <Tooltip text="WhatsApp" position="top-right">
                 <a
-                  href={`https://wa.me/?text=${encoded}`}
+                  href={waLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnClass}
@@ -163,7 +169,7 @@ export default function ActionItemCard({ item, onMarkDone }) {
               </Tooltip>
               <Tooltip text="Telegram" position="top-right">
                 <a
-                  href={`https://t.me/share/url?url=&text=${encoded}`}
+                  href={tgLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnClass}

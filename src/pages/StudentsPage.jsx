@@ -9,12 +9,16 @@ import ReportBuilderModal from "../components/students/ReportBuilderModal.jsx";
 import GroupLessonHistoryModal from "../components/students/GroupLessonHistoryModal.jsx";
 import GroupReportBuilderModal from "../components/students/GroupReportBuilderModal.jsx";
 import ReportTemplateView from "../components/students/ReportTemplateView.jsx";
-import { getPrograms, addGroup, updateGroup, deleteGroup, getGroups, deleteStudent } from "../services/database.js";
-import { fetchStudents, createStudent, patchStudent } from "../services/studentsAdapter.js";
+import { useStudents } from "../hooks/useStudents.js";
+import { useGroups } from "../hooks/useGroups.js";
+import { usePrograms } from "../hooks/usePrograms.js";
 import pb from "../services/pocketbase.js";
 import { useToast } from "../components/ui/Toast.jsx";
 
 export default function StudentsPage() {
+  const { fetchStudents, createStudent, patchStudent, deleteStudent } = useStudents();
+  const { getGroups, addGroup, updateGroup, deleteGroup } = useGroups();
+  const { getPrograms } = usePrograms();
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();

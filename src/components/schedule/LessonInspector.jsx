@@ -2,7 +2,14 @@ import { cn } from '../../utils/cn.js';
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
 import { useState, useEffect } from "react";
 import { Loader2, User, AlignLeft, CheckCircle2, AlertCircle, X, Trash2 } from "lucide-react";
-import { SideDrawer, Button, Input, Select, SegmentedControl, Card, Tooltip, useToast } from "../ui/index.js";
+import SideDrawer from '../ui/SideDrawer.jsx';
+import Button from '../ui/Button.jsx';
+import Input from '../ui/Input.jsx';
+import Select from '../ui/Select.jsx';
+import SegmentedControl from '../ui/SegmentedControl.jsx';
+import Card from '../ui/Card.jsx';
+import Tooltip from '../ui/Tooltip.jsx';
+import { useToast } from '../ui/Toast.jsx';
 
 export default function LessonInspector({
   isOpen,

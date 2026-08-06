@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserPlus, SearchX, CheckCheck, Archive, Layers } from 'lucide-react';
-import { EmptyState, Button } from '../ui/index.js';
+import EmptyState from '../ui/EmptyState.jsx';
+import Button from '../ui/Button.jsx';
 
 export default function StudentsEmptyState({
   searchQuery,

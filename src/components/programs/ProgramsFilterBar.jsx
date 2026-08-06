@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, ArrowUpDown } from 'lucide-react';
-import { Input, Select } from '../ui/index.js';
+import Input from '../ui/Input.jsx';
+import Select from '../ui/Select.jsx';
 
 export default function ProgramsFilterBar({
   searchQuery,

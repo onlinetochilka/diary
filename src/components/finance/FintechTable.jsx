@@ -55,7 +55,7 @@ export default function FintechTable({ students, payments, studentData, debtors,
       {/* Tab content — unmount/mount сбрасывает локальный state каждой вкладки */}
       {activeTab === "debtors"  && <DebtorsTab  debtors={resolvedDebtors}          onRefresh={onRefresh} />}
       {activeTab === "students" && <StudentsTab  studentData={resolvedStudentData}  onRefresh={onRefresh} />}
-      {activeTab === "all"      && <PaymentsTab  payments={payments} students={students} />}
+      {activeTab === "all"      && <PaymentsTab  students={students} />}
     </div>
   );
 }

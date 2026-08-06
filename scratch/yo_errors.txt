@@ -1,0 +1,59 @@
+src/components/dashboard/ActionItemCard.jsx:7 - Word: "Все" -> Context: if (!n) return 'Все ДЗ сданы';
+src/components/dashboard/ActionItemCard.jsx:33 - Word: "твое" -> Context: setText(`Привет, ${name}! Жду твое домашнее задание 📚`);
+src/components/dashboard/ActionItemModal.jsx:31 - Word: "твое" -> Context: return `Привет, ${name}! Жду твое домашнее задание 📚`;
+src/components/finance/DebtorsTab.jsx:108 - Word: "все" -> Context: <p className="text-xs text-stone-500 leading-relaxed">В этом месяце все ученики вовремя оплатили занятия. Здесь будут отображаться те, у кого отрицательный баланс.</p>
+src/components/finance/FintechTable.jsx:26 - Word: "Все" -> Context: { id: "all",      label: "Все операции" },
+src/components/finance/PaymentsTab.jsx:59 - Word: "все" -> Context: description="Здесь будут отображаться все ваши платежи"
+src/components/programs/InspectorPanel.jsx:12 - Word: "Все" -> Context: * Все 8 состояний интерактива реализованы через Tailwind-классы:
+src/components/programs/ProgramStructure.jsx:629 - Word: "все" -> Context: message: `Раздел «${section?.title}» и все его темы удалены`,
+src/components/programs/ThemeRow.jsx:9 - Word: "Все" -> Context: *   • Все 8 состояний интерактива через CSS-классы .pe-theme-row.*
+src/components/schedule/DayInspector.jsx:88 - Word: "Проведен" -> Context: { value: 'conducted',    label: 'Проведен' },
+src/components/schedule/DayInspector.jsx:91 - Word: "Отменен" -> Context: { value: 'cancelled',    label: 'Отменен' },
+src/components/schedule/LessonInspector.jsx:142 - Word: "все" -> Context: // По умолчанию все ученики группы присутствуют
+src/components/schedule/LessonInspector.jsx:418 - Word: "Проведен" -> Context: { value: 'conducted', label: 'Проведен' },
+src/components/schedule/LessonInspector.jsx:421 - Word: "Отменен" -> Context: { value: 'cancelled', label: 'Отменен' }
+src/components/schedule/scheduleUtils.jsx:33 - Word: "Проведен" -> Context: <Tooltip text="Проведен" position="bottom">
+src/components/schedule/scheduleUtils.jsx:41 - Word: "Отменен" -> Context: <Tooltip text="Отменен" position="bottom">
+src/components/schedule/StatusPopover.jsx:16 - Word: "Проведен" -> Context: { status: "conducted",    label: "Проведен",            Icon: CheckCircle2, colors: { active: "bg-emerald-100 text-emerald-800 font-bold", idle: "text-emerald-700 hover:bg-emerald-50" } },
+src/components/students/GroupEditorView.jsx:286 - Word: "ВСЕ" -> Context: ? 'ВНИМАНИЕ! Вместе с группой будут безвозвратно удалены ВСЕ её уроки. Вы уверены?'
+src/components/students/GroupLessonHistoryModal.jsx:13 - Word: "Все" -> Context: { key: 'all',       label: 'Все' },
+src/components/students/LessonHistoryModal.jsx:25 - Word: "Все" -> Context: { key: 'all',       label: 'Все' },
+src/components/students/PriceChangeModal.jsx:52 - Word: "все" -> Context: Обновить все будущие уроки
+src/components/students/StudentCard.jsx:171 - Word: "отчет" -> Context: <Tooltip text="Сводный отчет">
+src/components/students/StudentCard.jsx:176 - Word: "Отчет" -> Context: aria-label="Отчет"
+src/components/students/StudentEditorView.jsx:56 - Word: "ВСЕ" -> Context: ? 'ВНИМАНИЕ! Вместе с учеником будут безвозвратно удалены ВСЕ его проведенные уроки и история оплат. Вы уверены, что хотите продолжить?'
+src/components/students/StudentEditorView.jsx:57 - Word: "Все" -> Context: : 'Удалить ученика? Это действие нельзя отменить. Все его данные будут стерты.';
+src/components/students/StudentFormDrawer.jsx:650 - Word: "еще" -> Context: Добавить еще предмет
+src/components/students/StudentsDirectoryView.jsx:135 - Word: "Все" -> Context: Все ваши ученики на одной странице
+src/components/students/StudentsEmptyState.jsx:15 - Word: "учет" -> Context: let description = "Добавьте первого ученика, чтобы начать вести расписание и учет финансов.";
+src/components/students/StudentsEmptyState.jsx:38 - Word: "Все" -> Context: description = "Все занятия оплачены вовремя. Отличная работа!";
+src/components/students/StudentsFilterBar.jsx:22 - Word: "Все" -> Context: { id: 'all', label: 'Все', icon: LayoutGrid },
+src/components/students/StudentsFilterBar.jsx:56 - Word: "Все" -> Context: {/* Format Segments (Все / Индивидуальные / Группы) */}
+src/components/students/tile/StudentTileHeader.jsx:86 - Word: "отчет" -> Context: <Tooltip text="Сводный отчет" position="top">
+src/components/ui/Tooltip.jsx:86 - Word: "все" -> Context: <span> получает все пропы Radix (onPointerEnter, aria-*, ref).
+src/constants/financeMetrics.js:75 - Word: "Все" -> Context: : "Все ученики в расчёте",
+src/pages/AuthPage.jsx:51 - Word: "подтвержден" -> Context: setSuccess("Ваш email успешно подтвержден! Теперь вы можете войти.");
+src/pages/AuthPage.jsx:71 - Word: "все" -> Context: setError("Пожалуйста, заполните все поля");
+src/pages/AuthPage.jsx:270 - Word: "учетную" -> Context: {mode === "reset" ? "Придумайте новый пароль для аккаунта" : (mode === "login" ? "Войдите в свою учетную запись" : "Создайте аккаунт, чтобы навести порядок в расписании")}
+src/pages/AuthPage.jsx:451 - Word: "Все" -> Context: Все ученики, расписания и финансы под полным контролем.
+src/pages/GuestPortalView.jsx:14 - Word: "найдем" -> Context: // но сейчас для демо просто найдем любого ученика,
+src/pages/LandingPage.jsx:39 - Word: "Отчеты" -> Context: question: "Отчеты об успеваемости — это просто!",
+src/pages/LandingPage.jsx:40 - Word: "отчет" -> Context: answer: "Делитесь результатами учеников за пару секунд. Скачайте красивый PDF-отчет или отправьте родителям персональную ссылку для доступа к статистике — всё наглядно и без лишних регистраций.",
+src/pages/LandingPage.jsx:45 - Word: "Все" -> Context: question: "Все учебные планы в идеальном порядке!",
+src/pages/LandingPage.jsx:93 - Word: "Все" -> Context: "Все KPI-метрики на дашборде",
+src/pages/LandingPage.jsx:129 - Word: "все" -> Context: a: "Да. Тариф «Старт» бесплатен навсегда. Также есть деморежим с готовыми данными — можно посмотреть все возможности без регистрации.",
+src/pages/LandingPage.jsx:217 - Word: "все" -> Context: Расписание, программа курса и отчёты для родителей — все в одном приложении!
+src/pages/LandingPage.jsx:318 - Word: "Все" -> Context: Все данные — ваши реальные цифры. Отчёты формируются из фактических записей:
+src/pages/SettingsScreen.jsx:544 - Word: "Все" -> Context: { val: "all",      label: "Все ученики",  Icon: Users },
+src/pages/SettingsScreen.jsx:707 - Word: "Все" -> Context: bullets={["Всех учеников", "Все уроки и расписание", "Все финансовые записи", "Все программы"]}
+src/pages/SettingsScreen.jsx:707 - Word: "Все" -> Context: bullets={["Всех учеников", "Все уроки и расписание", "Все финансовые записи", "Все программы"]}
+src/pages/SettingsScreen.jsx:707 - Word: "Все" -> Context: bullets={["Всех учеников", "Все уроки и расписание", "Все финансовые записи", "Все программы"]}
+src/pages/SettingsScreen.jsx:821 - Word: "все" -> Context: <p className="text-sm font-bold text-red-800 mb-1">Удалить все данные</p>
+src/pages/StudentsPage.jsx:47 - Word: "отчетов" -> Context: // Модалка билдера отчетов
+src/pages/StudentsPage.jsx:276 - Word: "отчета" -> Context: showToast({ message: "Функция генерации группового отчета в разработке", type: "error" });
+src/services/database.js:606 - Word: "все" -> Context: * Тихая миграция: если sections отсутствует или пустой, все темы из topics[]
+src/services/database.js:781 - Word: "все" -> Context: * Удаляет раздел и все его темы.
+src/services/studentsAdapter.js:138 - Word: "Все" -> Context: *   - Все поля присутствуют (с дефолтами, если отсутствуют).
+src/utils/demoData.js:97 - Word: "платеж" -> Context: { id: genId(), title: "Финансовая математика", homework: "Задачи на аннуитетный платеж" },
+src/utils/demoData.js:354 - Word: "проведен" -> Context: // Логика домашек: если урок проведен, есть домашка.
+src/utils/demoData.js:372 - Word: "учет" -> Context: // Финансовый учет

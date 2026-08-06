@@ -29,7 +29,7 @@ import {
   updateProgramStructure,
 } from "../../services/database.js";
 import { useToast } from "../ui/Toast.jsx";
-import { Tooltip } from "../ui/index.js";
+import Tooltip from '../ui/Tooltip.jsx';
 
 // ─── Skeleton пока программа загружается ─────────────────────────────────────
 function EditorSkeleton() {

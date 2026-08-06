@@ -17,9 +17,7 @@ const MONTH_NAMES = [
   "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
 ];
 
-export function useScheduleNavigation({ pageState, lessons }) {
-  const [view, setView]               = useState(pageState?.view || "week");
-  const [currentDate, setCurrentDate] = useState(new Date());
+export function useScheduleNavigation({ pageState, lessons, currentDate, setCurrentDate, view, setView }) {
   const [navigatedFromMonth, setNavigatedFromMonth] = useState(false);
 
   // Синхронизация с pageState

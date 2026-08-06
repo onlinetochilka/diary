@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle2, BookOpen, XCircle, Users } from 'lucide-react';
-import { Tooltip } from '../ui/index.js';
+import Tooltip from '../ui/Tooltip.jsx';
 
 /**
  * DayLessonCard — карточка урока в дневном расписании.

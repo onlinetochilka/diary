@@ -5,7 +5,7 @@
  */
 import React, { useMemo } from "react";
 import { Crown } from "lucide-react";
-import { Card } from "../ui/index.js";
+import Card from '../ui/Card.jsx';
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 
 const BAR_COLORS = [

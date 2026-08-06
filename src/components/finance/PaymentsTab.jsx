@@ -2,14 +2,21 @@
  * PaymentsTab.jsx — плоский список всех операций с сортировкой и пагинацией.
  * Props: { payments, students }
  */
-import React, { useState, useMemo } from "react";
-import { ChevronDown, ChevronUp, Check, Wallet } from "lucide-react";
+import React, { useMemo } from "react";
+import { ChevronDown, ChevronUp, Check, Wallet, Loader2 } from "lucide-react";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
-import { EmptyState } from "../ui/index.js";
+import EmptyState from '../ui/EmptyState.jsx';
+import { usePayments } from "../../hooks/usePayments.js";
 
-export default function PaymentsTab({ payments, students }) {
-  const [visibleCount, setVisibleCount] = useState(20);
-  const [sortOrder,    setSortOrder]    = useState("desc");
+export default function PaymentsTab({ students }) {
+  const { 
+    payments, 
+    isLoading, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = usePayments();
+  const [sortOrder, setSortOrder] = React.useState("desc");
 
   const sorted = useMemo(() => {
     return [...payments].sort((a, b) => {
@@ -64,7 +71,7 @@ export default function PaymentsTab({ payments, students }) {
                 </td>
               </tr>
             ) : (
-              sorted.slice(0, visibleCount).map((p, idx) => {
+              sorted.map((p, idx) => {
                 const s    = students.find(st => st.id === p.studentId);
                 const name = s ? s.name : "Удалённый ученик";
                 const date = new Date(p.paidAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
@@ -105,13 +112,16 @@ export default function PaymentsTab({ payments, students }) {
       </div>
 
       {/* Pagination */}
-      {sorted.length > visibleCount && (
+      {hasNextPage && (
         <div className="p-4 border-t border-stone-100 text-center bg-stone-50/50">
           <button
-            onClick={() => setVisibleCount(n => n + 20)}
-            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-lg transition-colors"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center mx-auto"
           >
-            Загрузить ещё
+            {isFetchingNextPage ? (
+              <><Loader2 size={14} className="animate-spin mr-2" /> Загружаем...</>
+            ) : "Загрузить ещё"}
           </button>
         </div>
       )}

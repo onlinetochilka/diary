@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { calcProgramProgress } from '../../../services/studentsAdapter.js';
-import { Tooltip } from '../../ui/index.js';
+import Tooltip from '../../ui/Tooltip.jsx';
 
 export default function StudentTileProgram({
   student,

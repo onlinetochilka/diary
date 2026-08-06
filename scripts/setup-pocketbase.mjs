@@ -6,9 +6,14 @@
  * Run once after PocketBase is deployed and superuser is created.
  */
 
-const API = "https://api.tochilka.app";
-const EMAIL = "admin@tochilka.app";
-const PASSWORD = "3SenSay!";
+const API = process.env.POCKETBASE_URL || "https://api.tochilka.app";
+const EMAIL = process.env.PB_ADMIN_EMAIL || "admin@tochilka.app";
+const PASSWORD = process.env.PB_ADMIN_PASSWORD;
+
+if (!PASSWORD) {
+  console.error("Error: PB_ADMIN_PASSWORD environment variable is required.");
+  process.exit(1);
+}
 
 // ── HTTP Helper ──────────────────────────────────────────────────────────
 

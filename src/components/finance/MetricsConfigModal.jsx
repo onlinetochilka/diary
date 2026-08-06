@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { SideDrawer, Button, Card } from "../ui";
+import SideDrawer from '../ui/SideDrawer.jsx';
+import Button from '../ui/Button.jsx';
+import Card from '../ui/Card.jsx';
 import { METRIC_GROUPS } from "../../constants/financeMetrics.js";
 
 const MAX = 4;

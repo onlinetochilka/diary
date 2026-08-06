@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Modal, Button, SegmentedControl } from '../ui/index.js';
+import Modal from '../ui/Modal.jsx';
+import Button from '../ui/Button.jsx';
+import SegmentedControl from '../ui/SegmentedControl.jsx';
 import { Check } from 'lucide-react';
 import pb from '../../services/pocketbase.js';
 import { cn } from '../../utils/cn.js';

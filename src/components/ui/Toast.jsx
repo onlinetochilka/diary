@@ -18,6 +18,19 @@ const ToastContext = createContext(null);
 
 let _toastIdCounter = 0;
 
+// Global reference for outside-of-React usage
+export const globalToastRef = {
+  showToast: null,
+};
+
+export function globalToast({ message, type = "info", duration = 4000 }) {
+  if (globalToastRef.showToast) {
+    globalToastRef.showToast({ message, type, duration });
+  } else {
+    console.warn("ToastProvider is not mounted. Toast message:", message);
+  }
+}
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
@@ -49,6 +62,13 @@ export function ToastProvider({ children }) {
     toast.onExpire?.();
     dismiss(toast.id);
   }, [dismiss]);
+
+  useEffect(() => {
+    globalToastRef.showToast = showToast;
+    return () => {
+      globalToastRef.showToast = null;
+    };
+  }, [showToast]);
 
   return (
     <ToastContext.Provider value={{ showToast, dismiss }}>

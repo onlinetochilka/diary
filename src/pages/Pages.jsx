@@ -3,7 +3,10 @@
  * Each page will be implemented in later iterations.
  * Current focus: verify layout, routing, and design system.
  */
-import { Card, Button, Switch, Input } from "../components/ui/index.js";
+import Card from '../components/ui/Card.jsx';
+import Button from '../components/ui/Button.jsx';
+import Switch from '../components/ui/Switch.jsx';
+import Input from '../components/ui/Input.jsx';
 import {
   LayoutDashboard,
   CalendarDays,

@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { Modal, Button, Tooltip, useToast } from '../ui/index.js';
+import { useQueryClient } from '@tanstack/react-query';
+import Modal from '../ui/Modal.jsx';
+import Button from '../ui/Button.jsx';
+import Tooltip from '../ui/Tooltip.jsx';
+import { useToast } from '../ui/Toast.jsx';
 import { Link2, Copy, Check, Send, Smartphone, Phone, Mail, ExternalLink } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
-import { updateStudent } from '../../services/database.js';
+import { useStudents } from '../../hooks/useStudents.js';
 
 // Возвращает иконку и ссылку для открытия контакта
 function getContactMeta(channel) {
@@ -41,11 +45,13 @@ function getContactMeta(channel) {
 }
 
 export default function GuestLinkModal({ isOpen, onClose, student }) {
+  const queryClient = useQueryClient();
+  const { updateStudent } = useStudents();
+  const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
   const [videoCopied, setVideoCopied] = useState(false);
   const [botCopied, setBotCopied] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const { showToast } = useToast();
 
   const botUsername = "tochilka_mail_bot";
   const botLink = `https://t.me/${botUsername}?start=student_${student?.id || ''}`;
@@ -279,7 +285,7 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
                 const newHash = Math.random().toString(36).substring(2, 15);
                 await updateStudent(student.id, { linkHash: newHash });
                 if (student) student.linkHash = newHash; // Optimistic update
-                window.dispatchEvent(new CustomEvent("force-refresh-data"));
+                queryClient.invalidateQueries();
               } catch (err) {
                 console.error("Ошибка при сбросе ссылки:", err);
                 showToast({ message: "Не удалось сбросить ссылку", type: "error" });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from '../ui/index.js';
+import Tooltip from '../ui/Tooltip.jsx';
 import DroppableSlot from './DroppableSlot.jsx';
 import { LessonCard } from './LessonCard.jsx';
 import { ymd, renderStatusIcon } from './scheduleUtils.jsx';

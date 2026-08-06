@@ -5,8 +5,11 @@
  * Загружает уроки по groupId, показывает посещаемость и ДЗ-агрегаты.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { SideDrawer } from '../ui/index.js';
-import { getLessons } from '../../services/database.js';
+import { Calendar, ChevronRight, BookOpen, AlertCircle, FileText } from 'lucide-react';
+import Modal from '../ui/Modal.jsx';
+import Button from '../ui/Button.jsx';
+import SideDrawer from '../ui/SideDrawer.jsx';
+import { useLessons } from '../../hooks/useLessons.js';
 import { cn } from '../../utils/cn.js';
 
 const FILTERS = [
@@ -54,27 +57,22 @@ function MonthLabel({ dateKey }) {
 }
 
 export default function GroupLessonHistoryModal({ isOpen, onClose, group, studentsInGroup = [] }) {
-  const [lessons, setLessons] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { 
+    lessons, 
+    isLoading: loading, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = useLessons({ groupId: group?.id });
+
   const [filter, setFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo,   setDateTo]   = useState('');
 
   useEffect(() => {
-    if (!isOpen || !group?.id) return;
-    setLoading(true);
-    getLessons({ groupId: group.id })
-      .then(data => {
-        const sorted = [...data].sort((a, b) => {
-          const dc = (b.date || '').localeCompare(a.date || '');
-          if (dc !== 0) return dc;
-          return (b.startTime || '').localeCompare(a.startTime || '');
-        });
-        setLessons(sorted);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [isOpen, group?.id]);
+    if (!isOpen) return;
+    setFilter('all');
+  }, [isOpen]);
 
   // Фильтрация
   const today = new Date().toISOString().slice(0, 10);
@@ -293,6 +291,23 @@ export default function GroupLessonHistoryModal({ isOpen, onClose, group, studen
           </div>
         </div>
       ))}
+
+      {/* ── Кнопка подгрузки (Infinite Scroll) ───────────────── */}
+      {hasNextPage && (
+        <div className="flex justify-center pt-2 pb-6">
+          <button
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-[#006584] bg-[#006584]/5 hover:bg-[#006584]/10 transition-colors disabled:opacity-50"
+          >
+            {isFetchingNextPage ? (
+              <span className="flex items-center gap-1.5"><span className="w-4 h-4 border-2 border-[#006584] border-t-transparent rounded-full animate-spin"></span> Загрузка...</span>
+            ) : (
+              'Загрузить ещё'
+            )}
+          </button>
+        </div>
+      )}
     </SideDrawer>
   );
 }

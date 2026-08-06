@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
 import { Settings2, Loader2, Wallet } from "lucide-react";
-import { Card, Button, FinanceMetricSkeleton, FinanceChartSkeleton, Tooltip } from "../components/ui/index.js";
+import Card from '../components/ui/Card.jsx';
+import Button from '../components/ui/Button.jsx';
+import { FinanceMetricSkeleton } from '../components/ui/Skeletons.jsx';
+import { FinanceChartSkeleton } from '../components/ui/Skeletons.jsx';
+import Tooltip from '../components/ui/Tooltip.jsx';
 import { useFinanceData } from "../hooks/useFinanceData.js";
 import { useFinanceMetrics } from "../hooks/useFinanceMetrics.js";
 import { getMetricCardData } from "../constants/financeMetrics.js";

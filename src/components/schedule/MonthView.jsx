@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from '../ui/index.js';
+import Tooltip from '../ui/Tooltip.jsx';
 import DroppableSlot from './DroppableSlot.jsx';
 import ScheduleSidebar from './ScheduleSidebar.jsx';
 import { getDaysInMonth, getFirstDayOfMonth, getLessonWord, ymd } from './scheduleUtils.jsx';

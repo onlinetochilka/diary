@@ -4,7 +4,8 @@ import pb from "../services/pocketbase.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { generateDemoData } from "../utils/demoData.js";
 import { Eye, EyeOff, Loader2, ArrowLeft, Home } from "lucide-react";
-import { Input, Button } from "../components/ui/index.js";
+import Input from '../components/ui/Input.jsx';
+import Button from '../components/ui/Button.jsx';
 
 export default function AuthPage() {
   const { refreshUser } = useAuth();

@@ -20,9 +20,14 @@
 
 import PocketBase from "pocketbase";
 
-const PB_URL = "https://api.tochilka.app";
-const DEFAULT_EMAIL = process.argv[2] || "demo@tochilka.app";
-const DEFAULT_PASS  = process.argv[3] || "Demo12345!";
+const PB_URL = process.env.POCKETBASE_URL || "https://api.tochilka.app";
+const DEFAULT_EMAIL = process.argv[2] || process.env.DEMO_EMAIL || "demo@tochilka.app";
+const DEFAULT_PASS  = process.argv[3] || process.env.DEMO_PASSWORD;
+
+if (!DEFAULT_PASS) {
+  console.error("Error: DEMO_PASSWORD is not set. Pass it as an argument or set the environment variable.");
+  process.exit(1);
+}
 
 const pb = new PocketBase(PB_URL);
 pb.autoCancellation(false);

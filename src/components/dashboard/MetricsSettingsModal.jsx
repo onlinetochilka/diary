@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { SideDrawer, Button, Checkbox, Card } from "../ui";
+import SideDrawer from '../ui/SideDrawer.jsx';
+import Button from '../ui/Button.jsx';
+import Checkbox from '../ui/Checkbox.jsx';
+import Card from '../ui/Card.jsx';
 
 export const METRICS_CONFIG = [
   {

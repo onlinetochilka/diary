@@ -15,8 +15,12 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BookOpen, Plus, FilePlus2 } from "lucide-react";
-import { Card, Button, Input, EmptyState, ProgramCardSkeleton } from "../components/ui/index.js";
-import { getPrograms, addProgram, deleteProgram } from "../services/database.js";
+import Card from '../components/ui/Card.jsx';
+import Button from '../components/ui/Button.jsx';
+import Input from '../components/ui/Input.jsx';
+import EmptyState from '../components/ui/EmptyState.jsx';
+import { ProgramCardSkeleton } from '../components/ui/Skeletons.jsx';
+import { usePrograms } from "../hooks/usePrograms.js";
 import { useToast } from "../components/ui/Toast.jsx";
 import ProgramEditorPage from "../components/programs/ProgramEditorPage.jsx";
 import ProgramStructure from "../components/programs/ProgramStructure.jsx";
@@ -144,6 +148,7 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
 
 // ─── Корневой компонент страницы ──────────────────────────────────────────────
 export default function ProgramsPage() {
+  const { getPrograms, addProgram, deleteProgram } = usePrograms();
   const navigate = useNavigate();
   const location = useLocation();
   const onNavigate = (path, state) => navigate(`/${path}`, { state });

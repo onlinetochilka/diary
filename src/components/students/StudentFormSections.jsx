@@ -17,7 +17,7 @@ import { cn } from '../../utils/cn.js';
 import { Label, Input, Select, SegmentedToggle, SectionHeading, ParentCard } from './StudentFormAtoms.jsx';
 // Реэкспортируем атомы для обратной совместимости
 export { Label, Input, Select, SegmentedToggle } from './StudentFormAtoms.jsx';
-import { Tooltip } from '../ui/index.js';
+import Tooltip from '../ui/Tooltip.jsx';
 
 
 // ── Секция 1: Личные данные ───────────────────────────────────────────────────

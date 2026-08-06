@@ -18,7 +18,8 @@
 import { useEffect, useRef } from "react";
 import { X, Trash2 } from "lucide-react";
 import { cn } from "../../utils/cn.js";
-import { Button, Tooltip } from "./index.js";
+import Button from "./Button.jsx";
+import Tooltip from "./Tooltip.jsx";
 import { useConfirm } from "../../contexts/ConfirmContext.jsx";
 import { useToast } from "./Toast.jsx";
 

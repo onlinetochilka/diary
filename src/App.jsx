@@ -17,7 +17,7 @@ import {
 } from "./pages/Pages.jsx";
 import { initAnalytics } from "./utils/analytics.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
-import { ToastProvider } from "./components/ui/index.js";
+import { ToastProvider } from './components/ui/Toast.jsx';
 import { TooltipProvider } from "./components/ui/Tooltip.jsx";
 
 import GuestPortalView from "./pages/GuestPortalView.jsx";

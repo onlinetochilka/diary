@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from "react-router-dom";
 import { CalendarDays, Plus } from "lucide-react";
 import { DndContext, DragOverlay } from '@dnd-kit/core';
@@ -20,8 +21,9 @@ import MonthView from "../components/schedule/MonthView.jsx";
 import WeekView from "../components/schedule/WeekView.jsx";
 import DayView from "../components/schedule/DayView.jsx";
 import { LessonCardOverlay } from '../components/schedule/LessonCardOverlay.jsx';
+import { WidgetErrorBoundary } from "../components/ui/WidgetErrorBoundary.jsx";
 
-import { addPayment } from "../services/database.js";
+import { usePayments } from "../hooks/usePayments.js";
 
 // ── Shared Section Wrapper ─────────────────────────────────────────────────
 function PageWrapper({ children, title, subtitle, icon: Icon, iconBgClass, iconTextClass, extraHeader }) {
@@ -51,10 +53,15 @@ function PageWrapper({ children, title, subtitle, icon: Icon, iconBgClass, iconT
 }
 
 export default function SchedulePage() {
+  const queryClient = useQueryClient();
+  const { addPayment } = usePayments();
   const navigate = useNavigate();
   const location = useLocation();
   const onNavigate = (path, state) => navigate(`/${path}`, { state });
   const pageState = location.state;
+
+  const [view, setView] = useState(pageState?.view || (window.innerWidth < 1024 ? "day" : "week"));
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   // ── Данные ──────────────────────────────────────────────────────────────
   const {
@@ -68,7 +75,7 @@ export default function SchedulePage() {
     handleQuickStatus: hookQuickStatus,
     handleQuickHomework: hookQuickHomework,
     handlePatchLesson: hookPatchLesson,
-  } = useSchedule();
+  } = useSchedule({ currentDate, view });
 
   const [hwDebtOnly, setHwDebtOnly] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState(null);
@@ -108,10 +115,6 @@ export default function SchedulePage() {
 
   // ── Навигация по периодам ───────────────────────────────────────────────
   const {
-    view,
-    setView,
-    currentDate,
-    setCurrentDate,
     navigatedFromMonth,
     setNavigatedFromMonth,
     year,
@@ -121,7 +124,7 @@ export default function SchedulePage() {
     nextPeriod,
     goToday,
     handleViewChange,
-  } = useScheduleNavigation({ pageState, lessons });
+  } = useScheduleNavigation({ pageState, lessons, currentDate, setCurrentDate, view, setView });
 
   // ── Вычисляемые данные карточек ─────────────────────────────────────────
   const {
@@ -244,7 +247,7 @@ export default function SchedulePage() {
         {/* Область с видами */}
         <div className="max-w-[1400px] mx-auto w-full flex-1 min-h-0 flex overflow-hidden rounded-2xl p-0 sm:p-2 px-2 sm:px-0 gap-4 sm:gap-6">
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          
+            <WidgetErrorBoundary className="h-full w-full">
             {view === "month" && (
               <MonthView
                 currentDate={currentDate}
@@ -321,8 +324,8 @@ export default function SchedulePage() {
                 allLessons={lessons}
               />
             )}
-            
-        </div>
+            </WidgetErrorBoundary>
+          </div>
 
           {/* Правая панель (Dynamic Context Panel) */}
           <div 
@@ -346,7 +349,8 @@ export default function SchedulePage() {
                 style={{ top: '-100vh', height: '200vh' }}
               />
             )}
-            {rightPanelMode === 'students' ? (
+            <WidgetErrorBoundary className="h-full w-full">
+              {rightPanelMode === 'students' ? (
               <ScheduleSidebar
                 lessons={selectedDateStr ? periodLessons.filter(l => l.date === selectedDateStr) : periodLessons}
                 students={students}
@@ -380,6 +384,7 @@ export default function SchedulePage() {
                 lessons={lessons}
               />
             )}
+            </WidgetErrorBoundary>
           </div>
         </div>
 
@@ -413,11 +418,9 @@ export default function SchedulePage() {
                   paidAt:      new Date().toISOString(),
                   note:        note || "Оплата с расписания",
                 });
-              } catch (e) {
-                console.error(e);
               } finally {
                 if (pageState?.refreshData) pageState.refreshData();
-                window.dispatchEvent(new CustomEvent("force-refresh-data"));
+                queryClient.invalidateQueries();
               }
             }
           }}
