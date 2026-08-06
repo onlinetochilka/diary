@@ -225,7 +225,7 @@ export default function StudentFormDrawer({
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    const phoneRegex = /^[\d\s\-+\()]+$/;
 
     if (formData.studentContact && formData.studentContact.includes('@')) {
       if (!emailRegex.test(formData.studentContact)) {

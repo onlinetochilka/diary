@@ -23,24 +23,36 @@ export function useLessons(filters = {}) {
     mutationFn: apiAddLesson,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lessons'] });
-      // We might want to invalidate students (balances) if we added a paid lesson,
-      // but let's stick to lessons for now.
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
     }
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }) => apiUpdateLesson(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lessons'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lessons'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
+    }
   });
 
   const patchMut = useMutation({
     mutationFn: ({ id, partial }) => apiPatchLesson(id, partial),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lessons'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lessons'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
+    }
   });
 
   const deleteMut = useMutation({
     mutationFn: apiDeleteLesson,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lessons'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lessons'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
+    }
   });
 
   return {

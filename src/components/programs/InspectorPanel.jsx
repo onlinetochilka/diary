@@ -185,7 +185,12 @@ function SectionInspector({ section, topics, programId, onProgramChange }) {
   const stateRef = useRef({ title, sectionId: section.id, savedTitle: section.title, programId, onProgramChange });
   useEffect(() => {
     stateRef.current = { title, sectionId: section.id, savedTitle: savedTitle.current, programId, onProgramChange };
-  }, [title, section.id, savedTitle.current, programId, onProgramChange]);
+  }, [
+	title,
+	section.id,
+	programId,
+	onProgramChange
+]);
 
   useEffect(() => {
     return () => {
