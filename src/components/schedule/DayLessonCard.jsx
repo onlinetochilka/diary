@@ -127,7 +127,15 @@ export default function DayLessonCard({
         </div>
 
         {/* Бейджи справа */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div 
+          className="flex items-center gap-1 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={(e) => {
+            if (onQuickModalClick) {
+              e.stopPropagation();
+              onQuickModalClick(lesson);
+            }
+          }}
+        >
           {isCurrentLesson && (
             <span className="inline-flex items-center gap-1 px-1.5 h-5 rounded-full bg-[#006584] text-white text-[10px] font-bold shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
@@ -257,16 +265,6 @@ export default function DayLessonCard({
                 <X size={9} strokeWidth={2.5} />
               </span>
             </Tooltip>
-          )}
-
-          {onQuickModalClick && (
-            <Button
-              variant="ghost"
-              onClick={(e) => { e.stopPropagation(); onQuickModalClick(lesson); }}
-              className="flex items-center justify-center p-1 w-6 h-6 rounded-full bg-slate-100 hover:bg-emerald-100 hover:text-emerald-600 text-slate-500 transition-colors shadow-sm border-none ml-1"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            </Button>
           )}
         </div>
       </div>

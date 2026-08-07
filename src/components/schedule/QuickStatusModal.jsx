@@ -19,6 +19,8 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
   const [hwState, setHwState] = useState("unknown"); // unknown, given, not_given
   const [hwText, setHwText] = useState("");
   const [attendances, setAttendances] = useState({});
+  const [hwDoneBy, setHwDoneBy] = useState([]);
+  const [hwStatuses, setHwStatuses] = useState({});
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -52,6 +54,8 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
       }
       
       setAttendances(lesson.attendance || {});
+      setHwDoneBy(lesson.hwDoneBy || []);
+      setHwStatuses(lesson.hwStatuses || {});
       
       setPaymentAmount(balance < 0 ? String(Math.abs(balance)) : String(price));
       setCopied(false);
@@ -83,8 +87,16 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
       
       if (hwState === "given") {
         updates.homework = hwText;
+        if (isGroup) {
+          updates.hwDoneBy = hwDoneBy;
+          updates.hwStatuses = hwStatuses;
+        }
       } else if (hwState === "not_given") {
         updates.homework = "";
+        if (isGroup) {
+          updates.hwDoneBy = [];
+          updates.hwStatuses = {};
+        }
       }
       
       await updateLesson(lesson.id, updates);
@@ -269,7 +281,7 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
                     onClick={() => setHwState("given")}
                     className={cn(
                       "flex-1 py-2 h-auto text-xs font-semibold rounded-lg border-none transition-all",
-                      hwState === "given" ? "bg-white text-academic-blue shadow-sm" : "text-stone-500 hover:text-stone-700"
+                      hwState === "given" ? "bg-academic-blue text-white shadow-md shadow-[#006584]/20" : "text-stone-500 hover:text-stone-700 hover:bg-stone-200/50"
                     )}
                   >
                     Задано
@@ -279,19 +291,60 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
                     onClick={() => setHwState("not_given")}
                     className={cn(
                       "flex-1 py-2 h-auto text-xs font-semibold rounded-lg border-none transition-all",
-                      hwState === "not_given" ? "bg-white text-stone-800 shadow-sm" : "text-stone-500 hover:text-stone-700"
+                      hwState === "not_given" ? "bg-stone-700 text-white shadow-md" : "text-stone-500 hover:text-stone-700 hover:bg-stone-200/50"
                     )}
                   >
                     Не задано
                   </Button>
                 </div>
                 {hwState === "given" && (
-                  <textarea
-                    value={hwText}
-                    onChange={(e) => setHwText(e.target.value)}
-                    placeholder="Описание задания..."
-                    className="w-full mt-2 p-3 text-sm text-stone-800 bg-stone-50 rounded-xl border border-stone-200/60 focus:border-academic-blue focus:ring-2 focus:ring-academic-blue/20 outline-none resize-none min-h-[80px]"
-                  />
+                  <>
+                    <textarea
+                      value={hwText}
+                      onChange={(e) => setHwText(e.target.value)}
+                      placeholder="Описание задания..."
+                      className="w-full mt-2 p-3 text-sm text-stone-800 bg-stone-50 rounded-xl border border-stone-200/60 focus:border-academic-blue focus:ring-2 focus:ring-academic-blue/20 outline-none resize-none min-h-[80px]"
+                    />
+                    {isGroup && (
+                      <div className="flex flex-col gap-2 mt-4">
+                        <label className="text-[11px] font-bold tracking-widest text-stone-400 uppercase mb-1">Сдача ДЗ</label>
+                        {(students || []).filter(s => (lesson.groupStudentIds || []).includes(s.id)).map(st => {
+                          const isDone = hwDoneBy.includes(st.id);
+                          const hwStatus = isDone ? (hwStatuses[st.id] || 'on_time') : 'none';
+                          return (
+                            <div key={st.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-xl border border-stone-100 bg-stone-50/50 gap-2">
+                              <span className="text-sm font-semibold text-stone-700 truncate w-full sm:w-1/3 pl-1">{st.name}</span>
+                              <div className="flex gap-1 bg-stone-100 p-1 rounded-lg w-full sm:w-2/3 shrink-0">
+                                {[
+                                  { label: 'Нет', value: 'none', defaultStyle: 'text-stone-500 hover:text-stone-700', activeStyle: 'bg-white text-stone-800 shadow-sm' },
+                                  { label: 'Вовремя', value: 'on_time', defaultStyle: 'text-stone-500 hover:text-stone-700', activeStyle: 'bg-emerald-500 text-white shadow-sm' },
+                                  { label: 'Позже', value: 'late', defaultStyle: 'text-stone-500 hover:text-stone-700', activeStyle: 'bg-amber-500 text-white shadow-sm' }
+                                ].map(opt => (
+                                  <Button
+                                    key={opt.value}
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const newHw = opt.value === 'none'
+                                        ? hwDoneBy.filter(id => id !== st.id)
+                                        : hwDoneBy.includes(st.id) ? hwDoneBy : [...hwDoneBy, st.id];
+                                      const newStatuses = { ...hwStatuses };
+                                      if (opt.value === 'none') { delete newStatuses[st.id]; }
+                                      else { newStatuses[st.id] = opt.value; }
+                                      setHwDoneBy(newHw);
+                                      setHwStatuses(newStatuses);
+                                    }}
+                                    className={cn("flex-1 px-1 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", hwStatus === opt.value ? opt.activeStyle : opt.defaultStyle)}
+                                  >
+                                    {opt.label}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
