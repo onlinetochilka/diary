@@ -226,6 +226,22 @@ export async function getStudents(tutorId) {
   });
   if (updates.length > 0) Promise.all(updates).catch(console.error);
 
+  // Hydrate programs with live data (topics, name, color)
+  const allPrograms = await getPrograms(uid);
+  const programMap = new Map(allPrograms.map((p) => [p.id, p]));
+  res.forEach((student) => {
+    student.subjects?.forEach((sub) => {
+      sub.programs?.forEach((prog) => {
+        const master = programMap.get(prog.id);
+        if (master) {
+          prog.name = master.name;
+          prog.topics = master.topics || [];
+          prog.colorOklch = master.colorOklch;
+        }
+      });
+    });
+  });
+
   cache.students = res;
   return res;
 }
@@ -345,6 +361,20 @@ export async function getGroups(tutorId) {
     usedColors.push(oklch);
   });
   if (updates.length > 0) Promise.all(updates).catch(console.error);
+
+  // Hydrate programs with live data (topics, name, color)
+  const allPrograms = await getPrograms(uid);
+  const programMap = new Map(allPrograms.map((p) => [p.id, p]));
+  res.forEach((group) => {
+    group.programs?.forEach((prog) => {
+      const master = programMap.get(prog.id);
+      if (master) {
+        prog.name = master.name;
+        prog.topics = master.topics || [];
+        prog.colorOklch = master.colorOklch;
+      }
+    });
+  });
 
   cache.groups = res;
   return res;

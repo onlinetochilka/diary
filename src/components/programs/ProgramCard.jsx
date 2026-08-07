@@ -1,12 +1,12 @@
 import React from 'react';
-import { Pencil, Users, TrendingUp, Layers, BookOpen } from 'lucide-react';
+import { Pencil, Users, TrendingUp, Layers, BookOpen, Trash2 } from 'lucide-react';
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import { cn } from "../../utils/cn.js";
 import { getPlural } from "../../utils/plural.js";
 import Tooltip from '../../components/ui/Tooltip.jsx';
 import Button from '../ui/Button.jsx';
 
-export default function ProgramCard({ program, onOpenEditor }) {
+export default function ProgramCard({ program, onOpenEditor, onDelete }) {
   const c = getEntityColorClasses();
   
   // Детерминированный seed из program.id для стабильных mock-данных
@@ -86,6 +86,25 @@ export default function ProgramCard({ program, onOpenEditor }) {
               <Pencil size={16} strokeWidth={2} />
             </Button>
           </Tooltip>
+          {onDelete && (
+            <Tooltip text="Удалить программу" position="top">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(program.id);
+                }}
+                className={cn(
+                  "w-auto h-auto border-none p-2 rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-red-50 hover:text-red-500",
+                  "focus-visible:ring-2 focus-visible:ring-red-600",
+                  "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                )}
+              >
+                <Trash2 size={16} strokeWidth={2} />
+              </Button>
+            </Tooltip>
+          )}
         </div>
       </div>
 

@@ -32,3 +32,28 @@ jobs:
           strip_components: 1
           overwrite: true
           rm: true
+
+      - name: Configure Caddy Proxy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 5.35.89.238
+          username: root
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            if grep -q "/api/pb" /etc/caddy/Caddyfile; then
+              echo "Proxy already configured in Caddyfile"
+            else
+              echo "Patching Caddyfile for proxy..."
+              awk '/tutor.tochilka.app.*\{/ {
+                print
+                print "    handle_path /api/pb/* {"
+                print "        reverse_proxy https://api.tochilka.app {"
+                print "            header_up Host {http.reverse_proxy.upstream.hostport}"
+                print "        }"
+                print "    }"
+                next
+              }1' /etc/caddy/Caddyfile > /tmp/Caddyfile.new
+              mv /tmp/Caddyfile.new /etc/caddy/Caddyfile
+              systemctl reload caddy
+              echo "Caddyfile patched and reloaded successfully!"
+            fi
