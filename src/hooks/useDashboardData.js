@@ -31,8 +31,15 @@ export function useDashboardData() {
   const [metricsConfig, setMetricsConfig] = useState(["todayCount", "activeStudentsCount", "hoursWorkedThisMonth", "incomeMonth"]);
 
   const { now, todayStr, monthStart, nextMonthStart, monthStartStr, nextMonthStartStr, weekStartStr, weekEndStr, queryStartStr, queryEndStr } = useMemo(() => {
+    const formatYMD = (d) => {
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yy}-${mm}-${dd}`;
+    };
+
     const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
+    const todayStr = formatYMD(now);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     
@@ -48,12 +55,12 @@ export function useDashboardData() {
 
     return {
       now, todayStr, monthStart, nextMonthStart,
-      monthStartStr: monthStart.toISOString().split("T")[0],
-      nextMonthStartStr: nextMonthStart.toISOString().split("T")[0],
-      weekStartStr: weekStart.toISOString().split("T")[0],
-      weekEndStr: weekEnd.toISOString().split("T")[0],
-      queryStartStr: queryStart.toISOString().split("T")[0],
-      queryEndStr: queryEnd.toISOString().split("T")[0],
+      monthStartStr: formatYMD(monthStart),
+      nextMonthStartStr: formatYMD(nextMonthStart),
+      weekStartStr: formatYMD(weekStart),
+      weekEndStr: formatYMD(weekEnd),
+      queryStartStr: formatYMD(queryStart),
+      queryEndStr: formatYMD(queryEnd),
     };
   }, []);
 

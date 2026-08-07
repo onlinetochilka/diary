@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDayNotes } from '../../hooks/useDayNotes.js';
+import Tooltip from '../ui/Tooltip.jsx';
 
 const COLORS = [
   { id: 'Pale Sage', code: '#e3ebd6' },
@@ -159,13 +160,13 @@ export default function DayNotesPopover({ dateStr, onClose }) {
           <div className="flex justify-between items-center mt-auto pt-4 border-t border-slate-800/5">
             <div className="flex gap-2">
               {COLORS.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => changeColor(c.id)}
-                  className={`w-5 h-5 rounded-full border-2 transition-all ${currentColor === c.id ? 'border-white scale-110 shadow-sm' : 'border-transparent hover:scale-105 hover:shadow-sm'}`}
-                  style={{ backgroundColor: c.code }}
-                  title={c.id}
-                />
+                <Tooltip key={c.id} text={c.id} position="top">
+                  <button
+                    onClick={() => changeColor(c.id)}
+                    className={`w-5 h-5 rounded-full border-2 transition-all ${currentColor === c.id ? 'border-white scale-110 shadow-sm' : 'border-transparent hover:scale-105 hover:shadow-sm'}`}
+                    style={{ backgroundColor: c.code }}
+                  />
+                </Tooltip>
               ))}
             </div>
             <button 

@@ -13,7 +13,6 @@ import {
   SettingsPage,
   ProgramsPage,
   LandingPage,
-  LiteDashboardPage,
 } from "./pages/Pages.jsx";
 import { initAnalytics } from "./utils/analytics.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
@@ -64,7 +63,6 @@ function RootApp() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/lite" element={<LiteDashboardPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/students" element={<StudentsPage />} />

@@ -18,7 +18,6 @@ const activeColors = {
   programs:  "bg-fuchsia-500",
   finance:   "bg-emerald-500",
   settings:  "bg-stone-400",
-  lite:      "bg-yellow-500",
 };
 
 const activeIconColors = {
@@ -28,7 +27,6 @@ const activeIconColors = {
   programs:  "text-fuchsia-600",
   finance:   "text-emerald-600",
   settings:  "text-stone-600",
-  lite:      "text-yellow-600",
 };
 
 /**
@@ -88,7 +86,7 @@ export default function BottomTabs({ activePage, onNavigate }) {
 
       {/* Nav items row */}
       <div className="flex items-stretch justify-around">
-      {NAV_ITEMS.filter(item => !(isAnonymous && item.id === 'lite')).map((item) => {
+      {NAV_ITEMS.map((item) => {
         const isActive = activePage === item.id;
         const Icon     = item.icon;
 

@@ -269,6 +269,9 @@ export default function StudentFormDrawer({
       programs: subj.programs,
       price: Number(subj.price) || 0,
       duration: Number(subj.duration) || 60,
+      format: subj.format || 'online',
+      isLinkPermanent: subj.isLinkPermanent,
+      videoLink: subj.videoLink || '',
       paymentType: subj.paymentType,
       subscriptionLessons: subj.paymentType === "subscription" ? Number(subj.subscriptionLessons) : null,
       // Lock per-lesson price at subscription creation/update time

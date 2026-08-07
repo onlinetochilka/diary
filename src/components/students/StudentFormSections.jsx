@@ -71,6 +71,17 @@ export function PersonalInfoSection({ formData, handleChange }) {
             onChange={val => handleChange('isArchived', val)}
           />
         </div>
+        <div>
+          <Label>ДЗ по умолчанию</Label>
+          <SegmentedToggle
+            options={[
+              { label: 'Задавать', value: false },
+              { label: 'Без ДЗ', value: true }
+            ]}
+            value={formData.isHwNotAssigned || false}
+            onChange={val => handleChange('isHwNotAssigned', val)}
+          />
+        </div>
         <div className="md:col-span-2">
           <Label>Часовой пояс</Label>
           <Select value={formData.timezone} onChange={e => handleChange('timezone', e.target.value)}>

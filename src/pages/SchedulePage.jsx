@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { CalendarDays, Plus } from "lucide-react";
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
+import { ymd } from "../components/schedule/scheduleUtils.jsx";
 
 import { useSchedule } from "../hooks/useSchedule.js";
 import { useScheduleDragAndDrop } from '../hooks/useScheduleDragAndDrop.js';
@@ -302,7 +303,7 @@ export default function SchedulePage() {
                 getLessonTopic={getLessonTopic}
                 onFinClick={handleFinClick}
                 onHwClick={handleHwClick}
-                onQuickModal={(l) => setQuickModalLesson(l)}
+                onQuickModal={(l) => { handleCloseDrawer(); setQuickModalLesson(l); }}
                 onCreateStudent={() => onNavigate && onNavigate("students", { action: 'create' })}
                 onGoToProfile={(student) => onNavigate && onNavigate("students", { action: 'highlight', studentId: student.id })}
                 selectedEntityId={selectedEntityId}
@@ -333,7 +334,7 @@ export default function SchedulePage() {
                 getLessonTopic={getLessonTopic}
                 onFinClick={handleFinClick}
                 onHwClick={handleHwClick}
-                onQuickModal={(l) => setQuickModalLesson(l)}
+                onQuickModal={(l) => { handleCloseDrawer(); setQuickModalLesson(l); }}
                 onPatchLesson={hookPatchLesson}
                 onGoToProfile={(studentId) => onNavigate && onNavigate("students", { action: 'highlight', studentId })}
                 onSaveLesson={hookSaveLesson}
@@ -387,7 +388,7 @@ export default function SchedulePage() {
                 onCardClick={handleCardClick}
                 isTimelineMode={view === "month" && !!selectedDateStr}
                 selectedDateStr={selectedDateStr}
-                onQuickModal={(l) => setQuickModalLesson(l)}
+                onQuickModal={(l) => { handleCloseDrawer(); setQuickModalLesson(l); }}
                 onOpenInspector={(l) => {
                   handleOpenDrawer({ id: l.id });
                   setCurrentDate(new Date(l.date));

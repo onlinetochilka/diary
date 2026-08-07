@@ -3,6 +3,8 @@ import Tooltip from '../ui/Tooltip.jsx';
 import DroppableSlot from './DroppableSlot.jsx';
 import ScheduleSidebar from './ScheduleSidebar.jsx';
 import { getDaysInMonth, getFirstDayOfMonth, getLessonWord, ymd } from './scheduleUtils.jsx';
+import DayNotesPopover from './DayNotesPopover.jsx';
+import { useAllDayNotes } from '../../hooks/useDayNotes.js';
 
 export default function MonthView({
   currentDate,
@@ -33,6 +35,11 @@ export default function MonthView({
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
   while (days.length % 7 !== 0) days.push(null);
+
+  const [activeNotesDate, setActiveNotesDate] = React.useState(null);
+  
+  const weekDateStrs = days.filter(d => d).map(d => ymd(new Date(year, currentDate.getMonth(), d)));
+  const allNotes = useAllDayNotes(weekDateStrs);
 
   const todayStr = ymd(new Date());
 
@@ -163,6 +170,18 @@ export default function MonthView({
                       </span>
                     </div>
                   )}
+                  {/* Скрепка для заметок (нижний правый угол) */}
+                  <div 
+                    className={`absolute bottom-1 right-1 transition-opacity cursor-pointer p-1.5 z-20 ${(allNotes[dateStr] && allNotes[dateStr].items?.length > 0) ? 'opacity-100' : 'opacity-0 group-hover/day:opacity-100'}`}
+                    onClick={(e) => { e.stopPropagation(); setActiveNotesDate(dateStr); }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 hover:text-slate-600 transition-colors">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                    </svg>
+                    {allNotes[dateStr] && allNotes[dateStr].items?.some(i => !i.done) && (
+                      <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-slate-600 border border-white" />
+                    )}
+                  </div>
                 </div>
               </div>
             </DroppableSlot>
@@ -181,6 +200,13 @@ export default function MonthView({
           </span>
         </div>
       </div>
+      
+      {activeNotesDate && (
+        <DayNotesPopover 
+          dateStr={activeNotesDate}
+          onClose={() => setActiveNotesDate(null)}
+        />
+      )}
     </div>
   );
 }

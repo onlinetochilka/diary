@@ -152,7 +152,7 @@ export default function WeekView({
                   </div>
                   {/* Скрепка для заметок */}
                   <div 
-                    className="absolute -top-1 -right-3 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1 z-20"
+                    className={`absolute -top-1 -right-3 transition-opacity cursor-pointer p-1 z-20 ${(allNotes[dateStr] && allNotes[dateStr].items?.length > 0) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                     onClick={(e) => { e.stopPropagation(); setActiveNotesDate(dateStr); }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 hover:text-slate-600 transition-colors">

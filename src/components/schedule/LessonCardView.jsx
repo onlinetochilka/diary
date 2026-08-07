@@ -1,13 +1,13 @@
 import React, { forwardRef } from 'react';
 import Tooltip from '../ui/Tooltip.jsx';
-import { MoreVertical } from 'lucide-react';
+import { User, Video } from 'lucide-react';
 import { ymd, renderStatusIcon } from './scheduleUtils.jsx';
 import Button from '../ui/Button.jsx';
 
 export const LessonCardView = forwardRef(({ 
   lesson, onClick, compact = false, isOverlay = false, 
   isDragging = false, isFaded = false, title, borderColorClass, textColorClass, bgColorClass, entityStyle, 
-  hasFinDebt = false, hasHwDebt = false, layout = "horizontal",
+  hasFinDebt = false, hasHwDebt = false, hasLink = false, layout = "horizontal",
   listeners = {}, attributes = {}, style = {}, onMoreClick, onHwClick, onFinClick, topic, onQuickModalClick
 }, ref) => {
   const isCanceled = lesson.status === 'cancelled';
@@ -66,20 +66,11 @@ export const LessonCardView = forwardRef(({
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </Button>
             )}
-            {!isOverlay && onMoreClick && (
-              <Button
-                variant="ghost" 
-                size="icon"
-                onClick={onMoreClick}
-                className="w-auto h-auto border-none ml-0.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
-              >
-                <MoreVertical size={14} />
-              </Button>
-            )}
+
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 mt-1.5 w-full">
           <span className={`whitespace-nowrap font-bold tabular-nums text-stone-700 bg-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] leading-none`}>
             {lesson.startTime}
           </span>
@@ -139,20 +130,11 @@ export const LessonCardView = forwardRef(({
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </Button>
           )}
-          {!isOverlay && onMoreClick && (
-            <Button
-              variant="ghost" 
-              size="icon"
-              onClick={onMoreClick}
-              className="w-auto h-auto border-none ml-0.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all outline-none p-0.5 pointer-events-auto lg:opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
-            >
-              <MoreVertical size={14} />
-            </Button>
-          )}
+
         </div>
       </div>
       
-      <div className="flex items-center gap-1.5 mt-1.5">
+      <div className="flex items-center gap-1.5 mt-1.5 w-full">
         <span className={`whitespace-nowrap font-bold tabular-nums text-stone-700 bg-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-1.5 py-0.5 rounded ${compact ? 'text-[8px]' : 'text-[8.5px] sm:text-[9px]'} leading-none`}>
           {lesson.startTime}
         </span>

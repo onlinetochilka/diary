@@ -15,7 +15,7 @@ export const LessonCard = ({
   onFinClick,
   onQuickModalClick
 }) => {
-  const { title, isFaded, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt } = displayData;
+  const { title, isFaded, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt, hasLink } = displayData;
   
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `lesson-${lesson.id}-${ymd(new Date(lesson.date))}`,
@@ -44,6 +44,7 @@ export const LessonCard = ({
       entityStyle={entityStyle}
       hasFinDebt={hasFinDebt}
       hasHwDebt={hasHwDebt}
+      hasLink={hasLink}
       listeners={listeners}
       attributes={attributes}
       style={{ opacity: isDragging ? 0 : 1, height: layout === "vertical" ? "100%" : "auto" }}

@@ -18,6 +18,7 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
   const [status, setStatus] = useState("scheduled");
   const [hwState, setHwState] = useState("unknown"); // unknown, given, not_given
   const [hwText, setHwText] = useState("");
+  const [attendances, setAttendances] = useState({});
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -50,6 +51,8 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
         setHwText("");
       }
       
+      setAttendances(lesson.attendance || {});
+      
       setPaymentAmount(balance < 0 ? String(Math.abs(balance)) : String(price));
       setCopied(false);
     }
@@ -73,6 +76,10 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
     
     try {
       const updates = { status };
+      
+      if (isGroup) {
+        updates.attendance = attendances;
+      }
       
       if (hwState === "given") {
         updates.homework = hwText;
@@ -166,27 +173,47 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
             )}
           </div>
 
-          {/* Group vs Individual Logic */}
-          {isGroup ? (
-            <div className="bg-amber-50/50 border border-amber-200/50 rounded-2xl p-4 text-center">
-              <p className="text-sm font-medium text-amber-800 mb-3">
-                Это групповое занятие. Для отметки присутствия учеников, оплат и индивидуальных ДЗ откройте полный инспектор.
-              </p>
-              <Button 
-                variant="filled" 
-                onClick={() => {
-                  onClose();
-                  if (onOpenFullInspector) onOpenFullInspector(lesson);
-                }}
-                className="w-full bg-amber-100 hover:bg-amber-200 text-amber-900 border-none shadow-sm"
-              >
-                Открыть карточку
-                <ChevronRight size={16} className="ml-1" />
-              </Button>
+          {/* Group Attendance */}
+          {isGroup && (
+            <div className="space-y-3">
+              <label className="text-[11px] font-bold tracking-widest text-stone-400 uppercase">Посещаемость учеников</label>
+              <div className="flex flex-col gap-2">
+                {(students || []).filter(s => (lesson.groupStudentIds || []).includes(s.id)).map(st => {
+                  const att = attendances[st.id] || 'present';
+                  return (
+                    <div key={st.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-xl border border-stone-100 bg-stone-50/50 gap-2">
+                      <span className="text-sm font-semibold text-stone-700 truncate w-full sm:w-1/3 pl-1">{st.name}</span>
+                      <div className="flex gap-1 bg-stone-100 p-1 rounded-lg w-full sm:w-2/3 shrink-0">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setAttendances({ ...attendances, [st.id]: 'present' })}
+                          className={cn("flex-1 px-1 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", att === 'present' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}
+                        >
+                          Присутствовал
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setAttendances({ ...attendances, [st.id]: 'skipped_paid' })}
+                          className={cn("flex-1 px-1 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", att === 'skipped_paid' ? 'bg-amber-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700')}
+                        >
+                          Пропуск (плат.)
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setAttendances({ ...attendances, [st.id]: 'skipped_free' })}
+                          className={cn("flex-1 px-1 py-1 h-auto text-[10px] font-bold rounded-md transition-colors border-none", att === 'skipped_free' ? 'bg-stone-300 text-stone-700 shadow-sm' : 'text-stone-500 hover:text-stone-700')}
+                        >
+                          Пропуск (б/о)
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          ) : (
-            <>
-              {/* Status Section */}
+          )}
+
+          {/* Status Section */}
               <div className="space-y-3">
                 <label className="text-[11px] font-bold tracking-widest text-stone-400 uppercase">Статус урока</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -268,15 +295,26 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
                 )}
               </div>
 
-              {/* Payment Section (if balance is negative) */}
-              {balance < 0 && (
+              {/* Payment Section */}
+              {!isGroup && (
                 <div className="pt-4 border-t border-stone-100">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-[11px] font-bold tracking-widest text-rose-500 uppercase flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                      Текущий долг
-                    </label>
-                    <span className="font-bold text-rose-600 tabular-nums text-sm">{Math.abs(balance).toLocaleString('ru-RU')} ₽</span>
+                    {balance < 0 ? (
+                      <>
+                        <label className="text-[11px] font-bold tracking-widest text-rose-500 uppercase flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                          Текущий долг
+                        </label>
+                        <span className="font-bold text-rose-600 tabular-nums text-sm">{Math.abs(balance).toLocaleString('ru-RU')} ₽</span>
+                      </>
+                    ) : (
+                      <>
+                        <label className="text-[11px] font-bold tracking-widest text-stone-500 uppercase flex items-center gap-1.5">
+                          Баланс ученика
+                        </label>
+                        <span className="font-bold text-emerald-600 tabular-nums text-sm">{balance.toLocaleString('ru-RU')} ₽</span>
+                      </>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -285,31 +323,38 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
                         inputMode="numeric"
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(e.target.value.replace(/\D/g, ''))}
-                        className="w-full px-4 py-2 text-sm font-semibold bg-rose-50/50 border border-rose-200 rounded-xl outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-400/20 text-rose-900"
+                        className={cn(
+                          "w-full px-4 py-2 text-sm font-semibold border rounded-xl outline-none focus:ring-2",
+                          balance < 0 
+                            ? "bg-rose-50/50 border-rose-200 focus:border-rose-400 focus:ring-rose-400/20 text-rose-900"
+                            : "bg-stone-50 border-stone-200 focus:border-academic-blue focus:ring-academic-blue/20 text-stone-900"
+                        )}
                         placeholder="Сумма оплаты"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-rose-400 font-bold">₽</span>
+                      <span className={cn("absolute right-4 top-1/2 -translate-y-1/2 font-bold", balance < 0 ? "text-rose-400" : "text-stone-400")}>₽</span>
                     </div>
                     <Button 
                       variant="filled"
                       onClick={handlePay}
                       disabled={isProcessing || !paymentAmount}
-                      className="bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold px-4 border-none shadow-sm shadow-rose-200"
+                      className={cn(
+                        "text-white rounded-xl font-bold px-4 border-none shadow-sm",
+                        balance < 0 
+                          ? "bg-rose-500 hover:bg-rose-600 shadow-rose-200"
+                          : "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200"
+                      )}
                     >
                       Внести
                     </Button>
                   </div>
                 </div>
               )}
-            </>
-          )}
 
         </div>
 
         {/* Footer */}
-        {!isGroup && (
-          <div className="p-4 border-t border-stone-100 bg-stone-50/30 flex gap-2">
-            <Button
+        <div className="p-4 border-t border-stone-100 bg-stone-50/30 flex gap-2">
+          <Button
               variant="outline"
               onClick={() => {
                 onClose();
@@ -329,7 +374,7 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
                 }}
                 className="flex-1 rounded-xl bg-white text-stone-600 hover:bg-stone-50 border-stone-200 transition-all font-semibold text-sm"
               >
-                В карточку урока
+                Детали урока
               </Button>
             )}
             <Button
@@ -341,7 +386,6 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
               {isProcessing ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Сохранить"}
             </Button>
           </div>
-        )}
 
       </div>
     </>

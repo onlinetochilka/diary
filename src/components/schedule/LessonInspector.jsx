@@ -76,6 +76,21 @@ export default function LessonInspector({
           videoLink: initialData.videoLink || "",
           price: initialData.price !== undefined ? initialData.price : ""
         };
+
+        if (initialData.id && !initial.videoLink) {
+          const entity = initial.type === 'group' 
+            ? groups.find(g => g.id === initial.groupId)
+            : students.find(s => s.id === initial.studentId);
+            
+          if (entity) {
+            if (initial.type === 'individual') {
+              const subj = entity.subjects?.find(s => s.name === initial.subjectName);
+              initial.videoLink = subj?.videoLink || entity.videoLink || "";
+            } else {
+              initial.videoLink = entity.videoLink || "";
+            }
+          }
+        }
       } else {
         initial = {
           type: "individual",

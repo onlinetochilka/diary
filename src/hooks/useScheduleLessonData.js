@@ -133,7 +133,10 @@ export function useScheduleLessonData({ lessons, students, groups, hwDebtOnly })
       }
     }
 
-    return { title, isFaded, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt };
+    const link = lesson.videoLink || (entity && lesson.type === 'individual' ? (entity.subjects?.find(s => s.name === lesson.subjectName)?.videoLink || entity.videoLink) : entity?.videoLink) || null;
+    const hasLink = !!link;
+
+    return { title, isFaded, borderColorClass, textColorClass, bgColorClass, entityStyle, hasFinDebt, hasHwDebt, hasLink };
   };
 
   return {

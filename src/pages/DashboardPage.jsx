@@ -28,6 +28,9 @@ import CommunityNewsCard, { TelegramIcon } from "../components/dashboard/Communi
 import MetricsSettingsModal from "../components/dashboard/MetricsSettingsModal.jsx";
 import { useDashboardData } from "../hooks/useDashboardData.js";
 import { CurrentDateTitle, CurrentDateSubtitle } from "../components/dashboard/CurrentDateHeader.jsx";
+import DayNotesPopover from "../components/schedule/DayNotesPopover.jsx";
+import { useDayNotes } from "../hooks/useDayNotes.js";
+import { ymd } from "../components/schedule/scheduleUtils.jsx";
 
 export default function DashboardPage() {
   const { addPayment } = usePayments();
@@ -43,6 +46,11 @@ export default function DashboardPage() {
     metricsConfig = [], setMetricsConfig, refresh, students = [],
     hwDebts = [], stats = {}
   } = useDashboardData();
+
+  const todayStr = ymd(new Date());
+  const { notesRecord } = useDayNotes(todayStr);
+  const hasIncompleteNotes = notesRecord?.items?.some(i => !i.done);
+  const [showNotes, setShowNotes] = useState(false);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [actionModal, setActionModal]       = useState({ isOpen: false, item: null, mode: "remind" });
@@ -104,6 +112,189 @@ export default function DashboardPage() {
     setIsSettingsOpen(false);
     await updateUserConfig(null, { dashboardMetrics: newMetrics });
   };
+
+  const renderBadges = (l, isPaid, isPast, hwDebts) => (
+    <div 
+      className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+      onClick={(e) => { e.stopPropagation(); setQuickModalLesson(l); }}
+    >
+      {/* Financial Debt */}
+      {isPaid ? (
+        <Tooltip text="Оплачено" position="top">
+          <span className="flex items-center justify-center px-1.5 h-5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold shadow-sm ring-1 ring-emerald-200/60">
+            <Wallet size={9} strokeWidth={2.5} className="mr-0.5" />
+          </span>
+        </Tooltip>
+      ) : (
+        <Tooltip text="Не оплачено" position="top">
+          <span className="flex items-center justify-center px-1.5 h-5 rounded-full bg-rose-50 text-rose-600 text-[10px] font-bold shadow-sm ring-1 ring-rose-200/60">
+            <Wallet size={9} strokeWidth={2.5} className="mr-0.5" />
+          </span>
+        </Tooltip>
+      )}
+      
+      {/* Homework Badge Logic */}
+      {(() => {
+        if (!isPast) {
+          let hasDebt = false;
+          if (l.type === 'individual') {
+            hasDebt = hwDebts.some(d => d.student.id === l.studentId);
+          } else if (l.type === 'group') {
+            hasDebt = (l.groupStudentIds || []).some(sid => hwDebts.some(d => d.student.id === sid));
+          }
+          if (hasDebt) {
+            return (
+              <Tooltip text="Долг по ДЗ с прошлых уроков" position="top">
+                <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-sm border-none">
+                  <BookOpen size={9} strokeWidth={2.5} /> ДЗ
+                </span>
+              </Tooltip>
+            );
+          } else {
+            return (
+              <Tooltip text="Нет долгов по ДЗ" position="top">
+                <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold shadow-sm ring-1 ring-emerald-200/60">
+                  <BookOpen size={9} strokeWidth={2.5} /> ДЗ
+                </span>
+              </Tooltip>
+            );
+          }
+        } else {
+          const isHwAssigned = !!l.homework || (l.hwDoneBy && l.hwDoneBy.length > 0) || (l.hwStatuses && Object.keys(l.hwStatuses).length > 0);
+          const isExplicitlyNotAssigned = l.hwAssigned === false || l.isHwNotAssigned === true;
+          if (isHwAssigned) {
+            const totalStudents = l.type === 'group' ? (l.groupStudentIds?.length || 0) : 1;
+            const isDone = (l.hwDoneBy?.length || 0) >= totalStudents && totalStudents > 0;
+            return (
+              <Tooltip text={isDone ? "ДЗ выполнено" : "ДЗ задано"} position="top">
+                <span className={`flex items-center gap-0.5 px-1.5 h-5 rounded-full text-[10px] font-bold shadow-sm ${isDone ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
+                  <BookOpen size={9} strokeWidth={2.5} /> ДЗ
+                </span>
+              </Tooltip>
+            );
+          } else if (isExplicitlyNotAssigned) {
+            return (
+              <Tooltip text="ДЗ не задано" position="top">
+                <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+                  <BookOpen size={9} strokeWidth={2.5} />
+                </span>
+              </Tooltip>
+            );
+          } else if (l.status === 'conducted') {
+            return (
+              <Tooltip text="Не отмечено ДЗ" position="top">
+                <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold shadow-sm ring-1 ring-amber-200">
+                  <BookOpen size={9} strokeWidth={2.5} />
+                </span>
+              </Tooltip>
+            );
+          } else {
+            return (
+              <Tooltip text="Урок не состоялся" position="top">
+                <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+                  <BookOpen size={9} strokeWidth={2.5} />
+                </span>
+              </Tooltip>
+            );
+          }
+        }
+      })()}
+
+      {/* Attendance */}
+      {l.type === 'group' && (
+        l.status === 'conducted' ? (
+          <Tooltip text="Посещаемость" position="top">
+            <span className={`flex items-center gap-0.5 px-1.5 h-5 rounded-full text-[10px] font-bold shadow-sm ${
+              (Object.keys(l.attendance || {}).length >= (l.groupStudentIds?.length || 0) && (l.groupStudentIds?.length || 0) > 0) ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+            }`}>
+              <Users size={9} strokeWidth={2.5} /> 
+              {`${Object.keys(l.attendance || {}).length}/${l.groupStudentIds?.length || 0}`}
+            </span>
+          </Tooltip>
+        ) : (
+          <Tooltip text="Посещаемость (не отмечалась)" position="top">
+            <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+              <Users size={9} strokeWidth={2.5} /> 
+              {`-/${l.groupStudentIds?.length || 0}`}
+            </span>
+          </Tooltip>
+        )
+      )}
+
+      {/* Lesson Status */}
+      {isPast && l.status === 'scheduled' ? (
+        <Tooltip text="Урок прошел, отметьте статус" position="top">
+          <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold shadow-sm ring-1 ring-amber-200">
+            <AlertCircle size={9} strokeWidth={2.5} />
+          </span>
+        </Tooltip>
+      ) : l.status === 'scheduled' ? (
+        <Tooltip text="Запланирован" position="top">
+          <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-blue-50 text-blue-400 text-[10px] font-bold shadow-sm ring-1 ring-blue-100">
+            <Clock size={9} strokeWidth={2.5} />
+          </span>
+        </Tooltip>
+      ) : l.status === 'conducted' ? (
+        <Tooltip text="Урок проведен" position="top">
+          <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-sm border-none">
+            <Check size={9} strokeWidth={2.5} />
+          </span>
+        </Tooltip>
+      ) : (
+        <Tooltip text="Урок отменен" position="top">
+          <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-stone-100 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+            <X size={9} strokeWidth={2.5} />
+          </span>
+        </Tooltip>
+      )}
+    </div>
+  );
+
+  const renderContactButtons = (l) => (
+    <div className="ml-auto flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      {(() => {
+        const link = l.videoLink || (l.studentObj && (l.studentObj.subjects?.find(s => s.name === l.subjectName)?.videoLink || l.studentObj.videoLink)) || null;
+        if (link) {
+          return (
+            <Tooltip text="Подключиться к уроку" position="top">
+              <a href={link} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors">
+                <Video size={14} />
+              </a>
+            </Tooltip>
+          );
+        }
+        return null;
+      })()}
+      
+      {l.type === 'individual' && l.studentObj && (() => {
+        const s = l.studentObj;
+        let href = '';
+        let Icon = MessageCircle;
+        let color = 'text-stone-400 hover:bg-stone-50';
+        
+        if (s.telegram) {
+          href = s.telegram.startsWith('+') || /^\d/.test(s.telegram) ? `tg://resolve?phone=${s.telegram.replace(/\D/g, '')}` : `tg://resolve?domain=${s.telegram.replace(/^@/, '')}`;
+          Icon = Send;
+          color = 'text-sky-500 hover:bg-sky-50';
+        } else if (s.whatsapp) {
+          href = `https://wa.me/${s.whatsapp.replace(/\D/g, '')}`;
+          Icon = Phone;
+          color = 'text-emerald-500 hover:bg-emerald-50';
+        }
+        
+        if (href) {
+          return (
+            <Tooltip text="Написать ученику" position="top">
+              <a href={href} target="_blank" rel="noopener noreferrer" className={`p-1.5 rounded-md transition-colors ${color}`}>
+                <Icon size={14} />
+              </a>
+            </Tooltip>
+          );
+        }
+        return null;
+      })()}
+    </div>
+  );
 
   return (
     <PageWrapper
@@ -177,44 +368,56 @@ export default function DashboardPage() {
             <Clock size={20} className="text-stone-400" />
             <h2 className="text-lg font-bold text-stone-800">Расписание на сегодня</h2>
             <div className="flex-1" />
-            {todayLessons.length > 0 && (
+            <Tooltip text="Добавить урок" position="bottom">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onNavigate("schedule", { view: 'week' })}
+                className="w-8 h-8 p-0 flex items-center justify-center text-stone-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                <Plus size={18} />
+              </Button>
+            </Tooltip>
+            <Tooltip text="Скопировать расписание" position="bottom">
+              {todayLessons.length > 0 && (
                 <Button 
-                    variant="ghost" size="sm" className="gap-2 text-stone-500"
+                    variant="ghost" size="icon" className="text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors"
                     onClick={() => {
                         const txt = todayLessons.map(l => `${l.startTime} ${l.displayName} (${l.subjectName})`).join('\n');
                         setScheduleSummaryText(txt);
                         setShowScheduleSummary(true);
                     }}
                 >
-                    <Copy size={14} /> Текст
+                    <Copy size={18} />
                 </Button>
-            )}
+              )}
+            </Tooltip>
           </div>
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map(i => <DashboardLessonSkeleton key={i} />)}
             </div>
-          ) : todayLessons.filter(l => l.status !== "conducted").length === 0 ? (
+          ) : todayLessons.length === 0 ? (
             <div className="flex items-center gap-4 py-3 px-5 bg-amber-50/50 border border-amber-100/60 rounded-2xl shadow-sm">
               <div className="h-10 w-10 shrink-0 bg-amber-100 flex items-center justify-center rounded-full text-amber-600 shadow-sm">
                 <Smile size={20} strokeWidth={1.5} />
               </div>
-              <span className="text-sm font-semibold text-amber-900">Отличная работа! На сегодня уроков больше нет — можно отдохнуть</span>
+              <span className="text-sm font-semibold text-amber-900">На сегодня уроков не запланировано — можно отдохнуть</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {todayLessons.filter(l => l.status !== "conducted").map((l) => {
+              {todayLessons.map((l) => {
                 const c = getEntityColorClasses();
-                const isPast = l.endTime < new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const isPastTime = l.endTime < new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const isFaded = isPastTime || l.status === 'conducted' || l.status === 'cancelled' || l.status === 'skipped_free' || l.status === 'skipped_paid';
                 const isPaid = l.type === 'individual' ? l.isPaid : false;
                 
                 return (
                   <div
                     key={l.id}
-                    className="entity-light-bg ring-1 ring-slate-200 border-l-[4px] entity-border-l shadow-sm p-3 rounded-xl flex items-center gap-3 transition-all duration-300 hover:shadow-md cursor-pointer group card-hover-lift"
+                    className={`entity-light-bg ring-1 ring-slate-200 border-l-[4px] entity-border-l shadow-sm p-3 rounded-xl flex items-center gap-3 transition-all duration-300 group ${isFaded ? 'opacity-60 grayscale-[0.2]' : ''}`}
                     style={getEntityStyle(l.displayName)}
-                    onClick={() => onNavigate("schedule")}
                   >
                     <div className="min-w-0 flex-1 pl-1">
                       <div className="flex items-center justify-between gap-2">
@@ -222,115 +425,7 @@ export default function DashboardPage() {
                           {l.displayName}
                         </p>
                         <div className="flex items-center gap-1">
-                          {isPaid ? (
-                            <Tooltip text="Оплачено" position="top">
-                              <span className="flex items-center justify-center px-1.5 py-0.5 h-auto rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold shadow-sm ring-1 ring-emerald-200/60">
-                                <CreditCard size={9} strokeWidth={2.5} />
-                              </span>
-                            </Tooltip>
-                          ) : l.type === 'individual' ? (
-                            <Tooltip text="Не оплачено" position="top">
-                              <span className="flex items-center justify-center px-1.5 py-0.5 h-auto rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-sm border-none">
-                                <CreditCard size={9} strokeWidth={2.5} />
-                              </span>
-                            </Tooltip>
-                          ) : null}
-                          
-                          {(() => {
-                            if (!isPast) {
-                              let hasDebt = false;
-                              if (l.type === 'individual') {
-                                hasDebt = hwDebts.some(d => d.student.id === l.studentId);
-                              } else if (l.type === 'group') {
-                                hasDebt = (l.groupStudentIds || []).some(sid => hwDebts.some(d => d.student.id === sid));
-                              }
-                              if (hasDebt) {
-                                return (
-                                  <Tooltip text="Долг по ДЗ с прошлых уроков" position="top">
-                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-sm border-none">
-                                      <BookOpen size={9} strokeWidth={2.5} /> ДЗ
-                                    </span>
-                                  </Tooltip>
-                                );
-                              } else {
-                                return (
-                                  <Tooltip text="Нет долгов по ДЗ" position="top">
-                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold shadow-sm ring-1 ring-emerald-200/60">
-                                      <BookOpen size={9} strokeWidth={2.5} /> ДЗ
-                                    </span>
-                                  </Tooltip>
-                                );
-                              }
-                            } else {
-                              const isHwAssigned = !!l.homework || (l.hwDoneBy && l.hwDoneBy.length > 0) || (l.hwStatuses && Object.keys(l.hwStatuses).length > 0);
-                              const isExplicitlyNotAssigned = l.hwAssigned === false || l.isHwNotAssigned === true;
-                              if (isHwAssigned) {
-                                const totalStudents = l.type === 'group' ? (l.groupStudentIds?.length || 0) : 1;
-                                const isDone = (l.hwDoneBy?.length || 0) >= totalStudents && totalStudents > 0;
-                                return (
-                                  <Tooltip text={isDone ? "ДЗ выполнено" : "ДЗ задано"} position="top">
-                                    <span className={`flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full text-[10px] font-bold shadow-sm ${isDone ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
-                                      <BookOpen size={9} strokeWidth={2.5} /> ДЗ
-                                    </span>
-                                  </Tooltip>
-                                );
-                              } else if (isExplicitlyNotAssigned) {
-                                return (
-                                  <Tooltip text="ДЗ не задано" position="top">
-                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
-                                      <BookOpen size={9} strokeWidth={2.5} />
-                                    </span>
-                                  </Tooltip>
-                                );
-                              } else if (l.status === 'conducted') {
-                                return (
-                                  <Tooltip text="Не отмечено ДЗ" position="top">
-                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold shadow-sm ring-1 ring-amber-200">
-                                      <BookOpen size={9} strokeWidth={2.5} />
-                                    </span>
-                                  </Tooltip>
-                                );
-                              } else {
-                                return (
-                                  <Tooltip text="Урок не состоялся" position="top">
-                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
-                                      <BookOpen size={9} strokeWidth={2.5} />
-                                    </span>
-                                  </Tooltip>
-                                );
-                              }
-                            }
-                          })()}
-
-                          {l.type === 'group' && (
-                            l.status === 'conducted' ? (
-                              <Tooltip text="Посещаемость" position="top">
-                                <span className={`flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full text-[10px] font-bold shadow-sm ${Object.keys(l.attendance || {}).length >= (l.groupStudentIds?.length || 0) ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
-                                  <Users size={9} strokeWidth={2.5} /> {Object.keys(l.attendance || {}).length}/{l.groupStudentIds?.length || 0}
-                                </span>
-                              </Tooltip>
-                            ) : (
-                              <Tooltip text="Посещаемость (не отмечалась)" position="top">
-                                <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
-                                  <Users size={9} strokeWidth={2.5} /> -/{l.groupStudentIds?.length || 0}
-                                </span>
-                              </Tooltip>
-                            )
-                          )}
-
-                          {isPast && l.status === 'scheduled' ? (
-                            <Tooltip text="Урок прошел, отметьте статус" position="top">
-                              <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold shadow-sm ring-1 ring-amber-200">
-                                <AlertCircle size={9} strokeWidth={2.5} />
-                              </span>
-                            </Tooltip>
-                          ) : l.status === 'conducted' ? (
-                            <Tooltip text="Урок проведен" position="top">
-                              <span className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-sm border-none">
-                                <Check size={9} strokeWidth={2.5} />
-                              </span>
-                            </Tooltip>
-                          ) : null}
+                          {renderBadges(l, isPaid, isPastTime, hwDebts)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
@@ -339,45 +434,7 @@ export default function DashboardPage() {
                           {l.subjectName}
                         </span>
                         
-                        <div className="ml-auto flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                          {(() => {
-                            const link = l.videoLink || (l.studentObj && (l.studentObj.subjects?.find(s => s.name === l.subjectName)?.videoLink || l.studentObj.videoLink)) || null;
-                            if (link) {
-                              return (
-                                <a href={link} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Подключиться к уроку">
-                                  <Video size={14} />
-                                </a>
-                              );
-                            }
-                            return null;
-                          })()}
-                          
-                          {l.type === 'individual' && l.studentObj && (() => {
-                            const s = l.studentObj;
-                            let href = '';
-                            let Icon = MessageCircle;
-                            let color = 'text-stone-400 hover:bg-stone-50';
-                            
-                            if (s.telegram) {
-                              href = s.telegram.startsWith('+') || /^\d/.test(s.telegram) ? `tg://resolve?phone=${s.telegram.replace(/\D/g, '')}` : `tg://resolve?domain=${s.telegram.replace(/^@/, '')}`;
-                              Icon = Send;
-                              color = 'text-sky-500 hover:bg-sky-50';
-                            } else if (s.whatsapp) {
-                              href = `https://wa.me/${s.whatsapp.replace(/\D/g, '')}`;
-                              Icon = Phone;
-                              color = 'text-emerald-500 hover:bg-emerald-50';
-                            }
-                            
-                            if (href) {
-                              return (
-                                <a href={href} target="_blank" rel="noopener noreferrer" className={`p-1.5 rounded-md transition-colors ${color}`} title="Написать ученику">
-                                  <Icon size={14} />
-                                </a>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
+                        {renderContactButtons(l)}
                       </div>
                     </div>
                   </div>
@@ -395,8 +452,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-6 flex-1 min-h-0 pb-4 lg:pb-0">
 
         {/* LEFT COLUMN — Action Items */}
-        <WidgetErrorBoundary className="lg:col-span-1 w-full h-full" onReset={() => refresh()}>
-          <section className="flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 h-fit lg:max-h-full self-start w-full lg:min-h-0 relative">
+        <WidgetErrorBoundary className="lg:col-span-1 w-full h-full flex flex-col min-h-0" onReset={() => refresh()}>
+          <section className="flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 flex-1 w-full relative overflow-hidden min-h-0">
             <div className="flex items-center gap-2 mb-5 shrink-0">
               <AlertCircle size={20} className="text-stone-400" />
               <h2 className="text-lg font-bold text-stone-800">Что нужно проконтролировать</h2>
@@ -420,7 +477,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <>
-                <div className="flex flex-col gap-3 relative z-0 flex-1 lg:min-h-0 lg:overflow-y-auto hide-scrollbar pb-6">
+                <div className="flex flex-col gap-3 relative z-0 flex-1 overflow-y-auto hide-scrollbar pb-6">
                   {actionItems.map(item => (
                     <ActionItemCard
                       key={item.id}
@@ -443,6 +500,8 @@ export default function DashboardPage() {
                           setActionModal({ isOpen: true, item, mode: "mark_done" });
                         }
                       }}
+                      onNavigate={onNavigate}
+                      setQuickModalLesson={setQuickModalLesson}
                     />
                   ))}
                 </div>
@@ -455,11 +514,23 @@ export default function DashboardPage() {
         </WidgetErrorBoundary>
 
         {/* MIDDLE COLUMN — Tutor Debts */}
-        <WidgetErrorBoundary className="lg:col-span-1 w-full h-full" onReset={() => refresh()}>
-          <section className="flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 h-full w-full relative overflow-hidden">
+        <WidgetErrorBoundary className="lg:col-span-1 w-full h-full flex flex-col min-h-0" onReset={() => refresh()}>
+          <section className="flex flex-col bg-white p-4 sm:p-5 rounded-[28px] shadow-sm border border-stone-100 flex-1 w-full relative overflow-hidden min-h-0">
             <div className="flex items-center gap-2 mb-5 shrink-0">
               <CheckCircle2 size={20} className="text-stone-400" />
               <h2 className="text-lg font-bold text-stone-800">Что нужно сделать</h2>
+              {/* Скрепка для заметок на сегодня */}
+              <div 
+                className="relative cursor-pointer opacity-40 hover:opacity-100 transition-opacity p-1 group ml-2"
+                onClick={() => setShowNotes(true)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-600 transition-colors">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                </svg>
+                {hasIncompleteNotes && (
+                  <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-slate-600 border-2 border-white" />
+                )}
+              </div>
               {!loading && tutorDebts.length > 0 && (
                 <span className="ml-auto text-xs font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full tabular-nums">
                   {tutorDebts.length}
@@ -472,22 +543,22 @@ export default function DashboardPage() {
                 {[1, 2, 3].map(i => <ActionItemSkeleton key={i} />)}
               </div>
             ) : tutorDebts.length === 0 ? (
-              <div className="flex items-center gap-4 py-3 px-5 bg-stone-50 border border-stone-100/60 rounded-2xl shadow-sm h-full justify-center">
-                <span className="text-sm font-medium text-stone-400">Все уроки отмечены</span>
+              <div className="flex items-center gap-4 py-3 px-5 bg-sky-50/50 border border-sky-100/60 rounded-2xl shadow-sm h-full justify-center">
+                <div className="h-10 w-10 shrink-0 bg-sky-100 flex items-center justify-center rounded-full text-sky-600 shadow-sm">
+                  <Coffee size={20} strokeWidth={1.5} />
+                </div>
+                <span className="text-sm font-semibold text-sky-900">Чисто! Вы всё успели — можно выдохнуть</span>
               </div>
             ) : (
-                <div className="flex flex-col gap-3 overflow-y-auto hide-scrollbar pb-4 h-full relative z-0">
+              <>
+                <div className="flex flex-col gap-3 overflow-y-auto hide-scrollbar pb-6 flex-1 relative z-0">
                   {tutorDebts.map(item => {
                     const style = getEntityStyle(item.lesson.displayName);
                     return (
                       <div 
                         key={`${item.type}-${item.lesson.id}`} 
-                        className="entity-light-bg ring-1 ring-slate-200 border-l-[4px] entity-border-l shadow-sm p-3 rounded-[20px] flex items-center justify-between gap-3 transition-all duration-300 hover:shadow-md card-hover-lift group cursor-pointer"
+                        className="entity-light-bg ring-1 ring-slate-200 border-l-[4px] entity-border-l shadow-sm p-3 rounded-[20px] flex items-center justify-between gap-3 transition-all duration-300 hover:shadow-md group cursor-default"
                         style={style}
-                        onClick={(e) => {
-                           e.stopPropagation();
-                           onNavigate("schedule", { openInspectorLessonId: item.lesson.id, date: item.lesson.date, view: "day" });
-                        }}
                       >
                         <div className="flex flex-col gap-1 min-w-0 pr-3">
                           <p className="text-sm font-semibold text-stone-900 truncate">
@@ -524,11 +595,28 @@ export default function DashboardPage() {
                               <Check size={16} />
                             </Button>
                           </Tooltip>
+                          <Tooltip text="Детали урока" position="top">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="w-9 h-9 flex items-center justify-center bg-white shadow-sm hover:bg-stone-50 active:scale-95 border-stone-200 p-0 text-stone-400 hover:text-stone-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onNavigate("schedule", { openInspectorLessonId: item.lesson.id, date: item.lesson.date, view: "day" });
+                              }}
+                            >
+                              <Search size={16} />
+                            </Button>
+                          </Tooltip>
                         </div>
                       </div>
                     );
                   })}
                 </div>
+                {tutorDebts.length > 3 && (
+                  <div className="hidden lg:block absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-[28px] z-10" />
+                )}
+              </>
             )}
           </section>
         </WidgetErrorBoundary>
@@ -613,7 +701,7 @@ export default function DashboardPage() {
               </Button>
             </div>
             <div className="p-5 flex flex-col gap-4">
-              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 font-mono text-sm text-stone-700 whitespace-pre-wrap select-all">
+              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 font-medium leading-relaxed text-[15px] text-stone-700 whitespace-pre-wrap select-all">
                 {scheduleSummaryText}
               </div>
               <Button 
@@ -630,6 +718,13 @@ export default function DashboardPage() {
             </div>
           </div>
         </>
+      )}
+
+      {showNotes && (
+        <DayNotesPopover 
+          dateStr={todayStr}
+          onClose={() => setShowNotes(false)}
+        />
       )}
 
       <QuickStatusModal

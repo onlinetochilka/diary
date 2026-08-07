@@ -34,13 +34,6 @@ export const NAV_ITEMS = [
     activeText: "text-[#3B5266]",
   },
   {
-    id:     "lite",
-    label:  "Легкий старт",
-    icon:   Zap,
-    activeBg: "bg-[#EAB308]/10", // yellow-500 equivalent
-    activeText: "text-[#EAB308]",
-  },
-  {
     id:     "schedule",
     label:  "Расписание",
     icon:   CalendarDays,
@@ -172,7 +165,7 @@ export default function Sidebar({ activePage, onNavigate }) {
 
       {/* Nav Links */}
       <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.filter(item => !(isAnonymous && item.id === 'lite')).map((item) => {
+        {NAV_ITEMS.map((item) => {
           const isActive = activePage === item.id;
           const Icon = item.icon;
 

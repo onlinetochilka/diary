@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, BookOpen, XCircle, Users } from 'lucide-react';
+import { CheckCircle2, BookOpen, XCircle, Users, Wallet, AlertCircle, Clock, Check, X, Video } from 'lucide-react';
 import Tooltip from '../ui/Tooltip.jsx';
 import Button from '../ui/Button.jsx';
 
@@ -18,6 +18,7 @@ export default function DayLessonCard({
   entityStyle,
   hasHwDebt,
   hasFinDebt,
+  hasLink,
   topicTitle,
   isSelected,
   isCurrentLesson,
@@ -46,6 +47,10 @@ export default function DayLessonCard({
   const durationLabel = durationMins >= 60
     ? `${Math.floor(durationMins / 60)} ч${durationMins % 60 > 0 ? ` ${durationMins % 60} мин` : ''}`
     : `${durationMins} мин`;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const lessonDateStr = new Date(lesson.date).toISOString().split('T')[0];
+  const isPast = lessonDateStr < todayStr || (lessonDateStr === todayStr && (endTime || '0:0') < new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
 
   // Вычисляем классы состояния
   const stateClasses = hasActiveSelection
@@ -108,57 +113,152 @@ export default function DayLessonCard({
           >
             {durationLabel}
           </span>
+          {hasLink && (
+            <span
+              className="flex items-center justify-center px-1.5 py-0.5 rounded-md"
+              style={{
+                color: `oklch(0.35 0.14 var(--card-h, 200))`,
+                background: `oklch(0.88 0.08 var(--card-h, 200))`,
+              }}
+            >
+              <Video size={10} strokeWidth={2.5} />
+            </span>
+          )}
         </div>
 
         {/* Бейджи справа */}
         <div className="flex items-center gap-1 shrink-0">
           {isCurrentLesson && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#006584] text-white text-[10px] font-bold shadow-sm">
+            <span className="inline-flex items-center gap-1 px-1.5 h-5 rounded-full bg-[#006584] text-white text-[10px] font-bold shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
               Сейчас
             </span>
           )}
-          {hasHwDebt && (
-            <Button
-              variant="danger"
-              onClick={e => { e.stopPropagation(); onHwDebtClick?.(lesson); }}
-              className="flex items-center gap-0.5 px-1.5 py-0.5 h-auto rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold transition-colors shadow-sm border-none"
-            >
-              <BookOpen size={9} strokeWidth={2.5} />
-              ДЗ
-            </Button>
+          
+          {/* Financial Debt */}
+          {!hasFinDebt ? (
+            <Tooltip text="Оплачено" position="top">
+              <span className="flex items-center justify-center px-1.5 h-5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold shadow-sm ring-1 ring-emerald-200/60">
+                <Wallet size={9} strokeWidth={2.5} className="mr-0.5" />
+              </span>
+            </Tooltip>
+          ) : (
+            <Tooltip text="Не оплачено" position="top">
+              <span className="flex items-center justify-center px-1.5 h-5 rounded-full bg-rose-50 text-rose-600 text-[10px] font-bold shadow-sm ring-1 ring-rose-200/60">
+                <Wallet size={9} strokeWidth={2.5} className="mr-0.5" />
+              </span>
+            </Tooltip>
           )}
-          {hasFinDebt && (
-            <Button
-              variant="danger"
-              onClick={e => { e.stopPropagation(); onFinDebtClick?.(lesson); }}
-              className="flex items-center justify-center px-1.5 py-0.5 h-auto rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold transition-colors shadow-sm border-none"
-            >
-              ₽!
-            </Button>
+
+          {/* Homework Badge */}
+          {(() => {
+            if (!isPast) {
+              if (hasHwDebt) {
+                return (
+                  <Tooltip text="Долг по ДЗ с прошлых уроков" position="top">
+                    <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-sm border-none">
+                      <BookOpen size={9} strokeWidth={2.5} /> ДЗ
+                    </span>
+                  </Tooltip>
+                );
+              } else {
+                return (
+                  <Tooltip text="Нет долгов по ДЗ" position="top">
+                    <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold shadow-sm ring-1 ring-emerald-200/60">
+                      <BookOpen size={9} strokeWidth={2.5} /> ДЗ
+                    </span>
+                  </Tooltip>
+                );
+              }
+            } else {
+              const isHwAssigned = !!lesson.homework || (lesson.hwDoneBy && lesson.hwDoneBy.length > 0) || (lesson.hwStatuses && Object.keys(lesson.hwStatuses).length > 0);
+              const isExplicitlyNotAssigned = lesson.hwAssigned === false || lesson.isHwNotAssigned === true;
+              if (isHwAssigned) {
+                const totalStudents = lesson.type === 'group' ? (lesson.groupStudentIds?.length || 0) : 1;
+                const isDone = (lesson.hwDoneBy?.length || 0) >= totalStudents && totalStudents > 0;
+                return (
+                  <Tooltip text={isDone ? "ДЗ выполнено" : "ДЗ задано"} position="top">
+                    <span className={`flex items-center gap-0.5 px-1.5 h-5 rounded-full text-[10px] font-bold shadow-sm ${isDone ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
+                      <BookOpen size={9} strokeWidth={2.5} /> ДЗ
+                    </span>
+                  </Tooltip>
+                );
+              } else if (isExplicitlyNotAssigned) {
+                return (
+                  <Tooltip text="ДЗ не задано" position="top">
+                    <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+                      <BookOpen size={9} strokeWidth={2.5} />
+                    </span>
+                  </Tooltip>
+                );
+              } else if (lesson.status === 'conducted') {
+                return (
+                  <Tooltip text="Не отмечено ДЗ" position="top">
+                    <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold shadow-sm ring-1 ring-amber-200">
+                      <BookOpen size={9} strokeWidth={2.5} />
+                    </span>
+                  </Tooltip>
+                );
+              } else {
+                return (
+                  <Tooltip text="Урок не состоялся" position="top">
+                    <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+                      <BookOpen size={9} strokeWidth={2.5} />
+                    </span>
+                  </Tooltip>
+                );
+              }
+            }
+          })()}
+
+          {/* Attendance */}
+          {lesson.type === 'group' && (
+            lesson.status === 'conducted' ? (
+              <Tooltip text="Посещаемость" position="top">
+                <span className={`flex items-center gap-0.5 px-1.5 h-5 rounded-full text-[10px] font-bold shadow-sm ${
+                  (Object.keys(lesson.attendance || {}).length >= (lesson.groupStudentIds?.length || 0) && (lesson.groupStudentIds?.length || 0) > 0) ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                }`}>
+                  <Users size={9} strokeWidth={2.5} /> 
+                  {`${Object.keys(lesson.attendance || {}).length}/${lesson.groupStudentIds?.length || 0}`}
+                </span>
+              </Tooltip>
+            ) : (
+              <Tooltip text="Посещаемость (не отмечалась)" position="top">
+                <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-stone-50 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+                  <Users size={9} strokeWidth={2.5} /> 
+                  {`-/${lesson.groupStudentIds?.length || 0}`}
+                </span>
+              </Tooltip>
+            )
           )}
-          {isConducted && (
-            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
-              <CheckCircle2 size={9} strokeWidth={2.5} />
-              Готово
-            </span>
+
+          {/* Lesson Status */}
+          {isPast && lesson.status === 'scheduled' ? (
+            <Tooltip text="Урок прошел, отметьте статус" position="top">
+              <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold shadow-sm ring-1 ring-amber-200">
+                <AlertCircle size={9} strokeWidth={2.5} />
+              </span>
+            </Tooltip>
+          ) : lesson.status === 'scheduled' ? (
+            <Tooltip text="Запланирован" position="top">
+              <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-blue-50 text-blue-400 text-[10px] font-bold shadow-sm ring-1 ring-blue-100">
+                <Clock size={9} strokeWidth={2.5} />
+              </span>
+            </Tooltip>
+          ) : lesson.status === 'conducted' ? (
+            <Tooltip text="Урок проведен" position="top">
+              <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-sm border-none">
+                <Check size={9} strokeWidth={2.5} />
+              </span>
+            </Tooltip>
+          ) : (
+            <Tooltip text="Урок отменен" position="top">
+              <span className="flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-stone-100 text-stone-400 text-[10px] font-bold shadow-sm ring-1 ring-stone-200/60">
+                <X size={9} strokeWidth={2.5} />
+              </span>
+            </Tooltip>
           )}
-          {isCancelled && (
-            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-stone-200 text-stone-600 text-[10px] font-bold">
-              <XCircle size={9} strokeWidth={2} />
-              Отменён
-            </span>
-          )}
-          {isSkippedPaid && (
-            <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
-              Пропуск
-            </span>
-          )}
-          {isSkippedFree && (
-            <span className="px-1.5 py-0.5 rounded-full bg-stone-200 text-stone-500 text-[10px] font-bold">
-              б/о
-            </span>
-          )}
+
           {onQuickModalClick && (
             <Button
               variant="ghost"

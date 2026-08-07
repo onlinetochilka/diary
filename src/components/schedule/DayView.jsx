@@ -268,7 +268,7 @@ export default function DayView({
                   <div key={`row-${idx}`} className="flex gap-2">
                     {row.items.map((item, itemIdx) => {
                       const lesson = item.lesson;
-                      const { title, entityStyle, hasHwDebt, hasFinDebt } = getLessonDisplayData(lesson);
+                      const { title, entityStyle, hasHwDebt, hasFinDebt, hasLink } = getLessonDisplayData(lesson);
                       const topicTitle = getLessonTopic(lesson);
                       const isCurrent  = isLessonNow(lesson, dateStr, todayStr);
 
@@ -285,6 +285,7 @@ export default function DayView({
                             entityStyle={entityStyle}
                             hasHwDebt={hasHwDebt}
                             hasFinDebt={hasFinDebt}
+                            hasLink={hasLink}
                             topicTitle={topicTitle}
                             isSelected={selectedLessonId === lesson.id}
                             isCurrentLesson={isCurrent}
