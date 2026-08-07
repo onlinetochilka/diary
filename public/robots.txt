@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /$
+Allow: /assets/
+Allow: /*.jpg
+Allow: /*.png
+Allow: /*.svg
+Disallow: /dashboard
+Disallow: /schedule
+Disallow: /students
+Disallow: /programs
+Disallow: /finance
+Disallow: /settings
+Disallow: /login
+
+Sitemap: https://tutor.tochilka.app/sitemap.xml
