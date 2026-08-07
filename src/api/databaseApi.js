@@ -1015,20 +1015,45 @@ export async function updatePayment(id, data) {
     invalidateCache("payments");
     invalidateCache("students");
 
-    // Fix #2: When the payment amount changes, compute the delta and apply it
-    if (data.amount !== undefined) {
+    // Handle changes to amount or studentId to properly track balances
+    if (data.amount !== undefined || data.studentId !== undefined) {
       const oldData = await safeGetOne("payments", id);
       if (oldData) {
         const oldAmount = Number(oldData.amount) || 0;
-        const newAmount = Number(data.amount) || 0;
-        const delta = newAmount - oldAmount;
-        if (delta !== 0 && oldData.studentId) {
-          const student = await safeGetOne("students", oldData.studentId);
-          if (student) {
-            await pb.collection("students").update(oldData.studentId, {
-              balance: (student.balance || 0) + delta,
-              ltv: (student.ltv || 0) + delta,
-            });
+        const newAmount = data.amount !== undefined ? Number(data.amount) || 0 : oldAmount;
+        
+        const oldStudentId = oldData.studentId;
+        const newStudentId = data.studentId !== undefined ? data.studentId : oldStudentId;
+
+        if (oldStudentId === newStudentId) {
+          const delta = newAmount - oldAmount;
+          if (delta !== 0 && oldStudentId) {
+            const student = await safeGetOne("students", oldStudentId);
+            if (student) {
+              await pb.collection("students").update(oldStudentId, {
+                balance: (student.balance || 0) + delta,
+                ltv: (student.ltv || 0) + delta,
+              });
+            }
+          }
+        } else {
+          if (oldStudentId) {
+            const oldStudent = await safeGetOne("students", oldStudentId);
+            if (oldStudent) {
+              await pb.collection("students").update(oldStudentId, {
+                balance: (oldStudent.balance || 0) - oldAmount,
+                ltv: (oldStudent.ltv || 0) - oldAmount,
+              });
+            }
+          }
+          if (newStudentId) {
+            const newStudent = await safeGetOne("students", newStudentId);
+            if (newStudent) {
+              await pb.collection("students").update(newStudentId, {
+                balance: (newStudent.balance || 0) + newAmount,
+                ltv: (newStudent.ltv || 0) + newAmount,
+              });
+            }
           }
         }
       }

@@ -9,6 +9,7 @@ import SideDrawer from '../ui/SideDrawer.jsx';
 import Button from '../ui/Button.jsx';
 import { BarChart2, Clock, Users, BookOpen, Target, CreditCard, ChevronRight, Download } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
+import { useLessons } from '../../hooks/useLessons.js';
 
 const SECTIONS = [
   { key: 'summary',     title: 'Сводка',             desc: 'Уроков, посещаемость, % ДЗ',            icon: BarChart2,  color: { bg: 'bg-blue-100',    text: 'text-blue-600' } },
@@ -30,9 +31,11 @@ function today()    { return new Date().toISOString().slice(0, 10); }
 function monthAgo() { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10); }
 
 export default function GroupReportBuilderModal({ isOpen, onClose, group, onGenerate }) {
+  const { getLessons } = useLessons();
   const [period, setPeriod] = useState('month');
   const [dateFrom, setDateFrom] = useState(monthAgo);
   const [dateTo,   setDateTo]   = useState(today);
+  const [isLoading, setIsLoading] = useState(false);
   const [sections, setSections] = useState({
     summary: true, journal: true, attendance: true, homework: true, progress: true, finance: false,
   });
@@ -40,7 +43,30 @@ export default function GroupReportBuilderModal({ isOpen, onClose, group, onGene
   const toggle = (key) => setSections(p => ({ ...p, [key]: !p[key] }));
   const selectedCount = Object.values(sections).filter(Boolean).length;
   const effectivePeriod = period === 'custom' ? { type: 'custom', from: dateFrom, to: dateTo } : period;
-  const generate = (format) => onGenerate?.({ group, period: effectivePeriod, sections, format });
+  
+  const generate = async (format) => {
+    setIsLoading(true);
+    try {
+      const allLessons = await getLessons({ groupId: group.id });
+      // Filter by period and status
+      const filteredLessons = allLessons.filter(l => {
+        if (l.status !== 'conducted') return false;
+        const d = l.date;
+        if (period === 'month') return d >= monthAgo() && d <= today();
+        if (period === '3months') {
+          const d3 = new Date(); d3.setMonth(d3.getMonth() - 3);
+          return d >= d3.toISOString().slice(0,10) && d <= today();
+        }
+        if (period === 'custom') return d >= dateFrom && d <= dateTo;
+        return true; // 'all'
+      });
+      // Sort newest to oldest
+      filteredLessons.sort((a, b) => new Date(b.date) - new Date(a.date));
+      onGenerate?.({ group, period: effectivePeriod, sections, format, lessons: filteredLessons });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!group) return null;
 
@@ -56,16 +82,16 @@ export default function GroupReportBuilderModal({ isOpen, onClose, group, onGene
             variant="outline"
             className="flex-1 h-12 text-base gap-2 border-stone-300 bg-white text-stone-700 font-medium hover:bg-stone-100 hover:border-stone-400 transition-all shadow-sm"
             onClick={() => generate('pdf')}
-            disabled={selectedCount === 0}
+            disabled={selectedCount === 0 || isLoading}
           >
             <Download size={16} /> PDF
           </Button>
           <Button
             className="flex-1 h-12 text-base gap-2 bg-[#7A404D] text-white font-semibold hover:bg-[#6a3341] active:bg-[#5c2c38] border-0 shadow-md hover:shadow-lg transition-all"
             onClick={() => generate('web')}
-            disabled={selectedCount === 0}
+            disabled={selectedCount === 0 || isLoading}
           >
-            Отчёт <ChevronRight size={16} />
+            {isLoading ? 'Сборка...' : <>Отчёт <ChevronRight size={16} /></>}
           </Button>
         </div>
       }

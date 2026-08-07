@@ -9,6 +9,7 @@ import ReportBuilderModal from "../components/students/ReportBuilderModal.jsx";
 import GroupLessonHistoryModal from "../components/students/GroupLessonHistoryModal.jsx";
 import GroupReportBuilderModal from "../components/students/GroupReportBuilderModal.jsx";
 import ReportTemplateView from "../components/students/ReportTemplateView.jsx";
+import GroupReportTemplateView from "../components/students/GroupReportTemplateView.jsx";
 import { useStudents } from "../hooks/useStudents.js";
 import { useGroups } from "../hooks/useGroups.js";
 import { usePrograms } from "../hooks/usePrograms.js";
@@ -183,6 +184,13 @@ export default function StudentsPage() {
         />
       )}
 
+      {currentView === "group_report_template" && (
+        <GroupReportTemplateView 
+          reportConfig={reportConfig}
+          onBack={() => setCurrentView("directory")}
+        />
+      )}
+
       {currentView === "editor" && (
         <StudentEditorView
           studentId={editingStudentId}
@@ -253,10 +261,17 @@ export default function StudentsPage() {
         onClose={() => setReportBuilderGroup(null)}
         group={reportBuilderGroup}
         onGenerate={(config) => {
-          // Групповой отчёт — пока заглушка, в будущем отдельный ReportTemplateView для групп
-          console.log('Group report config:', config);
-          showToast({ message: "Функция генерации группового отчёта в разработке", type: "error" });
+          // Add students to config so we don't have to fetch them again in the view
+          const studentsInGroup = config.group.studentIds
+            ? config.group.studentIds.map(id => students.find(s => s.id === id)).filter(Boolean)
+            : [];
+          
+          setReportConfig({ ...config, students: studentsInGroup });
           setReportBuilderGroup(null);
+          setCurrentView("group_report_template");
+          if (config.format === 'pdf') {
+            setTimeout(() => window.print(), 600);
+          }
         }}
       />
     </div>

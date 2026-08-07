@@ -3,11 +3,13 @@
  * Props: { payments, students }
  */
 import React, { useMemo } from "react";
-import { ChevronDown, ChevronUp, Check, Wallet, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, Wallet, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import EmptyState from '../ui/EmptyState.jsx';
 import { usePayments } from "../../hooks/usePayments.js";
 import Button from '../ui/Button.jsx';
+import Tooltip from '../ui/Tooltip.jsx';
+import { useConfirm } from '../../contexts/ConfirmContext.jsx';
 
 export default function PaymentsTab({ students }) {
   const { 
@@ -15,9 +17,44 @@ export default function PaymentsTab({ students }) {
     isLoading, 
     fetchNextPage, 
     hasNextPage, 
-    isFetchingNextPage 
+    isFetchingNextPage,
+    deletePayment,
+    updatePayment
   } = usePayments();
+  const confirm = useConfirm();
   const [sortOrder, setSortOrder] = React.useState("desc");
+  const [editModalData, setEditModalData] = React.useState(null);
+
+  const handleDelete = async (payment) => {
+    const proceed = await confirm({
+      title: "Удалить операцию?",
+      message: `Вы уверены, что хотите удалить платеж на сумму ${Math.abs(Number(payment.amount))} ₽? Баланс ученика будет пересчитан.`,
+      confirmText: "Удалить",
+      intent: "danger"
+    });
+    if (proceed) {
+      try {
+        await deletePayment(payment.id);
+      } catch(e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await updatePayment(editModalData.id, {
+        amount: Number(editModalData.amount),
+        note: editModalData.note,
+        paidAt: editModalData.paidAt,
+        studentId: editModalData.studentId
+      });
+      setEditModalData(null);
+    } catch(e) {
+      console.error(e);
+    }
+  };
 
   const sorted = useMemo(() => {
     return [...payments].sort((a, b) => {
@@ -79,7 +116,7 @@ export default function PaymentsTab({ students }) {
                 const c    = getEntityColorClasses();
 
                 return (
-                  <tr key={`${p.id ?? idx}`} className="hover:bg-stone-50/50 transition-colors">
+                  <tr key={`${p.id ?? idx}`} className="hover:bg-stone-50/50 transition-colors group">
                     <td className="py-3 px-5">
                       <div className="flex items-center gap-3">
                         <div
@@ -101,8 +138,29 @@ export default function PaymentsTab({ students }) {
                     <td className={`py-3 px-5 text-right font-bold ${Number(p.amount) >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
                       {Number(p.amount) >= 0 ? "+" : "−"}{Math.abs(Number(p.amount) || 0).toLocaleString("ru")} ₽
                     </td>
-                    <td className="py-3 px-5 text-right">
-                      <Check size={16} className="text-stone-200 inline" />
+                    <td className="py-3 px-5 text-right w-24">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Tooltip text="Редактировать" position="top">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setEditModalData({...p})}
+                            className="w-7 h-7 p-0 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border-none"
+                          >
+                            <Pencil size={14} />
+                          </Button>
+                        </Tooltip>
+                        <Tooltip text="Удалить" position="top">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDelete(p)}
+                            className="w-7 h-7 p-0 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border-none"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </Tooltip>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -125,6 +183,65 @@ export default function PaymentsTab({ students }) {
               <><Loader2 size={14} className="animate-spin mr-2" /> Загружаем...</>
             ) : "Загрузить ещё"}
           </Button>
+        </div>
+      )}
+
+      {editModalData && (
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
+          <div className="bg-white rounded-[28px] shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-stone-100">
+            <div className="flex items-center justify-between p-5 border-b border-stone-100 bg-stone-50/50">
+              <h3 className="font-bold text-lg text-stone-900">Редактирование</h3>
+              <Button variant="ghost" size="icon" onClick={() => setEditModalData(null)} className="w-8 h-8 p-1 rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-200/50 border-none">
+                <X size={20} />
+              </Button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="p-5 flex flex-col gap-4">
+              <div>
+                <label className="text-[11px] font-bold tracking-widest text-stone-400 uppercase mb-2 block">Сумма (₽)</label>
+                <input 
+                  type="number" 
+                  value={editModalData.amount} 
+                  onChange={e => setEditModalData({...editModalData, amount: e.target.value})}
+                  className="w-full px-4 py-2.5 font-semibold text-stone-900 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-academic-blue focus:ring-2 focus:ring-academic-blue/20 transition-all"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold tracking-widest text-stone-400 uppercase mb-2 block">Ученик</label>
+                <select 
+                  value={editModalData.studentId || ''} 
+                  onChange={e => setEditModalData({...editModalData, studentId: e.target.value})}
+                  className="w-full px-4 py-2.5 font-semibold text-stone-900 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-academic-blue focus:ring-2 focus:ring-academic-blue/20 transition-all"
+                  required
+                >
+                  <option value="" disabled>Выберите ученика</option>
+                  {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold tracking-widest text-stone-400 uppercase mb-2 block">Комментарий</label>
+                <input 
+                  type="text" 
+                  value={editModalData.note || ''} 
+                  onChange={e => setEditModalData({...editModalData, note: e.target.value})}
+                  className="w-full px-4 py-2.5 font-medium text-stone-700 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-academic-blue focus:ring-2 focus:ring-academic-blue/20 transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold tracking-widest text-stone-400 uppercase mb-2 block">Дата</label>
+                <input 
+                  type="date" 
+                  value={editModalData.paidAt?.split('T')[0] || ''} 
+                  onChange={e => setEditModalData({...editModalData, paidAt: e.target.value ? e.target.value + 'T12:00:00.000Z' : ''})}
+                  className="w-full px-4 py-2.5 font-medium text-stone-700 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-academic-blue focus:ring-2 focus:ring-academic-blue/20 transition-all"
+                  required
+                />
+              </div>
+              <Button type="submit" variant="filled" className="w-full mt-2 rounded-xl bg-academic-blue hover:bg-[#00516A] text-white shadow-md shadow-[#006584]/20 border-none font-bold transition-all py-2.5">
+                Сохранить
+              </Button>
+            </form>
+          </div>
         </div>
       )}
     </>

@@ -316,9 +316,21 @@ export default function LessonInspector({
                 size="icon"
                 type="button"
                 onClick={async () => {
+                  const isPaidStatus = initialData?.status === 'conducted' || initialData?.status === 'skipped_paid';
+                  const isGroup = initialData?.type === 'group';
+                  let warningMessage = "Отменить занятие? Это действие необратимо.";
+                  
+                  if (isPaidStatus) {
+                    if (isGroup) {
+                      warningMessage = "Отменить занятие? Балансы присутствовавших учеников группы будут пересчитаны (средства будут возвращены).";
+                    } else {
+                      warningMessage = `Отменить занятие? Баланс ученика увеличится на ${initialData?.price || 0} ₽, так как средства за урок будут возвращены.`;
+                    }
+                  }
+
                   const proceed = await confirm({
                     title: "Урок не состоялся?",
-                    message: "Отменить занятие? Это действие необратимо.",
+                    message: warningMessage,
                     confirmText: "Отменить",
                     intent: "danger"
                   });
