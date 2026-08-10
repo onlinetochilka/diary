@@ -1,8 +1,12 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// ВНИМАНИЕ: Замените эти значения на ваши реальные данные из личного кабинета ЮKassa
-const SHOP_ID = "1426992";
-const SECRET_KEY = "live_DaSWJMhDsMcltxFYB7lB7yP90prJuKGUkIpT_MokjtI";
+// ВНИМАНИЕ: Замените эти значения на ваши реальные данные из личного кабинета ЮKassa или задайте в переменных окружения
+const SHOP_ID = $os.getenv("YOOKASSA_SHOP_ID") || "1426992";
+const SECRET_KEY = $os.getenv("YOOKASSA_SECRET_KEY");
+
+if (!SECRET_KEY) {
+    console.error("YOOKASSA_SECRET_KEY is not set in environment variables!");
+}
 
 const PLANS = {
     "monthly": { price: 390.00, months: 1, desc: "Подписка на 1 месяц" },
