@@ -9,7 +9,7 @@ import { useToast } from '../components/ui/Toast.jsx';
 
 export default function BillingPage() {
   const { user } = useAuth();
-  const { addToast } = useToast();
+  const { showToast } = useToast();
   const [loadingPlan, setLoadingPlan] = useState(null);
 
   const isSubscribed = user?.subscription_status === 'active' && new Date(user?.subscription_until) > new Date();
@@ -34,7 +34,7 @@ export default function BillingPage() {
       }
     } catch (err) {
       console.error(err);
-      addToast({
+      showToast({
         title: "Ошибка",
         description: "Не удалось инициализировать оплату. Попробуйте позже.",
         type: "error"
