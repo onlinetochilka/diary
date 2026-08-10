@@ -53,11 +53,11 @@ jobs:
             PB_EXEC=$(find /root /opt /var/www -name "pocketbase" -type f -executable 2>/dev/null | head -n 1)
             if [ -n "$PB_EXEC" ]; then
               PB_DIR=$(dirname "$PB_EXEC")
-              echo "PocketBase найден в $PB_DIR"
-              cp -r /root/pb_updates/pb_hooks $PB_DIR/
-              cp -r /root/pb_updates/pb_migrations $PB_DIR/
+              # Удаляем сломанные хуки и миграции, чтобы восстановить сервер
+              rm -rf $PB_DIR/pb_hooks/yookassa.pb.js
+              rm -rf $PB_DIR/pb_migrations/1710000000_add_subscription_fields.js
               
-              # Пытаемся перезапустить сервис (игнорируем ошибку если сервис называется иначе)
+              # Пытаемся перезапустить сервис
               systemctl restart pocketbase || systemctl restart pb || echo "Не удалось перезапустить через systemctl."
             else
               echo "Файл pocketbase не найден!"
