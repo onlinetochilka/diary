@@ -272,6 +272,17 @@ export async function addStudent(data) {
     data.tutorId = pb.authStore.model?.id;
   }
 
+  const user = pb.authStore.model;
+  if (user) {
+    const isSubscribed = user.subscription_status === 'active' && new Date(user.subscription_until) > new Date();
+    if (!isSubscribed) {
+      const currentStudents = await getStudents(user.id);
+      if (currentStudents.length >= 5) {
+        throw new Error("Достигнут лимит учеников на бесплатном тарифе (максимум 5). Пожалуйста, оформите подписку.");
+      }
+    }
+  }
+
   invalidateCache("students");
   const record = await pb.collection("students").create(data);
   return record.id;
@@ -1276,4 +1287,24 @@ export async function getCommunityNews() {
     // Network error, timeout — handled silently
     return null;
   }
+}
+
+// ── Subscriptions ──────────────────────────────────────────────────────────
+
+/**
+ * Creates a subscription payment via Yookassa
+ * @param {string} planKey - "monthly" or "yearly"
+ * @returns {Promise<{confirmation_url: string, payment_id: string}>}
+ */
+export async function createSubscriptionPayment(planKey) {
+  const returnUrl = window.location.origin + "/billing";
+  
+  // Call custom pb_hooks endpoint
+  return await pb.send("/api/payments/create", {
+    method: "POST",
+    body: {
+      plan: planKey,
+      return_url: returnUrl
+    }
+  });
 }

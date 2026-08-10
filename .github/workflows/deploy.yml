@@ -32,3 +32,33 @@ jobs:
           strip_components: 1
           overwrite: true
           rm: true
+
+      - name: Copy PocketBase updates to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 5.35.89.238
+          username: root
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: "pb_hooks/*,pb_migrations/*"
+          target: "/root/pb_updates"
+
+      - name: Apply PocketBase updates and Restart
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 5.35.89.238
+          username: root
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            # Ищем, где лежит pocketbase
+            PB_EXEC=$(find /root /opt /var/www -name "pocketbase" -type f -executable 2>/dev/null | head -n 1)
+            if [ -n "$PB_EXEC" ]; then
+              PB_DIR=$(dirname "$PB_EXEC")
+              echo "PocketBase найден в $PB_DIR"
+              cp -r /root/pb_updates/pb_hooks $PB_DIR/
+              cp -r /root/pb_updates/pb_migrations $PB_DIR/
+              
+              # Пытаемся перезапустить сервис (игнорируем ошибку если сервис называется иначе)
+              systemctl restart pocketbase || systemctl restart pb || echo "Не удалось перезапустить через systemctl."
+            else
+              echo "Файл pocketbase не найден!"
+            fi

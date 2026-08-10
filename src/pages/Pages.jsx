@@ -66,5 +66,6 @@ export { default as FinancePage } from "./FinancePage.jsx";
 // ── Settings ───────────────────────────────────────────────────────────────
 
 export { default as SettingsPage } from "./SettingsScreen.jsx";
+export { default as BillingPage } from "./BillingPage.jsx";
 
 export { default as LandingPage } from "./LandingPage.jsx";

@@ -13,6 +13,7 @@ import {
   SettingsPage,
   ProgramsPage,
   LandingPage,
+  BillingPage,
 } from "./pages/Pages.jsx";
 import { initAnalytics } from "./utils/analytics.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
@@ -68,6 +69,7 @@ function RootApp() {
           <Route path="/students" element={<StudentsPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/finance" element={<FinancePage />} />
+          <Route path="/billing" element={<BillingPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
