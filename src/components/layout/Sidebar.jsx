@@ -62,6 +62,13 @@ export const NAV_ITEMS = [
     activeText: "text-[#426B5C]",
   },
   {
+    id:     "billing",
+    label:  "Подписка",
+    icon:   Zap, // We can use Zap since CreditCard is not imported, or import CreditCard
+    activeBg: "bg-indigo-100",
+    activeText: "text-indigo-600",
+  },
+  {
     id:     "settings",
     label:  "Настройки",
     icon:   Settings,
