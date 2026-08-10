@@ -480,6 +480,50 @@ export function generateDemoData(tutorId = "demo_tutor") {
   return db;
 }
 
-export function clearAllTutorData() {
+import pb from "../services/pocketbase.js";
+
+export async function clearAllTutorData(tutorId) {
+  // Clear any local cache
   localStorage.removeItem("demo_db");
+
+  if (!tutorId) return;
+
+  try {
+    const filter = `tutorId="${tutorId}"`;
+
+    // 1. Delete Payments
+    const payments = await pb.collection("payments").getFullList({ filter });
+    for (const p of payments) {
+      await pb.collection("payments").delete(p.id);
+    }
+
+    // 2. Delete Lessons
+    const lessons = await pb.collection("lessons").getFullList({ filter });
+    for (const l of lessons) {
+      await pb.collection("lessons").delete(l.id);
+    }
+
+    // 3. Delete Groups
+    const groups = await pb.collection("groups").getFullList({ filter });
+    for (const g of groups) {
+      await pb.collection("groups").delete(g.id);
+    }
+
+    // 4. Delete Students
+    const students = await pb.collection("students").getFullList({ filter });
+    for (const s of students) {
+      await pb.collection("students").delete(s.id);
+    }
+
+    // 5. Delete Programs
+    const programs = await pb.collection("programs").getFullList({ filter });
+    for (const p of programs) {
+      await pb.collection("programs").delete(p.id);
+    }
+
+    // Optional: reload page to clear all memory states
+  } catch (err) {
+    console.error("Failed to clear data from PocketBase", err);
+    throw err;
+  }
 }

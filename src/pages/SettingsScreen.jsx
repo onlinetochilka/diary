@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { PageWrapper } from "../components/layout/PageWrapper.jsx";
-import { Loader2, Settings as SettingsIcon, Globe, Bell, ChevronDown } from "lucide-react";
+import { Loader2, Settings as SettingsIcon, Globe, Bell, ChevronDown, LogOut } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { getUserConfig, updateUserConfig } from "../services/database.js";
+import Button from "../components/ui/Button.jsx";
 import { useStudents } from "../hooks/useStudents.js";
 import pb from "../services/pocketbase.js";
 import { clearAllTutorData } from "../utils/demoData.js";
@@ -19,6 +20,8 @@ import { ProfileSettings } from "../components/settings/ProfileSettings.jsx";
 import { RequisitesSettings } from "../components/settings/RequisitesSettings.jsx";
 import { DangerZone } from "../components/settings/DangerZone.jsx";
 
+import { useConfirm } from "../contexts/ConfirmContext.jsx";
+
 const INPUT_CLS =
   "w-full bg-stone-50 border border-stone-200/80 text-stone-900 text-sm rounded-xl px-3.5 py-3 " +
   "placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#006584]/20 " +
@@ -27,6 +30,7 @@ const INPUT_CLS =
 export default function SettingsPage() {
   const { fetchStudents } = useStudents();
   const { user, isLoading: authLoading } = useAuth();
+  const confirm = useConfirm();
   const [config,   setConfig]   = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [students, setStudents] = useState([]);
@@ -35,6 +39,18 @@ export default function SettingsPage() {
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [deleteConfirm,  setDeleteConfirm]  = useState("");
   const [isDeleting,     setIsDeleting]     = useState(false);
+
+  const handleLogout = async () => {
+    const proceed = await confirm({
+      title: "Уже уходите?",
+      message: "Завершить сеанс?",
+      confirmText: "Выйти"
+    });
+    if (proceed) {
+      pb.authStore.clear();
+      window.location.href = "/login";
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -72,7 +88,12 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     if (deleteConfirm !== "УДАЛИТЬ") return;
     setIsDeleting(true);
-    try { await clearAllTutorData(user.id); pb.authStore.clear(); }
+    try { 
+      await clearAllTutorData(user.id); 
+      await pb.collection("users").delete(user.id);
+      pb.authStore.clear(); 
+      window.location.href = "/login";
+    }
     catch (e) { console.error("Delete failed", e); setIsDeleting(false); }
   };
 
@@ -109,6 +130,12 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* ── Колонка 1: Профиль + Реквизиты (стопка) ── */}
           <div className="flex flex-col gap-5">
+            <div className="lg:hidden">
+              <Button variant="secondary" onClick={handleLogout} className="w-full bg-white border border-stone-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 shadow-sm transition-all h-11 font-medium">
+                <LogOut size={16} className="mr-2" />
+                Выйти из аккаунта
+              </Button>
+            </div>
             <ProfileSettings config={config} user={user} updateConfig={updateConfig} />
             <RequisitesSettings config={config} updateConfig={updateConfig} />
           </div>

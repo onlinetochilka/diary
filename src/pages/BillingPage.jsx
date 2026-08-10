@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PageWrapper } from './Pages.jsx';
-import { CreditCard, CheckCircle2, Clock, Zap } from 'lucide-react';
+import { CreditCard, CheckCircle2, Clock, Zap, Lock } from 'lucide-react';
 import Card from '../components/ui/Card.jsx';
 import Button from '../components/ui/Button.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
@@ -119,7 +119,7 @@ export default function BillingPage() {
         </Card>
 
         {/* Yearly Plan */}
-        <Card className="flex flex-col h-full border-indigo-200 shadow-md relative ring-1 ring-indigo-500/20">
+        <Card className="flex flex-col h-full border-indigo-200 shadow-md relative ring-1 ring-indigo-500/20 overflow-visible">
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full shadow-sm">
             Выгодно (-25%)
           </div>
@@ -156,6 +156,15 @@ export default function BillingPage() {
           </div>
         </Card>
 
+      </div>
+
+      {/* Security Message */}
+      <div className="max-w-4xl mt-8 p-4 bg-emerald-50 rounded-lg border border-emerald-100 flex items-start sm:items-center gap-3 text-stone-600 text-sm">
+        <Lock size={20} className="text-emerald-500 shrink-0 mt-0.5 sm:mt-0" />
+        <p>
+          <strong>Ваш платеж надежно защищен.</strong> Оплата происходит на зашифрованной стороне платежной системы ЮKassa. 
+          Точилка не собирает, не видит и не хранит данные ваших банковских карт.
+        </p>
       </div>
     </PageWrapper>
   );

@@ -1,113 +1,129 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// Безопасное чтение переменных окружения (поддержка PB v0.22 и v0.23)
-function getEnv(key) {
-    try {
-        if (typeof $os !== 'undefined' && $os.getenv) return $os.getenv(key);
-        return require("os").getenv(key);
-    } catch(e) {
-        return "";
-    }
+if (typeof onRecordCreateRequest !== "undefined") {
+    onRecordCreateRequest((e) => {
+        const now = new Date();
+        now.setMonth(now.getMonth() + 3);
+        e.record.set("subscription_status", "active");
+        e.record.set("subscription_until", now.toISOString().replace("T", " ").substring(0, 19) + "Z");
+        e.next();
+    }, "users");
+} else if (typeof onRecordAfterCreateRequest !== "undefined") {
+    onRecordAfterCreateRequest((e) => {
+        const now = new Date();
+        now.setMonth(now.getMonth() + 3);
+        e.record.set("subscription_status", "active");
+        e.record.set("subscription_until", now.toISOString().replace("T", " ").substring(0, 19) + "Z");
+        try { e.app.save(e.record); } catch (err) { $app.dao().saveRecord(e.record); }
+    }, "users");
 }
 
-const SHOP_ID = getEnv("YOOKASSA_SHOP_ID") || "1426992";
-const SECRET_KEY = getEnv("YOOKASSA_SECRET_KEY") || "live_DaSWJMhDsMcltxFYB7lB7yP90prJuKGUkIpT_MokjtI";
-
-if (!SECRET_KEY) {
-    console.error("YOOKASSA_SECRET_KEY is not set in environment variables!");
-}
-
-const PLANS = {
-    "monthly": { price: 390.00, months: 1, desc: "Подписка на 1 месяц" },
-    "yearly": { price: 3490.00, months: 12, desc: "Подписка на 1 год" }
-};
-
-// 1. При регистрации нового пользователя автоматически даем 3 месяца подписки
-onRecordAfterCreateRequest((e) => {
-    const now = new Date();
-    now.setMonth(now.getMonth() + 3);
-    
-    e.record.set("subscription_status", "active");
-    e.record.set("subscription_until", now.toISOString().replace("T", " ").substring(0, 19) + "Z");
-    
-    try {
-        e.app.save(e.record);
-    } catch (err) {
-        $app.dao().saveRecord(e.record);
-    }
-}, "users");
-
-
-// 2. Роут для создания платежа (вызывается из React)
 routerAdd("POST", "/api/payments/create", (c) => {
-    // Проверяем авторизацию
-    const admin = c.get("admin");
-    const user = c.get("authRecord");
-    
-    if (!admin && !user) {
-        c.json(401, { error: "Unauthorized" });
-        return;
-    }
-    
-    const userId = user ? user.get("id") : admin.get("id");
-    
-    // Читаем body
-    let planKey = "";
-    let returnUrl = "";
-
+    let step = "init";
     try {
-        // v0.23+ approach
-        const data = $apis.requestInfo(c).data;
-        planKey = data.plan;
-        returnUrl = data.return_url;
-    } catch(e) {
-        // v0.22 approach
+        let SHOP_ID = "1426992";
+        let SECRET_KEY = "live_DaSWJMhDsMcltxFYB7lB7yP90prJuKGUkIpT_MokjtI";
         try {
-            const body = new DynamicModel({ plan: "", return_url: "" });
+            if (typeof $os !== 'undefined' && typeof $os.getenv === 'function') {
+                SHOP_ID = $os.getenv("YOOKASSA_SHOP_ID") || SHOP_ID;
+                SECRET_KEY = $os.getenv("YOOKASSA_SECRET_KEY") || SECRET_KEY;
+            } else if (typeof require !== 'undefined') {
+                let os = require("os");
+                if (os && typeof os.getenv === 'function') {
+                    SHOP_ID = os.getenv("YOOKASSA_SHOP_ID") || SHOP_ID;
+                    SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY") || SECRET_KEY;
+                }
+            }
+        } catch(e) {}
+
+        const PLANS = {
+            "monthly": { price: 390.00, months: 1, desc: "Подписка на 1 месяц" },
+            "yearly": { price: 3490.00, months: 12, desc: "Подписка на 1 год" }
+        };
+
+        step = "auth_check";
+        let userId = null;
+        let userEmail = "";
+        
+        if (c.auth) {
+            userId = c.auth.id;
+            userEmail = c.auth.get("email");
+        } else {
+            const admin = typeof c.get === "function" ? c.get("admin") : null;
+            const user = typeof c.get === "function" ? c.get("authRecord") : null;
+            if (admin) {
+                userId = admin.get("id");
+                userEmail = admin.get("email");
+            } else if (user) {
+                userId = user.get("id");
+                userEmail = user.get("email");
+            } else {
+                return c.json(401, { error: "Unauthorized" });
+            }
+        }
+        
+        step = "read_body";
+        const body = new DynamicModel({ plan: "", return_url: "" });
+        if (typeof c.bind === "function") {
             c.bind(body);
-            planKey = body.plan;
-            returnUrl = body.return_url;
-        } catch(e2) {
-            c.json(400, { error: "Invalid body format" });
-            return;
+        } else if (typeof c.bindBody === "function") {
+            c.bindBody(body);
+        } else {
+            let data;
+            if (typeof c.requestInfo === "function") {
+                data = c.requestInfo().body;
+            } else {
+                data = $apis.requestInfo(c).data;
+            }
+            body.plan = data.plan;
+            body.return_url = data.return_url;
         }
-    }
 
-    if (!PLANS[planKey]) {
-        c.json(400, { error: "Invalid plan" });
-        return;
-    }
+        const planKey = body.plan;
+        const returnUrl = body.return_url;
 
-    // 2. Формируем платеж
-    const idempotenceKey = $security.randomString(32);
-    const amount = PLANS[planKey].price.toFixed(2);
-    const desc = PLANS[planKey].desc + " для " + user.get("email");
-
-    const payload = {
-        amount: {
-            value: amount,
-            currency: "RUB"
-        },
-        capture: true,
-        confirmation: {
-            type: "redirect",
-            return_url: returnUrl
-        },
-        description: desc,
-        metadata: {
-            userId: user.getId(),
-            plan: planKey
+        step = "validate_plan";
+        if (!planKey || !PLANS[planKey]) {
+            return c.json(400, { error: "Invalid plan: " + String(planKey) });
         }
-    };
 
-    const authHeader = "Basic " + $encoding.base64Encode(SHOP_ID + ":" + SECRET_KEY);
+        step = "prepare_payload";
+        let idempotenceKey = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        try {
+            if (typeof $security !== "undefined" && typeof $security.randomString === "function") {
+                idempotenceKey = $security.randomString(32);
+            }
+        } catch(e) {}
+        
+        const amount = PLANS[planKey].price.toFixed(2);
+        const desc = PLANS[planKey].desc + " для " + userEmail;
 
-    try {
-        // v0.23 uses require("http") or $http, we wrap in try-catch just in case
-        let sendFunc = $http ? $http.send : require("http").send;
+        const payload = {
+            amount: { value: amount, currency: "RUB" },
+            capture: true,
+            confirmation: { type: "redirect", return_url: returnUrl },
+            description: desc,
+            metadata: { userId: userId, plan: planKey }
+        };
+
+        step = "base64_encode";
+        function b64Encode(str) {
+            let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+            let encoded = '';
+            for (let i = 0; i < str.length; ) {
+                let c1 = str.charCodeAt(i++), c2 = str.charCodeAt(i++), c3 = str.charCodeAt(i++);
+                encoded += chars[c1 >> 2] + chars[((c1 & 3) << 4) | ((c2 || 0) >> 4)] + 
+                           (isNaN(c2) ? '=' : chars[((c2 & 15) << 2) | ((c3 || 0) >> 6)]) + 
+                           (isNaN(c3) ? '=' : chars[c3 & 63]);
+            }
+            return encoded;
+        }
+        const authHeader = "Basic " + b64Encode(SHOP_ID + ":" + SECRET_KEY);
+
+        step = "send_http";
+        let sendFunc = typeof $http !== "undefined" ? $http.send : require("http").send;
         if (!sendFunc) {
-            c.json(500, { error: "HTTP client not available" });
-            return;
+            return c.json(500, { error: "HTTP client not available" });
         }
 
         const res = sendFunc({
@@ -121,54 +137,68 @@ routerAdd("POST", "/api/payments/create", (c) => {
             body: JSON.stringify(payload)
         });
 
-        if (res.statusCode >= 400) {
+        step = "handle_response";
+        const statusCode = res.statusCode || res.status;
+        if (statusCode >= 400) {
             $app.logger().error("Yookassa create payment error", "response", res.raw);
-            c.json(500, { error: "Payment gateway error" });
-            return;
+            return c.json(500, { error: "Payment gateway error: " + res.raw });
         }
 
         const paymentData = JSON.parse(res.raw);
-        c.json(200, {
+        return c.json(200, {
             payment_id: paymentData.id,
             confirmation_url: paymentData.confirmation.confirmation_url
         });
     } catch (err) {
-        $app.logger().error("Yookassa API request failed", "error", String(err));
-        c.json(500, { error: String(err) });
+        $app.logger().error("Create payment exception", "step", step, "error", String(err));
+        return c.json(400, { 
+            error: "Exception occurred", 
+            message: String(err),
+            step: step
+        });
     }
 });
 
-
-// 3. Вебхук для ЮKassa
 routerAdd("POST", "/api/payments/webhook", (c) => {
-    // Читаем тело вебхука
-    let payload;
+    let step = "init";
     try {
-        payload = $apis.requestInfo(c).data;
+        const PLANS = {
+            "monthly": { price: 390.00, months: 1, desc: "Подписка на 1 месяц" },
+            "yearly": { price: 3490.00, months: 12, desc: "Подписка на 1 год" }
+        };
+
+        step = "read_body";
+        let payload;
+        if (typeof c.bind === "function") {
+            payload = new DynamicModel({ event: "", object: {} });
+            c.bind(payload);
+        } else {
+            if (typeof c.requestInfo === "function") {
+                payload = c.requestInfo().body;
+            } else {
+                try {
+                    payload = $apis.requestInfo(c).data;
+                } catch(e) {
+                    payload = JSON.parse(require("io/ioutil").readAll(c.request().body));
+                }
+            }
+        }
+        
         if (!payload || !payload.event) {
-            throw new Error("Empty payload");
-        }
-    } catch(e) {
-        try {
-            payload = JSON.parse(require("io/ioutil").readAll(c.request().body));
-        } catch(e2) {
-            return c.json(400, { error: "Invalid payload" });
-        }
-    }
-    
-    if (payload.event === "payment.succeeded") {
-        const payment = payload.object;
-        const userId = payment.metadata.userId;
-        const planKey = payment.metadata.plan;
-        
-        if (!userId || !planKey || !PLANS[planKey]) {
-            return c.json(400, { error: "Invalid metadata" });
+            return c.json(400, { error: "Empty payload" });
         }
         
-        const plan = PLANS[planKey];
-        
-        try {
-            // Находим пользователя в базе
+        if (payload.event === "payment.succeeded") {
+            step = "process_payment";
+            const payment = payload.object;
+            const userId = payment.metadata.userId;
+            const planKey = payment.metadata.plan;
+            
+            if (!userId || !planKey || !PLANS[planKey]) {
+                return c.json(400, { error: "Invalid metadata" });
+            }
+            
+            step = "update_user";
             let userRecord;
             try {
                 userRecord = $app.findRecordById("users", userId);
@@ -176,39 +206,29 @@ routerAdd("POST", "/api/payments/webhook", (c) => {
                 userRecord = $app.dao().findRecordById("users", userId);
             }
             
-            // Вычисляем новую дату окончания подписки
             let currentValidUntil = userRecord.get("subscription_until");
-            let dateObj = new Date(); // по умолчанию отсчет от сегодня
-            
+            let dateObj = new Date();
             if (currentValidUntil) {
-                // Если подписка еще активна, добавляем к ней
                 const currentObj = new Date(currentValidUntil.replace(" ", "T"));
                 if (currentObj > dateObj) {
                     dateObj = currentObj;
                 }
             }
+            dateObj.setMonth(dateObj.getMonth() + PLANS[planKey].months);
             
-            dateObj.setMonth(dateObj.getMonth() + plan.months);
-            
-            // Обновляем пользователя
             userRecord.set("subscription_status", "active");
             userRecord.set("subscription_until", dateObj.toISOString().replace("T", " ").substring(0, 19) + "Z");
             userRecord.set("yookassa_payment_id", payment.id);
             
-            try {
+            if (typeof $app.save === "function") {
                 $app.save(userRecord);
-            } catch(err) {
+            } else {
                 $app.dao().saveRecord(userRecord);
             }
-            
-            $app.logger().info("Subscription updated", "userId", userId, "plan", planKey);
-            
-        } catch (err) {
-            $app.logger().error("Error processing webhook", "error", err.message);
-            return c.json(500, { error: "Database error" });
         }
+        return c.json(200, { success: true });
+    } catch (err) {
+        $app.logger().error("Webhook exception", "step", step, "error", String(err));
+        return c.json(400, { error: String(err), step: step });
     }
-    
-    // Обязательно возвращаем 200 OK
-    return c.json(200, { success: true });
 });
