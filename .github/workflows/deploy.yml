@@ -49,16 +49,12 @@ jobs:
           username: root
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            # Ищем, где лежит pocketbase
-            PB_EXEC=$(find /root /opt /var/www -name "pocketbase" -type f -executable 2>/dev/null | head -n 1)
-            if [ -n "$PB_EXEC" ]; then
-              PB_DIR=$(dirname "$PB_EXEC")
-              echo "PocketBase найден в $PB_DIR"
-              cp -r /root/pb_updates/pb_hooks $PB_DIR/
-              cp -r /root/pb_updates/pb_migrations $PB_DIR/
-              
-              # Пытаемся перезапустить сервис (игнорируем ошибку если сервис называется иначе)
-              systemctl restart pocketbase || systemctl restart pb || echo "Не удалось перезапустить через systemctl."
-            else
-              echo "Файл pocketbase не найден!"
-            fi
+            PB_DIR="/opt/pocketbase"
+            echo "Используем директорию $PB_DIR"
+            
+            # Копируем новые хуки и миграции
+            cp -r /root/pb_updates/pb_hooks $PB_DIR/
+            cp -r /root/pb_updates/pb_migrations $PB_DIR/
+            
+            # Перезапускаем PocketBase
+            systemctl restart pocketbase || systemctl restart pb || echo "Не удалось перезапустить сервис."

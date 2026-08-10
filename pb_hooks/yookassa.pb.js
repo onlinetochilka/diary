@@ -1,8 +1,17 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// ВНИМАНИЕ: Замените эти значения на ваши реальные данные из личного кабинета ЮKassa или задайте в переменных окружения
-const SHOP_ID = $os.getenv("YOOKASSA_SHOP_ID") || "1426992";
-const SECRET_KEY = $os.getenv("YOOKASSA_SECRET_KEY");
+// Безопасное чтение переменных окружения (поддержка PB v0.22 и v0.23)
+function getEnv(key) {
+    try {
+        if (typeof $os !== 'undefined' && $os.getenv) return $os.getenv(key);
+        return require("os").getenv(key);
+    } catch(e) {
+        return "";
+    }
+}
+
+const SHOP_ID = getEnv("YOOKASSA_SHOP_ID") || "1426992";
+const SECRET_KEY = getEnv("YOOKASSA_SECRET_KEY") || "live_DaSWJMhDsMcltxFYB7lB7yP90prJuKGUkIpT_MokjtI";
 
 if (!SECRET_KEY) {
     console.error("YOOKASSA_SECRET_KEY is not set in environment variables!");
