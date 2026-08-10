@@ -11,17 +11,17 @@ const PLANS = {
 
 // 1. При регистрации нового пользователя автоматически даем 3 месяца подписки
 onRecordAfterCreateRequest((e) => {
-    // Получаем текущую дату
     const now = new Date();
-    // Прибавляем 3 месяца
     now.setMonth(now.getMonth() + 3);
     
-    // Обновляем запись
     e.record.set("subscription_status", "active");
-    // Форматируем дату для PocketBase (Y-m-d H:i:s.SZ)
     e.record.set("subscription_until", now.toISOString().replace("T", " ").substring(0, 19) + "Z");
     
-    $app.dao().saveRecord(e.record);
+    try {
+        e.app.save(e.record);
+    } catch (err) {
+        $app.dao().saveRecord(e.record);
+    }
 }, "users");
 
 
@@ -32,77 +32,116 @@ routerAdd("POST", "/api/payments/create", (c) => {
     const user = c.get("authRecord");
     
     if (!admin && !user) {
-        throw new require("echo").HTTPError(401, "Unauthorized");
+        c.json(401, { error: "Unauthorized" });
+        return;
     }
     
     const userId = user ? user.get("id") : admin.get("id");
     
     // Читаем body
-    const body = new DynamicModel({
-        plan: "",
-        return_url: ""
-    });
-    c.bind(body);
+    let planKey = "";
+    let returnUrl = "";
 
-    const planKey = body.plan;
-    const returnUrl = body.return_url || "https://your-domain.ru/billing";
-    
-    if (!PLANS[planKey]) {
-        throw new require("echo").HTTPError(400, "Invalid plan");
+    try {
+        // v0.23+ approach
+        const data = $apis.requestInfo(c).data;
+        planKey = data.plan;
+        returnUrl = data.return_url;
+    } catch(e) {
+        // v0.22 approach
+        try {
+            const body = new DynamicModel({ plan: "", return_url: "" });
+            c.bind(body);
+            planKey = body.plan;
+            returnUrl = body.return_url;
+        } catch(e2) {
+            c.json(400, { error: "Invalid body format" });
+            return;
+        }
     }
-    
-    const plan = PLANS[planKey];
-    
-    // Вызываем API ЮKassa
-    const authHeader = "Basic " + $security.encodeBase64(SHOP_ID + ":" + SECRET_KEY);
-    const idempotenceKey = $security.randomString(16);
-    
+
+    if (!PLANS[planKey]) {
+        c.json(400, { error: "Invalid plan" });
+        return;
+    }
+
+    // 2. Формируем платеж
+    const idempotenceKey = $security.randomString(32);
+    const amount = PLANS[planKey].price.toFixed(2);
+    const desc = PLANS[planKey].desc + " для " + user.get("email");
+
     const payload = {
         amount: {
-            value: plan.price.toFixed(2),
+            value: amount,
             currency: "RUB"
         },
-        capture: true, // автоматическое подтверждение (снятие денег)
+        capture: true,
         confirmation: {
             type: "redirect",
             return_url: returnUrl
         },
-        description: plan.desc,
+        description: desc,
         metadata: {
-            userId: userId,
+            userId: user.getId(),
             plan: planKey
         }
     };
 
-    const res = $http.send({
-        url: "https://api.yookassa.ru/v3/payments",
-        method: "POST",
-        headers: {
-            "Authorization": authHeader,
-            "Idempotence-Key": idempotenceKey,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-    });
-    
-    if (res.statusCode >= 400) {
-        $app.logger().error("Yookassa create payment error", "response", res.raw);
-        throw new require("echo").HTTPError(500, "Payment gateway error");
+    const authHeader = "Basic " + $encoding.base64Encode(SHOP_ID + ":" + SECRET_KEY);
+
+    try {
+        // v0.23 uses require("http") or $http, we wrap in try-catch just in case
+        let sendFunc = $http ? $http.send : require("http").send;
+        if (!sendFunc) {
+            c.json(500, { error: "HTTP client not available" });
+            return;
+        }
+
+        const res = sendFunc({
+            url: "https://api.yookassa.ru/v3/payments",
+            method: "POST",
+            headers: {
+                "Authorization": authHeader,
+                "Idempotence-Key": idempotenceKey,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.statusCode >= 400) {
+            $app.logger().error("Yookassa create payment error", "response", res.raw);
+            c.json(500, { error: "Payment gateway error" });
+            return;
+        }
+
+        const paymentData = JSON.parse(res.raw);
+        c.json(200, {
+            payment_id: paymentData.id,
+            confirmation_url: paymentData.confirmation.confirmation_url
+        });
+    } catch (err) {
+        $app.logger().error("Yookassa API request failed", "error", String(err));
+        c.json(500, { error: String(err) });
     }
-    
-    const yookassaResponse = JSON.parse(res.raw);
-    
-    return c.json(200, {
-        confirmation_url: yookassaResponse.confirmation.confirmation_url,
-        payment_id: yookassaResponse.id
-    });
 });
 
 
 // 3. Вебхук для ЮKassa
 routerAdd("POST", "/api/payments/webhook", (c) => {
     // Читаем тело вебхука
-    const payload = JSON.parse(require("io/ioutil").readAll(c.request().body));
+    let payload;
+    try {
+        payload = $apis.requestInfo(c).data;
+        if (!payload || !payload.event) {
+            throw new Error("Empty payload");
+        }
+    } catch(e) {
+        try {
+            payload = JSON.parse(require("io/ioutil").readAll(c.request().body));
+        } catch(e2) {
+            return c.json(400, { error: "Invalid payload" });
+        }
+    }
     
     if (payload.event === "payment.succeeded") {
         const payment = payload.object;
@@ -117,7 +156,12 @@ routerAdd("POST", "/api/payments/webhook", (c) => {
         
         try {
             // Находим пользователя в базе
-            const userRecord = $app.dao().findRecordById("users", userId);
+            let userRecord;
+            try {
+                userRecord = $app.findRecordById("users", userId);
+            } catch(err) {
+                userRecord = $app.dao().findRecordById("users", userId);
+            }
             
             // Вычисляем новую дату окончания подписки
             let currentValidUntil = userRecord.get("subscription_until");
@@ -138,7 +182,11 @@ routerAdd("POST", "/api/payments/webhook", (c) => {
             userRecord.set("subscription_until", dateObj.toISOString().replace("T", " ").substring(0, 19) + "Z");
             userRecord.set("yookassa_payment_id", payment.id);
             
-            $app.dao().saveRecord(userRecord);
+            try {
+                $app.save(userRecord);
+            } catch(err) {
+                $app.dao().saveRecord(userRecord);
+            }
             
             $app.logger().info("Subscription updated", "userId", userId, "plan", planKey);
             
