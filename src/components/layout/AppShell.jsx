@@ -11,6 +11,7 @@ import { useLocation, useNavigate, Outlet } from "react-router-dom";
 import { cn } from "../../utils/cn.js";
 import Sidebar from "./Sidebar.jsx";
 import BottomTabs from "./BottomTabs.jsx";
+import SupportWidget from "../ui/SupportWidget.jsx";
 
 export default function AppShell({ defaultPage = "dashboard" }) {
   const location = useLocation();
@@ -61,6 +62,9 @@ export default function AppShell({ defaultPage = "dashboard" }) {
 
       {/* ── Mobile Bottom Tabs ── */}
       <BottomTabs activePage={activePage} onNavigate={handleNavigate} />
+      
+      {/* ── Support Widget ── */}
+      <SupportWidget />
     </div>
   );
 }

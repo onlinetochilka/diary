@@ -1,0 +1,21 @@
+tutor.tochilka.app {
+	root * /var/www/tutor.tochilka.app
+	encode gzip
+
+	# Проксирование PocketBase для обхода блокировок
+	handle_path /api/pb/* {
+		reverse_proxy https://api.tochilka.app {
+			header_up Host {http.reverse_proxy.upstream.hostport}
+		}
+	}
+
+	# Кэшируем статику
+	@static {
+		path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+	}
+	header @static Cache-Control "public, max-age=2592000, immutable"
+
+	# SPA — все остальные пути отдают index.html
+	try_files {path} {path}/ /index.html
+	file_server
+}

@@ -469,7 +469,7 @@ export default function DashboardPage() {
                 {[1, 2, 3].map(i => <ActionItemSkeleton key={i} />)}
               </div>
             ) : actionItems.length === 0 ? (
-              <div className="flex items-center gap-4 py-3 px-5 bg-emerald-50/50 border border-emerald-100/60 rounded-2xl shadow-sm shrink-0 mt-2">
+              <div className="flex items-center gap-4 py-3 px-5 bg-emerald-50/50 border border-emerald-100/60 rounded-2xl shadow-sm h-full justify-center">
                 <div className="h-10 w-10 shrink-0 bg-emerald-100 flex items-center justify-center rounded-full text-emerald-600 shadow-sm">
                   <CheckCheck size={20} strokeWidth={1.5} />
                 </div>

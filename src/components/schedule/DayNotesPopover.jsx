@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 import { useDayNotes } from '../../hooks/useDayNotes.js';
 import Tooltip from '../ui/Tooltip.jsx';
 
@@ -67,6 +68,23 @@ export default function DayNotesPopover({ dateStr, onClose }) {
     }
   };
 
+  const handleClear = async () => {
+    setItems([]);
+    await saveNotes([], currentColor);
+  };
+
+  const handleSave = async () => {
+    let currentItems = items;
+    if (inputValue.trim()) {
+      const newItem = { id: Date.now().toString(), text: inputValue.trim(), done: false };
+      currentItems = [...items, newItem];
+      setItems(currentItems);
+      setInputValue('');
+    }
+    await saveNotes(currentItems, currentColor);
+    onClose();
+  };
+
   const activeColorCode = COLORS.find(c => c.id === currentColor)?.code || COLORS[0].code;
 
   return (
@@ -87,6 +105,13 @@ export default function DayNotesPopover({ dateStr, onClose }) {
         
         {/* Шум для имитации бумаги */}
         <div className="absolute inset-0 opacity-[0.04] mix-blend-multiply pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
+
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 rounded-full text-slate-800/40 hover:text-slate-800/70 hover:bg-slate-800/10 transition-all z-20"
+        >
+          <X size={18} />
+        </button>
 
         <div className="relative z-10 p-6 flex flex-col h-full">
           <h3 
@@ -109,34 +134,42 @@ export default function DayNotesPopover({ dateStr, onClose }) {
                 className="group flex items-start gap-3 cursor-pointer"
                 onClick={() => toggleItem(item.id)}
               >
-                <div className={`mt-2 w-3 h-3 rounded-sm border transition-colors ${item.done ? 'bg-slate-700/40 border-transparent' : 'border-slate-800/40 group-hover:border-slate-800/70'}`} />
-                <div className="relative flex-1">
-                  <span 
-                    className={`block text-2xl leading-tight transition-all duration-300 ${item.done ? 'opacity-40' : 'opacity-80'}`}
-                    style={{ fontFamily: "'Caveat', cursive" }}
-                  >
-                    {item.text}
-                  </span>
-                  {/* Анимация карандашного зачеркивания */}
-                  <svg 
-                    className={`absolute inset-0 w-full h-full pointer-events-none transition-all duration-300 ${item.done ? 'opacity-50' : 'opacity-0'}`} 
-                    preserveAspectRatio="none"
-                    viewBox="0 0 100 10"
-                  >
-                    <path 
-                      d="M 0 5 Q 30 3, 50 6 T 100 4" 
-                      fill="none" 
-                      stroke="#334155" 
-                      strokeWidth="2.5" 
-                      strokeLinecap="round"
-                      pathLength="100"
-                      style={{ 
-                        strokeDasharray: '100', 
-                        strokeDashoffset: item.done ? '0' : '100',
-                        transition: 'stroke-dashoffset 0.3s ease-out' 
-                      }} 
-                    />
-                  </svg>
+                <div className={`mt-2 w-3 h-3 shrink-0 rounded-sm border transition-colors ${item.done ? 'bg-slate-700/40 border-transparent' : 'border-slate-800/40 group-hover:border-slate-800/70'}`} />
+                <div className="flex-1">
+                  <div className="relative inline-block">
+                    <span 
+                      className={`block text-2xl leading-tight transition-all duration-300 ${item.done ? 'opacity-40' : 'opacity-80'}`}
+                      style={{ fontFamily: "'Caveat', cursive", wordBreak: 'break-word' }}
+                    >
+                      {item.text}
+                    </span>
+                    {/* Анимация карандашного зачеркивания */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        clipPath: item.done ? 'polygon(-10% -50%, 110% -50%, 110% 150%, -10% 150%)' : 'polygon(-10% -50%, -10% -50%, -10% 150%, -10% 150%)',
+                        transition: 'clip-path 0.3s ease-out',
+                        WebkitClipPath: item.done ? 'polygon(-10% -50%, 110% -50%, 110% 150%, -10% 150%)' : 'polygon(-10% -50%, -10% -50%, -10% 150%, -10% 150%)',
+                        WebkitTransition: '-webkit-clip-path 0.3s ease-out'
+                      }}
+                    >
+                      <svg 
+                        className="absolute inset-0 w-full h-full opacity-60" 
+                        preserveAspectRatio="none"
+                        viewBox="0 0 100 10"
+                        style={{ overflow: 'visible' }}
+                      >
+                        <path 
+                          d="M -2 5 Q 15 3, 30 6 T 70 4 T 102 5" 
+                          fill="none" 
+                          stroke="#334155" 
+                          strokeWidth="1.5" 
+                          vectorEffect="non-scaling-stroke"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -157,7 +190,7 @@ export default function DayNotesPopover({ dateStr, onClose }) {
             )}
           </div>
 
-          <div className="flex justify-between items-center mt-auto pt-4 border-t border-slate-800/5">
+          <div className="mt-auto pt-4 border-t border-slate-800/5 flex justify-between items-center">
             <div className="flex gap-2">
               {COLORS.map(c => (
                 <Tooltip key={c.id} text={c.id} position="top">
@@ -169,13 +202,23 @@ export default function DayNotesPopover({ dateStr, onClose }) {
                 </Tooltip>
               ))}
             </div>
-            <button 
-              onClick={onClose}
-              className="text-sm font-medium text-slate-800/40 hover:text-slate-800/70 transition-colors uppercase tracking-widest"
-            >
-              Закрыть
-            </button>
           </div>
+        </div>
+
+        {/* Small action pills at the very bottom */}
+        <div className="absolute bottom-2.5 right-7 flex items-center gap-1.5 z-20">
+          <button 
+            onClick={handleClear}
+            className="px-2 py-0.5 text-[9px] font-bold rounded-full bg-slate-800/5 text-slate-800/40 hover:bg-slate-800/10 hover:text-slate-800/80 transition-colors uppercase tracking-wider"
+          >
+            Очистить
+          </button>
+          <button 
+            onClick={handleSave}
+            className="px-2 py-0.5 text-[9px] font-bold rounded-full bg-slate-800/40 text-white hover:bg-slate-800/80 transition-colors uppercase tracking-wider"
+          >
+            Сохранить
+          </button>
         </div>
       </div>
     </div>

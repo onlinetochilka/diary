@@ -25,56 +25,38 @@ async function main() {
     await pb.admins.authWithPassword(email.trim(), password.trim());
     console.log("✅ Успешно авторизовано!");
 
-    // Создаем схему коллекции
+    console.log("Получаю ID коллекции пользователей...");
+    const usersCollection = await pb.collections.getOne("users");
+
+    // Создаем коллекцию (с поддержкой нового формата PB v0.23 - fields вместо schema)
     const collectionData = {
       name: "daily_notes",
       type: "base",
       system: false,
-      schema: [
+      fields: [
         {
-          system: false,
-          id: "field_date",
           name: "date",
           type: "text",
-          required: true,
-          options: {
-            min: null,
-            max: null,
-            pattern: ""
-          }
+          required: true
         },
         {
-          system: false,
-          id: "field_color",
           name: "color",
           type: "text",
-          required: false,
-          options: {
-            min: null,
-            max: null,
-            pattern: ""
-          }
+          required: false
         },
         {
-          system: false,
-          id: "field_items",
           name: "items",
           type: "json",
-          required: true,
-          options: {}
+          required: true
         },
         {
-          system: false,
-          id: "field_user",
           name: "userId",
           type: "relation",
           required: true,
           options: {
-            collectionId: "systemprofiles0", // Заглушка
+            collectionId: usersCollection.id,
             cascadeDelete: true,
-            minSelect: null,
-            maxSelect: 1,
-            displayFields: []
+            maxSelect: 1
           }
         }
       ],
@@ -84,10 +66,6 @@ async function main() {
       updateRule: "userId = @request.auth.id",
       deleteRule: "userId = @request.auth.id",
     };
-
-    console.log("Получаю ID коллекции пользователей...");
-    const usersCollection = await pb.collections.getOne("users");
-    collectionData.schema[3].options.collectionId = usersCollection.id;
 
     console.log("Создаю коллекцию daily_notes...");
     const created = await pb.collections.create(collectionData);
