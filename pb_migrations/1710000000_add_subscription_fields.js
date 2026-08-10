@@ -1,57 +1,54 @@
 migrate((db) => {
-  const collection = db.findCollectionByNameOrId("users");
-
-  // Добавляем поле subscription_status
-  collection.schema.addField(new SchemaField({
-    "system": false,
-    "id": "sub_stat",
-    "name": "subscription_status",
-    "type": "select",
-    "required": false,
-    "presentable": false,
-    "unique": false,
-    "options": {
-      "maxSelect": 1,
-      "values": ["active", "inactive"]
+    // Попытка для PocketBase v0.23+
+    try {
+        const collection = db.findCollectionByNameOrId("users");
+        let changed = false;
+        if (!collection.fields.getByName("subscription_status")) {
+            collection.fields.add({ name: "subscription_status", type: "select", options: { maxSelect: 1, values: ["active", "inactive"] } });
+            changed = true;
+        }
+        if (!collection.fields.getByName("subscription_until")) {
+            collection.fields.add({ name: "subscription_until", type: "date" });
+            changed = true;
+        }
+        if (!collection.fields.getByName("yookassa_payment_id")) {
+            collection.fields.add({ name: "yookassa_payment_id", type: "text" });
+            changed = true;
+        }
+        if (changed) {
+            db.save(collection);
+        }
+        return; // Успешно выполнили v0.23
+    } catch (e) {
+        // Если метод не найден, значит это старая версия PB (v0.22 и ниже)
     }
-  }));
 
-  // Добавляем поле subscription_until
-  collection.schema.addField(new SchemaField({
-    "system": false,
-    "id": "sub_until",
-    "name": "subscription_until",
-    "type": "date",
-    "required": false,
-    "presentable": false,
-    "unique": false,
-    "options": {
-      "min": "",
-      "max": ""
+    // Попытка для PocketBase v0.22 и ниже
+    try {
+        const dao = new Dao(db);
+        const collection = dao.findCollectionByNameOrId("users");
+        let changed = false;
+        
+        if (!collection.schema.getFieldByName("subscription_status")) {
+            collection.schema.addField(new SchemaField({ 
+                name: "subscription_status", 
+                type: "select", 
+                options: { maxSelect: 1, values: ["active", "inactive"] } 
+            }));
+            changed = true;
+        }
+        if (!collection.schema.getFieldByName("subscription_until")) {
+            collection.schema.addField(new SchemaField({ name: "subscription_until", type: "date" }));
+            changed = true;
+        }
+        if (!collection.schema.getFieldByName("yookassa_payment_id")) {
+            collection.schema.addField(new SchemaField({ name: "yookassa_payment_id", type: "text" }));
+            changed = true;
+        }
+        if (changed) {
+            dao.saveCollection(collection);
+        }
+    } catch (e) {
+        console.error("Migration failed:", e);
     }
-  }));
-
-  // Добавляем поле yookassa_payment_id
-  collection.schema.addField(new SchemaField({
-    "system": false,
-    "id": "yook_id",
-    "name": "yookassa_payment_id",
-    "type": "text",
-    "required": false,
-    "presentable": false,
-    "unique": false,
-    "options": {
-      "min": null,
-      "max": null,
-      "pattern": ""
-    }
-  }));
-
-  return db.saveCollection(collection);
-}, (db) => {
-  const collection = db.findCollectionByNameOrId("users");
-  collection.schema.removeField("subscription_status");
-  collection.schema.removeField("subscription_until");
-  collection.schema.removeField("yookassa_payment_id");
-  return db.saveCollection(collection);
 });
