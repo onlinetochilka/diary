@@ -18,6 +18,17 @@ import UISelect from '../ui/Select.jsx';
 import Tooltip from '../ui/Tooltip.jsx';
 import Button from '../ui/Button.jsx';
 
+export const getChannelPlaceholder = (type) => {
+  switch (type) {
+    case 'telegram': return 'Телефон или @username';
+    case 'whatsapp': return 'Номер телефона';
+    case 'vk': return 'Ссылка на страницу';
+    case 'email': return 'Адрес эл. почты';
+    case 'phone': return 'Номер телефона';
+    default: return 'Имя пользователя или телефон';
+  }
+};
+
 export const Label = ({ children, required }) => (
   <label className="block text-sm font-medium text-stone-700 mb-1.5">
     {children} {required && <span className="text-red-500">*</span>}
@@ -29,7 +40,7 @@ export const Input = ({ className, error, success, isLoading, ...props }) => (
     <input
       disabled={isLoading}
       className={cn(
-        "w-full bg-white border-0 rounded-xl px-4 py-2.5 text-stone-900 placeholder:text-stone-400 transition-all duration-200 outline-none shadow-sm ring-1 ring-inset",
+        "w-full bg-white border-0 rounded-xl px-4 py-2 text-stone-900 placeholder:text-stone-400 transition-all duration-200 outline-none shadow-sm ring-1 ring-inset h-[42px]",
         "hover:ring-stone-300",
         "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-academic-blue focus-visible:shadow-md",
         "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-stone-50",
@@ -61,13 +72,8 @@ export const Select = ({ className, error, success, isLoading, children, ...prop
 );
 
 export const SegmentedToggle = ({ options, value, onChange }) => {
-  const isSpecialThree = options.length === 3 && options[2].value === 'mixed';
-  
   return (
-    <div className={cn(
-      "p-1 bg-stone-100 rounded-xl ring-1 ring-slate-200",
-      isSpecialThree ? "grid grid-cols-2 gap-1" : "flex"
-    )}>
+    <div className="p-1 bg-stone-100 rounded-xl ring-1 ring-slate-200 flex">
       {options.map((opt, index) => {
         const isActive = value === opt.value;
         return (
@@ -77,13 +83,11 @@ export const SegmentedToggle = ({ options, value, onChange }) => {
             type="button"
             onClick={() => onChange(opt.value)}
             className={cn(
-              "w-auto h-auto border-none rounded-lg font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue active:scale-[0.98]",
+              "w-auto h-auto border-none rounded-lg font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-academic-blue active:scale-[0.98] whitespace-nowrap",
               isActive
-                ? "bg-white text-stone-900 shadow-sm ring-1 ring-slate-200"
+                ? "bg-[#7A404D]/10 text-[#7A404D] shadow-sm ring-1 ring-[#7A404D]/20"
                 : "text-stone-500 hover:text-stone-700 hover:bg-stone-50",
-              isSpecialThree
-                ? (index === 2 ? "col-span-2 px-4 py-1.5 text-[13px]" : "px-4 py-2 text-sm")
-                : "flex-1 px-4 py-2 text-sm"
+              "flex-1 px-3 py-2 text-[13px] md:text-sm flex items-center justify-center gap-1.5"
             )}
           >
             {opt.label}
@@ -136,22 +140,13 @@ export function ParentCard({ idx, parent, formData, handleContactChange }) {
           <Trash2 size={16} />
         </Button>
       </Tooltip>
-      <input
-        type="text"
-        value={parent.role || ''}
-        placeholder="Кем приходится ученику"
-        onFocus={e => (e.target.placeholder = 'Мама')}
-        onBlur={e => (e.target.placeholder = 'Кем приходится ученику')}
-        onChange={e => updateParent('role', e.target.value)}
-        className="block text-sm font-semibold text-stone-800 mb-4 bg-transparent border-0 border-b border-dashed border-stone-300 py-1 px-0 focus:ring-0 focus:border-academic-blue focus:outline-none placeholder:text-stone-400 placeholder:font-normal w-full md:w-1/2 transition-colors rounded-none shadow-none appearance-none"
-      />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
         <div>
-          <Label>Имя</Label>
+          <Label>Роль (кем приходится)</Label>
           <Input
-            placeholder="Например, Анна Николаевна"
-            value={parent.name}
-            onChange={e => updateParent('name', e.target.value)}
+            placeholder="Например, Мама"
+            value={parent.role || ''}
+            onChange={e => updateParent('role', e.target.value)}
           />
         </div>
         <div>
@@ -162,6 +157,16 @@ export function ParentCard({ idx, parent, formData, handleContactChange }) {
             <option value="female">Женский</option>
           </Select>
         </div>
+        
+        <div className="md:col-span-2">
+          <Label>Имя</Label>
+          <Input
+            placeholder="Например, Анна Николаевна"
+            value={parent.name}
+            onChange={e => updateParent('name', e.target.value)}
+          />
+        </div>
+
         <div>
           <Label>Канал связи</Label>
           <Select value={parent.channel?.type || 'telegram'} onChange={e => updateChannel('type', e.target.value)}>
@@ -175,7 +180,7 @@ export function ParentCard({ idx, parent, formData, handleContactChange }) {
         <div>
           <Label>Куда писать</Label>
           <Input
-            placeholder="Телефон или Telegram"
+            placeholder={getChannelPlaceholder(parent.channel?.type || 'telegram')}
             value={parent.channel?.value || ''}
             onChange={e => updateChannel('value', e.target.value)}
           />

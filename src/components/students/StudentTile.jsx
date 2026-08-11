@@ -20,6 +20,7 @@ export default function StudentTile({ student, studentType, showTypeBadge, onEdi
   
   const globalStats = student.stats || {};
   const subjectStats = activeSubject?.stats || globalStats;
+  const hasPendingHomework = (globalStats.pendingHomeworks || 0) > 0;
   
   // Контакты для связи
   const primaryChannel = student.contacts?.studentChannels?.[0] || { type: 'telegram', value: '' };
@@ -72,12 +73,13 @@ export default function StudentTile({ student, studentType, showTypeBadge, onEdi
         avatarStyle={avatarStyle}
         isDifferentTimezone={isDifferentTimezone}
         onContactClick={handleContactClick}
-        onEdit={onEdit}
-        onOpenGuestLink={onOpenGuestLink}
-        onOpenReport={onOpenReport}
-        onOpenLessonHistory={onOpenLessonHistory}
+        onEdit={() => onEdit(student)}
+        onOpenGuestLink={() => onOpenGuestLink(student)}
+        onOpenReport={() => onOpenReport(student)}
+        onOpenLessonHistory={() => onOpenLessonHistory(student)}
         studentType={studentType}
         showTypeBadge={showTypeBadge}
+        hasPendingHomework={hasPendingHomework}
       />
 
       <StudentTileFinance 

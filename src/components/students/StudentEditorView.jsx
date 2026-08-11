@@ -8,7 +8,8 @@
  *
  * Визуально интерфейс идентичен оригинальной версии.
  */
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Trash2, Save, Loader2 } from 'lucide-react';
+import { cn } from '../../utils/cn.js';
 import Button from '../ui/Button.jsx';
 import { useStudentForm } from '../../hooks/useStudentForm.js';
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
@@ -17,7 +18,7 @@ import {
   PersonalInfoSection,
   SubjectsSection,
   ContactsSection,
-  SaveBar,
+  SegmentedToggle,
 } from './StudentFormSections.jsx';
 
 export default function StudentEditorView({ studentId, initialData, onBack, onNavigate, onSubmit, onDelete, onArchive, availablePrograms = [] }) {
@@ -68,41 +69,71 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
     onDelete?.(studentId);
   };
 
-  const handleArchive = async () => {
-    const isCurrentlyArchived = initialData?.isArchived;
-    const message = isCurrentlyArchived
-      ? 'Восстановить ученика из архива?'
-      : 'Перенести ученика в архив? Его можно будет восстановить в любой момент.';
-      
-    const proceed = await confirm({
-      title: isCurrentlyArchived ? "Восстановление" : "Архивация",
-      message,
-      confirmText: isCurrentlyArchived ? "Восстановить" : "В архив",
-      intent: isCurrentlyArchived ? "info" : "warning"
-    });
-    if (!proceed) return;
-    
-    onArchive?.(studentId, !isCurrentlyArchived);
-  };
+
+  const hasHistory = !!initialData && (initialData.stats?.conductedHours > 0 || initialData.ltv > 0);
+  const isArchived = !!initialData?.isArchived;
 
   return (
-    <div className="max-w-[1400px] mx-auto p-6 lg:p-8 animate-fade-in pb-40">
+    <div className="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8 pb-40 relative">
       {/* Header */}
-      <div className="flex items-center justify-between mb-10">
-        <Button
-          variant="ghost"
-          onClick={handleBackAttempt}
-          className="w-auto h-auto flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors font-medium text-sm border-none outline-none focus-visible:ring-2 focus-visible:ring-[#7A404D] focus-visible:ring-offset-4 rounded-md px-2 py-1 -ml-2"
-        >
-          <ArrowLeft size={18} strokeWidth={2} />
-          К списку учеников
-        </Button>
-        <div className="text-sm font-medium text-stone-400">
-          {studentId ? 'Редактирование ученика' : 'Новый ученик'}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        {/* Левая часть */}
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            onClick={handleBackAttempt}
+            className="w-auto h-auto flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors font-medium text-sm border-none outline-none focus-visible:ring-2 focus-visible:ring-[#7A404D] focus-visible:ring-offset-4 rounded-md px-2 py-1 -ml-2"
+          >
+            <ArrowLeft size={18} strokeWidth={2} />
+            <span className="hidden sm:inline">К списку учеников</span>
+          </Button>
+        </div>
+        
+        {/* Центр */}
+        <div className="flex items-center gap-4 absolute left-1/2 -translate-x-1/2">
+          {!!studentId && (
+            <SegmentedToggle
+              options={[
+                { label: 'Активный', value: false },
+                { label: 'В архиве', value: true }
+              ]}
+              value={formData.isArchived || false}
+              onChange={val => handleChange('isArchived', val)}
+            />
+          )}
+          <div className="text-sm font-medium text-stone-400 hidden xl:block whitespace-nowrap">
+            {studentId ? 'Редактирование ученика' : 'Новый ученик'}
+          </div>
+        </div>
+
+        {/* Правая часть (Действия) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {!!studentId && onDelete && (!hasHistory || isArchived) && (
+            <Button
+              variant="ghost"
+              onClick={handleDelete}
+              disabled={isSaving}
+              data-action="delete_student"
+              className="w-auto h-auto p-2 border-none rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              title="Удалить ученика"
+            >
+              <Trash2 size={18} />
+            </Button>
+          )}
+
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            data-action="save_student"
+            className="w-auto h-auto px-4 sm:px-6 py-2 border-none bg-[#7A404D] text-white rounded-xl font-medium shadow-sm hover:bg-[#8A4C5A] transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A404D] active:scale-[0.98] disabled:opacity-70 flex items-center gap-2"
+          >
+            {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+            <span className="hidden sm:inline">Сохранить</span>
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start animate-fade-in">
         {/* Левая колонка: Личные данные и Связь */}
         <div className="xl:col-span-5 flex flex-col gap-8">
           <PersonalInfoSection
@@ -116,7 +147,7 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
           />
         </div>
 
-        {/* Правая колонка: Учебный процесс и Финансы */}
+        {/* Правая колонка: Предметы и Финансы */}
         <div className="xl:col-span-7 flex flex-col gap-8">
           <SubjectsSection
             formData={formData}
@@ -131,19 +162,8 @@ export default function StudentEditorView({ studentId, initialData, onBack, onNa
         </div>
       </div>
 
-      {/* Dummy spacer for scrolling past fixed bottom bar */}
-      <div className="h-32 shrink-0"></div>
-
-      <SaveBar
-        onBack={handleBackAttempt}
-        onSave={handleSave}
-        isSaving={isSaving}
-        isEditMode={!!studentId}
-        onDelete={!!studentId ? handleDelete : undefined}
-        onArchive={!!studentId && onArchive ? handleArchive : undefined}
-        isArchived={!!initialData?.isArchived}
-        hasHistory={!!initialData && (initialData.stats?.conductedHours > 0 || initialData.ltv > 0)}
-      />
+      {/* Padding at the bottom to ensure content isn't flush with viewport edge */}
+      <div className="h-12 shrink-0"></div>
     </div>
   );
 }

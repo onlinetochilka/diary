@@ -12,9 +12,9 @@
  * оригинального StudentEditorView.jsx.
  */
 
-import { Plus, Save, Loader2, Trash2, Archive, ArchiveRestore } from 'lucide-react';
+import { Plus, Save, Loader2, Trash2, Archive, ArchiveRestore, Monitor, Users, Layers } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
-import { Label, Input, Select, SegmentedToggle, SectionHeading, ParentCard } from './StudentFormAtoms.jsx';
+import { Label, Input, Select, SegmentedToggle, SectionHeading, ParentCard, getChannelPlaceholder } from './StudentFormAtoms.jsx';
 // Реэкспортируем атомы для обратной совместимости
 export { Label, Input, Select, SegmentedToggle } from './StudentFormAtoms.jsx';
 import Tooltip from '../ui/Tooltip.jsx';
@@ -29,9 +29,9 @@ export function PersonalInfoSection({ formData, handleChange }) {
       <SectionHeading number={1}>Личные данные</SectionHeading>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-200">
         <div className="md:col-span-2">
-          <Label required>Полное имя</Label>
+          <Label required>Фамилия и Имя</Label>
           <Input
-            placeholder="Например, Александр Пушкин"
+            placeholder="Например, Иванов Александр"
             value={formData.name}
             onChange={e => handleChange('name', e.target.value)}
           />
@@ -61,28 +61,6 @@ export function PersonalInfoSection({ formData, handleChange }) {
           </Select>
         </div>
         <div>
-          <Label>Статус</Label>
-          <SegmentedToggle
-            options={[
-              { label: 'Активный', value: false },
-              { label: 'В архиве', value: true }
-            ]}
-            value={formData.isArchived || false}
-            onChange={val => handleChange('isArchived', val)}
-          />
-        </div>
-        <div>
-          <Label>ДЗ по умолчанию</Label>
-          <SegmentedToggle
-            options={[
-              { label: 'Задавать', value: false },
-              { label: 'Без ДЗ', value: true }
-            ]}
-            value={formData.isHwNotAssigned || false}
-            onChange={val => handleChange('isHwNotAssigned', val)}
-          />
-        </div>
-        <div className="md:col-span-2">
           <Label>Часовой пояс</Label>
           <Select value={formData.timezone} onChange={e => handleChange('timezone', e.target.value)}>
             <option value="UTC-8 (Лос-Анджелес)">UTC-8 (Лос-Анджелес)</option>
@@ -107,7 +85,9 @@ export function PersonalInfoSection({ formData, handleChange }) {
   );
 }
 
-// ── Секция 2: Учебный процесс и Финансы (Предметы) ────────────────────────────
+// ── Секция удалена по просьбе пользователя ───────────────────────────────────────────────────
+
+// ── Секция 3: Предметы и Финансы ────────────────────────────
 
 export function SubjectsSection({
   formData,
@@ -121,7 +101,8 @@ export function SubjectsSection({
 }) {
   return (
     <section>
-      <SectionHeading number={2}>Учебный процесс и Финансы</SectionHeading>
+      <SectionHeading number={3}>Предметы и Финансы</SectionHeading>
+      
       <div className="flex flex-col gap-6">
         {formData.subjects.map((subject, index) => {
           const currentSubjectName = (subject.name || '').trim().toLowerCase();
@@ -158,7 +139,7 @@ export function SubjectsSection({
 
               {/* Учебный процесс */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className={formData.subjects.length > 1 ? "pr-10" : ""}>
+                <div className={formData.subjects.length > 1 ? "pr-10 md:pr-0" : ""}>
                   <Label required>Предмет</Label>
                   <Input
                     placeholder="Например, Математика"
@@ -166,43 +147,7 @@ export function SubjectsSection({
                     onChange={e => handleSubjectChange(index, 'name', e.target.value)}
                   />
                 </div>
-                <div>
-                  <Label>Формат</Label>
-                  <SegmentedToggle
-                    options={[
-                      { label: 'Онлайн', value: 'online' },
-                      { label: 'Офлайн', value: 'offline' },
-                      { label: 'Смешанный', value: 'mixed' }
-                    ]}
-                    value={subject.format || 'online'}
-                    onChange={val => handleSubjectChange(index, 'format', val)}
-                  />
-                </div>
-                {(subject.format === 'online' || subject.format === 'mixed' || !subject.format) && (
-                  <div className="md:col-span-2 flex flex-col gap-2">
-                    <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer w-fit">
-                      <input 
-                        type="checkbox" 
-                        className="rounded text-academic-blue focus:ring-academic-blue"
-                        checked={subject.isLinkPermanent !== false && (subject.isLinkPermanent || !!subject.videoLink)}
-                        onChange={e => {
-                          handleSubjectChange(index, 'isLinkPermanent', e.target.checked);
-                          if (!e.target.checked) handleSubjectChange(index, 'videoLink', '');
-                        }}
-                      />
-                      Постоянная ссылка на занятия
-                    </label>
-                    {subject.isLinkPermanent !== false && (subject.isLinkPermanent || !!subject.videoLink) && (
-                      <Input
-                        placeholder="https://..."
-                        value={subject.videoLink || ''}
-                        onChange={e => handleSubjectChange(index, 'videoLink', e.target.value)}
-                      />
-                    )}
-                  </div>
-                )}
-
-                <div className="md:col-span-2">
+                <div className={formData.subjects.length > 1 ? "md:pr-10" : ""}>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-sm font-medium text-stone-700">Программа обучения</label>
                     <Button
@@ -225,18 +170,66 @@ export function SubjectsSection({
                     ))}
                   </Select>
                 </div>
+
+                <div>
+                  <Label required>Формат</Label>
+                  <SegmentedToggle
+                    options={[
+                      { label: <Tooltip text="Онлайн" wrapperClassName="flex items-center justify-center w-full h-full"><Monitor size={18} /></Tooltip>, value: 'online' },
+                      { label: <Tooltip text="Офлайн" wrapperClassName="flex items-center justify-center w-full h-full"><Users size={18} /></Tooltip>, value: 'offline' },
+                      { label: <Tooltip text="Смешанный" wrapperClassName="flex items-center justify-center w-full h-full"><Layers size={18} /></Tooltip>, value: 'mixed' }
+                    ]}
+                    value={subject.format || 'online'}
+                    onChange={val => handleSubjectChange(index, 'format', val)}
+                  />
+                </div>
+                <div>
+                  <Label required>ДЗ по умолчанию</Label>
+                  <SegmentedToggle
+                    options={[
+                      { label: 'Задано', value: false },
+                      { label: 'Не задано', value: true }
+                    ]}
+                    value={formData.isHwNotAssigned || false}
+                    onChange={val => handleChange('isHwNotAssigned', val)}
+                  />
+                </div>
+                
+                {(subject.format === 'online' || subject.format === 'mixed' || !subject.format) && (
+                  <div className="md:col-span-2 flex flex-col gap-2 justify-end">
+                    <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer w-fit mt-1">
+                      <input 
+                        type="checkbox" 
+                        className="rounded text-academic-blue focus:ring-academic-blue"
+                        checked={subject.isLinkPermanent !== false && (subject.isLinkPermanent || !!subject.videoLink)}
+                        onChange={e => {
+                          handleSubjectChange(index, 'isLinkPermanent', e.target.checked);
+                          if (!e.target.checked) handleSubjectChange(index, 'videoLink', '');
+                        }}
+                      />
+                      Постоянная ссылка на занятия
+                    </label>
+                    {subject.isLinkPermanent !== false && (subject.isLinkPermanent || !!subject.videoLink) && (
+                      <Input
+                        placeholder="https://..."
+                        value={subject.videoLink || ''}
+                        onChange={e => handleSubjectChange(index, 'videoLink', e.target.value)}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* РАЗДЕЛИТЕЛЬ */}
               <div className="h-px bg-stone-100 my-2"></div>
 
               {/* Финансы */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
+              <div className="flex flex-col gap-6">
+                <div>
                   <Label required>Тип оплаты</Label>
                   <SegmentedToggle
                     options={[
-                      { label: 'Поурочно', value: 'per_lesson' },
+                      { label: 'За занятие', value: 'per_lesson' },
                       { label: 'Абонемент', value: 'subscription' }
                     ]}
                     value={subject.paymentType || 'per_lesson'}
@@ -244,9 +237,12 @@ export function SubjectsSection({
                   />
                 </div>
 
-                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 transition-all duration-300">
+                <div className={cn(
+                  "grid gap-6 transition-all duration-300",
+                  showSubscription ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1 md:grid-cols-2"
+                )}>
                   <div>
-                    <Label required>Длительность урока</Label>
+                    <Label required>Длительность занятия</Label>
                     <div className="relative">
                       <Input
                         type="number"
@@ -274,63 +270,47 @@ export function SubjectsSection({
                       )}
                     </div>
                   ) : (
-                    <div>
-                      <Label required>Кол-во занятий в абонементе</Label>
-                      <Input
-                        type="number"
-                        className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        placeholder="Например, 4 или 8"
-                        value={subject.subscriptionLessons || ''}
-                        onChange={e => handleSubjectChange(index, 'subscriptionLessons', Number(e.target.value))}
-                      />
-                    </div>
+                    <>
+                      <div>
+                        <Label required>Кол-во занятий</Label>
+                        <Input
+                          type="number"
+                          className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="Например, 4 или 8"
+                          value={subject.subscriptionLessons || ''}
+                          onChange={e => handleSubjectChange(index, 'subscriptionLessons', Number(e.target.value))}
+                        />
+                      </div>
+                      <div>
+                        <Label required>Общая стоимость (₽)</Label>
+                        <Input
+                          type="number"
+                          className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="Например, 12000"
+                          value={subject.price || ''}
+                          onChange={e => handleSubjectChange(index, 'price', Number(e.target.value))}
+                        />
+                        {hourlyRateSub > 0 && (
+                          <p className="text-xs text-stone-400 mt-1.5 font-medium">~{hourlyRateSub} ₽ за час</p>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
-
-                {showSubscription && (
-                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mt-[-8px]">
-                    <div className="md:col-start-2">
-                      <Label required>Общая стоимость абонемента (₽)</Label>
-                      <Input
-                        type="number"
-                        className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        placeholder="Например, 12000"
-                        value={subject.price || ''}
-                        onChange={e => handleSubjectChange(index, 'price', Number(e.target.value))}
-                      />
-                      {hourlyRateSub > 0 && (
-                        <p className="text-xs text-stone-400 mt-1.5 font-medium">~{hourlyRateSub} ₽ за час (60 мин)</p>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           );
         })}
 
         <Button
-          variant="outline"
+          variant="ghost"
           type="button"
           onClick={handleAddSubject}
-          className="w-auto h-auto flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-dashed border-stone-200 text-stone-500 hover:text-[#7A404D] hover:bg-[#7A404D]/5 hover:border-[#7A404D]/30 transition-colors font-medium text-sm w-full"
+          className="w-fit h-auto mx-auto flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-stone-500 hover:text-[#7A404D] hover:bg-[#7A404D]/5 transition-colors font-medium text-sm"
         >
           <Plus size={18} />
           Добавить ещё предмет
         </Button>
-
-        {/* Кто оплачивает занятия */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-200">
-          <Label required>Кто оплачивает занятия?</Label>
-          <SegmentedToggle
-            options={[
-              { label: 'Сам ученик', value: 'student' },
-              { label: 'Другой человек', value: 'parent' }
-            ]}
-            value={formData.contacts.billingTo}
-            onChange={val => handleContactChange('billingTo', val)}
-          />
-        </div>
       </div>
     </section>
   );
@@ -344,15 +324,26 @@ export function SubjectsSection({
 export function ContactsSection({ formData, handleContactChange, showParent }) {
   return (
     <section>
-      <h2 className="text-lg font-bold text-stone-900 tracking-tight mb-6 flex items-center gap-2">
-        <span className="w-6 h-6 rounded-full bg-[#7A404D]/10 text-[#7A404D] flex items-center justify-center text-xs">3</span>
-        Связь
-      </h2>
+      <SectionHeading number={2}>Связь</SectionHeading>
 
       <div className="flex flex-col gap-6">
         {/* Контакты ученика */}
         <div className="bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-200">
-          <h3 className="text-base font-semibold text-stone-800 mb-4">Контакты ученика</h3>
+          <div className="mb-6">
+            <Label required>Кто оплачивает занятия?</Label>
+            <div className="w-full md:w-1/2">
+              <Select
+                value={formData.contacts.billingTo}
+                onChange={e => handleContactChange('billingTo', e.target.value)}
+              >
+                <option value="student">Сам ученик</option>
+                <option value="parent">Другой человек</option>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="h-px bg-stone-100 my-6"></div>
+
           <div className="flex flex-col gap-4">
             {(formData.contacts.studentChannels || [{ type: 'telegram', value: '' }]).map((channel, idx) => (
               <div key={idx} className="flex flex-col md:flex-row gap-4 relative group items-end">
@@ -376,16 +367,16 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                 <div className="w-full md:w-2/3 flex gap-2">
                   <div className="flex-1 relative">
                     <Label>Куда писать</Label>
-                    <div className="relative flex items-stretch bg-white rounded-xl shadow-sm border border-stone-200 focus-within:border-academic-blue focus-within:ring-1 focus-within:ring-academic-blue focus-within:shadow-md transition-all overflow-hidden">
+                    <div className="relative flex items-stretch bg-white rounded-xl shadow-sm border border-stone-200 focus-within:border-academic-blue focus-within:ring-1 focus-within:ring-academic-blue focus-within:shadow-md transition-all overflow-hidden h-[42px]">
                       <input
-                        placeholder="Телефон или Telegram"
+                        placeholder={getChannelPlaceholder(channel.type)}
                         value={channel.value}
                         onChange={e => {
                           const newChannels = [...(formData.contacts.studentChannels || [])];
                           newChannels[idx] = { ...newChannels[idx], value: e.target.value };
                           handleContactChange('studentChannels', newChannels);
                         }}
-                        className="flex-1 bg-transparent border-0 px-4 py-2.5 text-stone-900 placeholder:text-stone-400 !outline-none !ring-0 !shadow-none focus:ring-0 focus:shadow-none focus:outline-none w-full min-w-0"
+                        className="flex-1 bg-transparent border-0 px-4 py-2 text-stone-900 placeholder:text-stone-400 !outline-none !ring-0 !shadow-none focus:ring-0 focus:shadow-none focus:outline-none w-full min-w-0"
                       />
                       <Tooltip text={channel.isPrimary ? "Основной канал связи" : "Сделать основным"} position="top" wrapperClassName="shrink-0 flex">
                         <Button
@@ -400,7 +391,7 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                             handleContactChange('studentChannels', newChannels);
                           }}
                           className={cn(
-                            "w-auto px-3 border-l border-stone-200 h-full flex items-center justify-center transition-colors outline-none",
+                            "w-auto px-3 border-l border-stone-200 h-full flex items-center justify-center transition-colors outline-none rounded-none",
                             channel.isPrimary ? "bg-[#7A404D]/10 text-[#7A404D] border-[#7A404D]/20" : "bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600"
                           )}
                         >
@@ -487,7 +478,7 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
 
 export function SaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchive, isArchived, hasHistory }) {
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 p-3 px-4 bg-white/95 backdrop-blur-md border border-stone-200/80 rounded-2xl flex justify-between items-center z-50 shadow-2xl shadow-stone-900/10 w-[calc(100%-2rem)] max-w-4xl transition-all duration-300">
+    <div className="sticky bottom-6 mx-auto p-3 px-4 bg-white/95 backdrop-blur-md border border-stone-200/80 rounded-2xl flex justify-between items-center z-50 shadow-2xl shadow-stone-900/10 w-full max-w-4xl transition-all duration-300">
       <div className="flex w-full justify-between items-center">
         <div className="flex items-center gap-2">
           {isEditMode && onArchive && (hasHistory || isArchived) && (

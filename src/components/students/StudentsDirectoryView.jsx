@@ -20,7 +20,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
   const [payModal, setPayModal] = useState({ isOpen: false, item: null });
   const { showToast } = useToast();
   const { addPayment } = usePayments();
-  const { getLessons, updateLesson } = useLessons();
+  const { updateLesson, lessons } = useLessons();
 
   // Логика фильтрации вынесена в кастомный хук
   const {
@@ -33,8 +33,13 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
     showDebtorsOnly,
     setShowDebtorsOnly,
     searchQuery,
-    setSearchQuery
-  } = useStudentsFilter(students, groups);
+    setSearchQuery,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    hasDebtors
+  } = useStudentsFilter(students, groups, lessons || []);
 
   // Скролл к подсвеченному ученику
   useEffect(() => {
@@ -138,7 +143,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
           <div>
             <h1 className="sr-only">Ученики</h1>
             <p className="text-xl font-semibold text-stone-800 tracking-tight">
-              Все ваши ученики на одной странице
+              Все контакты на одной странице
             </p>
           </div>
         </div>
@@ -174,8 +179,13 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
         formatCounts={formatCounts}
         showDebtorsOnly={showDebtorsOnly}
         onToggleDebtors={setShowDebtorsOnly}
+        hasDebtors={hasDebtors}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
       />
 
       {/* Сетка карточек */}

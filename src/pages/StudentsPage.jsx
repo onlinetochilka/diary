@@ -209,6 +209,7 @@ export default function StudentsPage() {
           groupId={editingGroup?.id ?? null}
           initialData={editingGroup}
           onBack={handleGroupBack}
+          onNavigate={onNavigate}
           onSubmit={handleGroupSubmit}
           onDelete={handleGroupDelete}
           onArchive={handleGroupArchive}

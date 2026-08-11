@@ -92,11 +92,11 @@ export default function Select({
           aria-invalid={hasError}
           aria-describedby={describedBy}
           className={cn(
-            "peer w-full rounded-xl bg-stone-50 px-3.5 text-sm flex items-center",
-            label ? "pb-2 pt-6" : "py-3",
+            "peer w-full rounded-xl bg-stone-50 text-sm flex items-center",
+            label ? "pb-2 pt-6 px-3.5 min-h-[52px]" : "px-4 min-h-[42px]",
             "text-stone-900 outline-none select-none",
             "transition-all duration-200 ease-out-quart",
-            "border shadow-sm min-h-[52px]",
+            "border shadow-sm",
             isOpen ? "bg-white border-[#006584]/50 ring-2 ring-[#006584]/20 ring-offset-0" : "border-stone-200/80 hover:border-stone-300",
             hasError && "border-brand-red focus:ring-brand-red/20",
             disabled && "opacity-60 cursor-not-allowed",

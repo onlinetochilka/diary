@@ -5,10 +5,11 @@
  * Повторяет паттерн StudentEditorView: секции с нумерацией, фиксированный SaveBar.
  */
 import { useState, useEffect, useId } from 'react';
-import { ArrowLeft, Save, Loader2, Trash2, Plus, Archive, ArchiveRestore } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Trash2, Plus, Archive, ArchiveRestore, Monitor, Users, Layers } from 'lucide-react';
 import { useConfirm } from "../../contexts/ConfirmContext.jsx";
 import { cn } from '../../utils/cn.js';
 import Button from '../ui/Button.jsx';
+import Tooltip from '../ui/Tooltip.jsx';
 import { Label, Input, Select, SegmentedToggle, SectionHeading } from './StudentFormAtoms.jsx';
 import { useToast } from '../ui/Toast.jsx';
 
@@ -39,74 +40,6 @@ function SegmentedControl({ options, value, onChange }) {
   );
 }
 
-// ── SaveBar ───────────────────────────────────────────────────────────────────
-function GroupSaveBar({ onBack, onSave, isSaving, isEditMode, onDelete, onArchive, isArchived, hasHistory }) {
-  return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 p-3 px-4 bg-white/95 backdrop-blur-md border border-stone-200/80 rounded-2xl flex justify-between items-center z-50 shadow-2xl shadow-stone-900/10 w-[calc(100%-2rem)] max-w-4xl transition-all duration-300">
-      <div className="flex w-full justify-between items-center">
-        <div className="flex items-center gap-2">
-          {isEditMode && onArchive && (hasHistory || isArchived) && (
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={onArchive}
-              disabled={isSaving}
-              data-action="archive_group"
-              className={`w-auto h-auto px-4 py-2.5 border-none rounded-xl font-medium transition-colors outline-none focus-visible:ring-2 flex items-center gap-2 ${
-                isArchived
-                  ? 'text-teal-700 hover:bg-teal-50 focus-visible:ring-teal-400'
-                  : 'text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-400'
-              }`}
-            >
-              {isArchived ? <ArchiveRestore size={18} /> : <Archive size={18} />}
-              <span className="hidden sm:inline">
-                {isArchived ? 'Восстановить' : 'В архив'}
-              </span>
-            </Button>
-          )}
-          {isEditMode && onDelete && (!hasHistory || isArchived) && (
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={onDelete}
-              disabled={isSaving}
-              className="w-auto h-auto flex items-center gap-2 px-4 py-2.5 border-none rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400 active:scale-[0.98] disabled:opacity-50"
-            >
-              <Trash2 size={16} />
-              <span className="hidden sm:inline">Удалить</span>
-            </Button>
-          )}
-        </div>
-
-        {/* Отмена + Сохранить */}
-        <div className="flex gap-3">
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={onBack}
-            disabled={isSaving}
-            data-action="cancel_group_edit"
-            className="w-auto h-auto px-6 py-2.5 border-none rounded-xl font-medium text-stone-600 hover:bg-stone-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-stone-400 active:scale-[0.98] disabled:opacity-50"
-          >
-            Отмена
-          </Button>
-          <Button
-            variant="primary"
-            type="button"
-            onClick={onSave}
-            disabled={isSaving}
-            data-action="save_group"
-            className="w-auto h-auto px-8 py-2.5 border-none bg-academic-blue text-white rounded-xl font-medium shadow-sm hover:bg-academic-blue-light transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-academic-blue active:scale-[0.98] disabled:opacity-70 flex items-center gap-2"
-          >
-            {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-            Сохранить
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Главный компонент ─────────────────────────────────────────────────────────
 export default function GroupEditorView({
   groupId = null,
@@ -115,6 +48,7 @@ export default function GroupEditorView({
   onSubmit,
   onDelete,
   onArchive,
+  onNavigate,
   availableStudents = [],
   availablePrograms = [],
   existingSubjects = [],
@@ -131,6 +65,7 @@ export default function GroupEditorView({
     name: '',
     subjectName: '',
     format: 'online',
+    isHwNotAssigned: false,
     paymentType: 'per_lesson',
     price: '',
     duration: '90',
@@ -138,17 +73,31 @@ export default function GroupEditorView({
     programs: [],
     studentIds: [],
     studentFinances: {},
+    isArchived: false,
   };
 
   const [formData, setFormData] = useState(defaultForm);
 
-  // Заполнить при редактировании
+  // Заполнить при редактировании или из черновика
   useEffect(() => {
+    const draft = sessionStorage.getItem('groupEditorDraft');
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        if (parsed.groupId === groupId) {
+          setFormData(parsed.formData);
+          sessionStorage.removeItem('groupEditorDraft');
+          return;
+        }
+      } catch (e) {}
+    }
+
     if (initialData) {
       setFormData({
         name: initialData.name || '',
         subjectName: initialData.subjectName || '',
         format: initialData.format || 'online',
+        isHwNotAssigned: initialData.isHwNotAssigned || false,
         paymentType: initialData.paymentType || 'per_lesson',
         price: initialData.price?.toString() || '',
         duration: initialData.duration?.toString() || '90',
@@ -156,12 +105,20 @@ export default function GroupEditorView({
         programs: initialData.programs || [],
         studentIds: initialData.studentIds || [],
         studentFinances: initialData.studentFinances || {},
+        isArchived: initialData.isArchived || false,
       });
     } else {
       setFormData(defaultForm);
     }
     setErrors({});
   }, [groupId, initialData]);
+
+  const handleNavigateToPrograms = () => {
+    sessionStorage.setItem('groupEditorDraft', JSON.stringify({ groupId, formData }));
+    if (onNavigate) {
+      onNavigate('programs', { action: 'create_program', returnTo: 'students', groupId });
+    }
+  };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -262,6 +219,7 @@ export default function GroupEditorView({
         ? Math.round((Number(formData.price) || 0) / Number(formData.subscriptionLessons))
         : null,
       studentFinances: formData.studentFinances,
+      isArchived: formData.isArchived || false,
     };
 
     try {
@@ -304,7 +262,7 @@ export default function GroupEditorView({
   };
 
   const handleArchive = async () => {
-    const isCurrentlyArchived = initialData?.isArchived;
+    const isCurrentlyArchived = formData.isArchived;
     const message = isCurrentlyArchived
       ? 'Восстановить группу из архива?'
       : 'Перенести группу в архив?';
@@ -317,24 +275,69 @@ export default function GroupEditorView({
     });
     if (!proceed) return;
     
-    onArchive?.(groupId, !isCurrentlyArchived);
+    handleChange('isArchived', !isCurrentlyArchived);
   };
 
+  const hasHistory = !!initialData && initialData.stats?.conductedLessons > 0;
+
   return (
-    <div className="max-w-[1400px] mx-auto p-6 lg:p-8 animate-fade-in pb-40">
+    <div className="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8 pb-40 relative animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-10">
-        <Button
-          variant="ghost"
-          onClick={handleBackAttempt}
-          data-action="back_to_directory"
-          className="w-auto h-auto border-none flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors font-medium text-sm outline-none focus-visible:ring-2 focus-visible:ring-academic-blue focus-visible:ring-offset-4 rounded-md px-2 py-1 -ml-2"
-        >
-          <ArrowLeft size={18} strokeWidth={2} />
-          К списку учеников
-        </Button>
-        <div className="text-sm font-medium text-stone-400">
-          {isEditMode ? 'Редактирование группы' : 'Новая группа'}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        {/* Левая часть */}
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            onClick={handleBackAttempt}
+            data-action="back_to_directory"
+            className="w-auto h-auto flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors font-medium text-sm border-none outline-none focus-visible:ring-2 focus-visible:ring-[#7A404D] focus-visible:ring-offset-4 rounded-md px-2 py-1 -ml-2"
+          >
+            <ArrowLeft size={18} strokeWidth={2} />
+            <span className="hidden sm:inline">К списку учеников</span>
+          </Button>
+        </div>
+        
+        {/* Центр */}
+        <div className="flex items-center gap-4 absolute left-1/2 -translate-x-1/2">
+          {!!groupId && (
+            <SegmentedToggle
+              options={[
+                { label: 'Активная', value: false },
+                { label: 'В архиве', value: true }
+              ]}
+              value={formData.isArchived || false}
+              onChange={val => handleChange('isArchived', val)}
+            />
+          )}
+          <div className="text-sm font-medium text-stone-400 hidden xl:block whitespace-nowrap">
+            {isEditMode ? 'Редактирование группы' : 'Новая группа'}
+          </div>
+        </div>
+
+        {/* Правая часть (Действия) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {!!groupId && onDelete && (!hasHistory || formData.isArchived) && (
+            <Button
+              variant="ghost"
+              onClick={handleDelete}
+              disabled={isSaving}
+              data-action="delete_group"
+              className="w-auto h-auto p-2 border-none rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              title="Удалить группу"
+            >
+              <Trash2 size={18} />
+            </Button>
+          )}
+
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            data-action="save_group"
+            className="w-auto h-auto px-4 sm:px-6 py-2 border-none bg-[#7A404D] text-white rounded-xl font-medium shadow-sm hover:bg-[#8A4C5A] transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7A404D] active:scale-[0.98] disabled:opacity-70 flex items-center gap-2"
+          >
+            {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+            <span className="hidden sm:inline">Сохранить</span>
+          </Button>
         </div>
       </div>
 
@@ -346,7 +349,6 @@ export default function GroupEditorView({
         <section>
           <SectionHeading number={1}>Основное</SectionHeading>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-200">
-
             {/* Название */}
             <div className="md:col-span-2">
               <Label required>Название группы</Label>
@@ -380,17 +382,89 @@ export default function GroupEditorView({
               </datalist>
             </div>
 
+            {/* Программа обучения */}
+            <div>
+              <div className="flex items-center justify-end mb-1.5 min-h-[20px]">
+                <Button
+                  variant="ghost"
+                  onClick={handleNavigateToPrograms}
+                  type="button"
+                  data-action="create_new_program_shortcut"
+                  className="w-auto h-auto border-none text-xs font-medium text-[#7A404D] hover:text-[#8A4C5A] flex items-center gap-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#7A404D] rounded-sm px-1"
+                >
+                  + Новая программа
+                </Button>
+              </div>
+              <div className="flex flex-col gap-4">
+                <Select
+                  value=""
+                  onChange={e => handleAddProgram(e.target.value)}
+                >
+                  <option value="">Выберите программу...</option>
+
+                  {availablePrograms
+                    .filter(p => !formData.programs.some(sp => sp.id === p.id))
+                    .map(p => <option key={p.id} value={p.id}>{p.name}</option>)
+                  }
+                </Select>
+
+                {formData.programs.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {formData.programs.map((prog, idx) => {
+                      const done = prog.topics?.filter(t => t.isCompleted).length || 0;
+                      const total = prog.topics?.length || 0;
+                      return (
+                        <div
+                          key={prog.id}
+                          className="flex items-center justify-between p-3 rounded-xl bg-stone-50 ring-1 ring-slate-200 hover:bg-white transition-colors"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-stone-800">{prog.name}</p>
+                            <p className="text-xs text-stone-400 mt-0.5">
+                              Пройдено: {done} из {total} тем
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            onClick={() => handleRemoveProgram(idx)}
+                            className="w-auto h-auto p-1.5 border-none text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Формат */}
             <div>
-              <Label>Формат</Label>
+              <Label required>Формат</Label>
               <SegmentedToggle
                 options={[
-                  { label: 'Онлайн', value: 'online' },
-                  { label: 'Офлайн', value: 'offline' },
-                  { label: 'Смешанный', value: 'mixed' }
+                  { label: <Tooltip text="Онлайн" wrapperClassName="flex items-center justify-center w-full h-full"><Monitor size={18} /></Tooltip>, value: 'online' },
+                  { label: <Tooltip text="Офлайн" wrapperClassName="flex items-center justify-center w-full h-full"><Users size={18} /></Tooltip>, value: 'offline' },
+                  { label: <Tooltip text="Смешанный" wrapperClassName="flex items-center justify-center w-full h-full"><Layers size={18} /></Tooltip>, value: 'mixed' }
                 ]}
                 value={formData.format || 'online'}
                 onChange={val => handleChange('format', val)}
+              />
+            </div>
+
+            {/* ДЗ по умолчанию */}
+            <div>
+              <Label required>ДЗ по умолчанию</Label>
+              <SegmentedToggle
+                options={[
+                  { label: 'Задано', value: false },
+                  { label: 'Не задано', value: true }
+                ]}
+                value={formData.isHwNotAssigned || false}
+                onChange={val => handleChange('isHwNotAssigned', val)}
               />
             </div>
 
@@ -422,9 +496,9 @@ export default function GroupEditorView({
           </div>
         </section>
 
-        {/* ── Секция 2: Оплата ───────────────────────────────────── */}
+        {/* ── Секция 2: Финансы ───────────────────────────────────── */}
         <section>
-          <SectionHeading number={2}>Оплата и занятия</SectionHeading>
+          <SectionHeading number={2}>Финансы</SectionHeading>
           <div className="flex flex-col gap-5 bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-200">
 
             <div>
@@ -439,11 +513,12 @@ export default function GroupEditorView({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={cn(
+              "grid gap-4 transition-all duration-300",
+              formData.paymentType === 'subscription' ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2"
+            )}>
               <div>
-                <Label required>
-                  {formData.paymentType === 'subscription' ? 'Абонемент (₽)' : 'Ставка (₽)'}
-                </Label>
+                <Label required>Цена (₽)</Label>
                 <Input
                   type="number"
                   min="0"
@@ -451,10 +526,13 @@ export default function GroupEditorView({
                   value={formData.price}
                   onChange={e => handleChange('price', e.target.value)}
                 />
-                <p className="mt-1 text-xs text-stone-400">Цена за 1 ученика</p>
+                <p className="mt-1 text-xs text-stone-400">
+                  {formData.paymentType === 'subscription' ? 'за 1 ученика' : 'за 1 ученика за 1 урок'}
+                </p>
               </div>
+              
               <div>
-                <Label>Длительность урока</Label>
+                <Label required>Длительность урока</Label>
                 <div className="relative">
                   <Input
                     type="number"
@@ -466,26 +544,18 @@ export default function GroupEditorView({
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm pointer-events-none">мин</div>
                 </div>
               </div>
-            </div>
 
-            {/* Кол-во занятий абонемента */}
-            <div
-              className={cn(
-                'grid transition-all duration-300',
-                formData.paymentType === 'subscription'
-                  ? 'grid-rows-[1fr] opacity-100'
-                  : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+              {formData.paymentType === 'subscription' && (
+                <div className="animate-in fade-in duration-300">
+                  <Label required>Кол-во уроков</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={formData.subscriptionLessons}
+                    onChange={e => handleChange('subscriptionLessons', e.target.value)}
+                  />
+                </div>
               )}
-            >
-              <div className="overflow-hidden px-1 py-1 -mx-1 -my-1">
-                <Label>Занятий в абонементе</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={formData.subscriptionLessons}
-                  onChange={e => handleChange('subscriptionLessons', e.target.value)}
-                />
-              </div>
             </div>
 
           </div>
@@ -494,63 +564,9 @@ export default function GroupEditorView({
 
         {/* Правая колонка */}
         <div className="xl:col-span-7 flex flex-col gap-8">
-        {/* ── Секция 3: Программа обучения ───────────────────────── */}
-        {availablePrograms.length > 0 && (
-          <section>
-            <SectionHeading number={3}>Программа обучения</SectionHeading>
-            <div className="flex flex-col gap-4 bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-200">
-
-              <Select
-                value=""
-                label="Выберите программу..."
-                onChange={e => handleAddProgram(e.target.value)}
-              >
-                <option value="" disabled hidden>Выберите программу...</option>
-
-                {availablePrograms
-                  .filter(p => !formData.programs.some(sp => sp.id === p.id))
-                  .map(p => <option key={p.id} value={p.id}>{p.name}</option>)
-                }
-              </Select>
-
-              {formData.programs.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  {formData.programs.map((prog, idx) => {
-                    const done = prog.topics?.filter(t => t.isCompleted).length || 0;
-                    const total = prog.topics?.length || 0;
-                    return (
-                      <div
-                        key={prog.id}
-                        className="flex items-center justify-between p-3 rounded-xl bg-stone-50 ring-1 ring-slate-200 hover:bg-white transition-colors"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-stone-800">{prog.name}</p>
-                          <p className="text-xs text-stone-400 mt-0.5">
-                            Пройдено: {done} из {total} тем
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          type="button"
-                          onClick={() => handleRemoveProgram(idx)}
-                          className="w-auto h-auto p-1.5 border-none text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-            </div>
-          </section>
-        )}
-
-        {/* ── Секция 4: Состав группы ────────────────────────────── */}
+        {/* ── Секция 3: Состав группы ────────────────────────────── */}
         <section>
-          <SectionHeading number={availablePrograms.length > 0 ? 4 : 3}>
+          <SectionHeading number={3}>
             Состав группы
             {formData.studentIds.length > 0 && (
               <span className="ml-2 px-2.5 py-0.5 text-[11px] bg-academic-blue/10 text-academic-blue rounded-full font-semibold uppercase tracking-wider">
@@ -700,18 +716,6 @@ export default function GroupEditorView({
         </div>
 
       </div>
-      <div className="h-32 shrink-0" />
-
-      <GroupSaveBar
-        onBack={handleBackAttempt}
-        onSave={handleSave}
-        isSaving={isSaving}
-        isEditMode={isEditMode}
-        onDelete={isEditMode ? handleDelete : undefined}
-        onArchive={isEditMode && onArchive ? handleArchive : undefined}
-        isArchived={!!initialData?.isArchived}
-        hasHistory={!!initialData && initialData.stats?.conductedLessons > 0}
-      />
     </div>
   );
 }

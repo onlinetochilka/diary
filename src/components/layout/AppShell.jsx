@@ -39,8 +39,8 @@ export default function AppShell({ defaultPage = "dashboard" }) {
           "lg:ml-[240px]",
           // On mobile: bottom padding for BottomTabs
           "pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0",
-          // Prevent horizontal overflow
-          "min-w-0 max-w-full overflow-x-hidden"
+          // Prevent horizontal overflow while preserving sticky context
+          "min-w-0 max-w-full overflow-x-clip"
         )}
       >
         {/* Skip-to-main link for accessibility */}

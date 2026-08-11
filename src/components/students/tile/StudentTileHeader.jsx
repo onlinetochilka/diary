@@ -14,16 +14,24 @@ export default function StudentTileHeader({
   onOpenReport,
   onOpenLessonHistory,
   studentType,
-  showTypeBadge
+  showTypeBadge,
+  hasPendingHomework
 }) {
   return (
     <div className="flex items-start justify-between gap-4 mb-5">
       <div className="flex items-center gap-3 min-w-0">
-        <div 
-          className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 font-semibold text-sm shadow-sm"
-          style={avatarStyle}
-        >
-          {student._initials}
+        <div className="relative">
+          <div 
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 font-semibold text-sm shadow-sm"
+            style={avatarStyle}
+          >
+            {student._initials}
+          </div>
+          {hasPendingHomework && (
+            <Tooltip text="Есть долги по ДЗ" position="top">
+              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white shadow-sm ring-1 ring-black/5 z-10" />
+            </Tooltip>
+          )}
         </div>
         <div className="min-w-0 flex-1 flex flex-col">
           <Tooltip text={student.name} position="top" wrapperClassName="min-w-0 w-full flex justify-start text-left">
