@@ -122,9 +122,14 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
     
     if (currentTab === 'guest') {
       if (contact.isParent) {
-        textToSend = `Здравствуйте! 👋 Направляю вам персональную ссылку на личную страничку ученика:\n🔗 ${guestLink}\n\nПо ней вы в любой момент сможете посмотреть наше расписание, домашние задания и текущий баланс. Регистрация не требуется, просто сохраните эту ссылку под рукой!`;
+        const parentName = contact.parentName || '';
+        const studentFirstName = student.name ? student.name.split(' ')[0] : 'ученика';
+        const greeting = parentName ? `Здравствуйте, ${parentName}!` : 'Здравствуйте!';
+        textToSend = `${greeting} 👋 Направляю вам персональную ссылку на личную страничку ${studentFirstName}:\n🔗 ${guestLink}\n\nПо ней вы в любой момент сможете посмотреть наше расписание, домашние задания и текущий баланс. Регистрация не требуется, просто сохраните эту ссылку под рукой!`;
       } else {
-        textToSend = `Привет! 👋 Вот твоя персональная ссылка на учебную страничку:\n🔗 ${guestLink}\n\nТам ты всегда сможешь посмотреть наше расписание, свои домашние задания и баланс занятий. Никаких паролей не нужно, просто сохрани эту ссылку!`;
+        const studentFirstName = student.name ? student.name.split(' ')[0] : '';
+        const greeting = studentFirstName ? `Привет, ${studentFirstName}!` : 'Привет!';
+        textToSend = `${greeting} 👋 Вот твоя персональная ссылка на учебную страничку:\n🔗 ${guestLink}\n\nТам ты всегда сможешь посмотреть расписание занятий и свои домашние задания. Никаких паролей не нужно, просто сохрани эту ссылку!`;
       }
     } else if (currentTab === 'bot') {
       if (contact.isParent) {
