@@ -11,6 +11,32 @@ tutor.tochilka.app {
 		reverse_proxy 127.0.0.1:8090
 	}
 
+	# OG-превью для гостевых ссылок: отдаём ботам-краулерам специальный HTML
+	@guest_bot {
+		query guest=*
+		header User-Agent *TelegramBot*
+	}
+	@guest_bot_whatsapp {
+		query guest=*
+		header User-Agent *WhatsApp*
+	}
+	@guest_bot_vk {
+		query guest=*
+		header User-Agent *VKShare*
+	}
+	handle @guest_bot {
+		rewrite * /guest-preview.html
+		file_server
+	}
+	handle @guest_bot_whatsapp {
+		rewrite * /guest-preview.html
+		file_server
+	}
+	handle @guest_bot_vk {
+		rewrite * /guest-preview.html
+		file_server
+	}
+
 	# SPA — все остальные пути отдают index.html
 	handle {
 		try_files {path} /index.html

@@ -5,7 +5,7 @@ import Button from '../ui/Button.jsx';
 import Tooltip from '../ui/Tooltip.jsx';
 import SegmentedControl from '../ui/SegmentedControl.jsx';
 import { useToast } from '../ui/Toast.jsx';
-import { Link2, Copy, Check, Send, Smartphone, Phone, Mail, ExternalLink } from 'lucide-react';
+import { Link2, Copy, Check, Send, Smartphone, Phone, Mail, ExternalLink, MessageCircle } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 import { useStudents } from '../../hooks/useStudents.js';
 import { getStudentDativeName, getDativeContactName } from '../../utils/nameCases.js';
@@ -27,6 +27,13 @@ function getContactMeta(channel) {
         label: v,
         href: `https://wa.me/${v.replace(/[^0-9]/g, '')}`,
         directMessageLink: (text) => `https://wa.me/${v.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`,
+      };
+    case 'max':
+      return {
+        icon: <MessageCircle size={16} />,
+        label: v.startsWith('@') ? v : `@${v}`,
+        href: v.startsWith('http') ? v : `https://max.ru/${v.replace(/^@/, '')}`,
+        directMessageLink: (text) => v.startsWith('http') ? v : `https://max.ru/${v.replace(/^@/, '')}?text=${encodeURIComponent(text)}`,
       };
     case 'email':
       return {
@@ -121,9 +128,14 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
       }
     } else if (currentTab === 'bot') {
       if (contact.isParent) {
-        textToSend = `Здравствуйте! 🤖 Чтобы вовремя получать напоминания о домашке и оплате, пожалуйста, подключите нашего Telegram-помощника. Для этого перейдите по ссылке и нажмите «Старт»:\n👉 ${botLink}`;
+        const parentName = contact.parentName || '';
+        const studentDative = getStudentDativeName(student.name, student.gender || student.studentGender);
+        const greeting = parentName ? `Здравствуйте, ${parentName}!` : 'Здравствуйте!';
+        textToSend = `${greeting} Чтобы получать отчёты о прогрессе ${studentDative}, отслеживать выполнение домашних заданий и оплату занятий, подключите моего Telegram-помощника. Для этого перейдите по ссылке и нажмите «Старт»:\n👉 ${botLink}`;
       } else {
-        textToSend = `Привет! 🤖 Чтобы вовремя получать напоминания о домашке и оплате, нажми «Старт» в моем Telegram-помощнике:\n👉 ${botLink}`;
+        const studentFirstName = student.name ? student.name.split(' ')[0] : '';
+        const greeting = studentFirstName ? `Привет, ${studentFirstName}!` : 'Привет!';
+        textToSend = `${greeting} Чтобы получать отчёты о своём прогрессе, напоминания о домашнем задании и предстоящих занятиях, нужно перейти по ссылке и подключить моего Telegram-помощника, нажав на «Старт».\n👉 ${botLink}`;
       }
     } else if (currentTab === 'video') {
       textToSend = `Здравствуйте! 💻 Наше занятие будет проходить по этой ссылке:\n🎥 ${videoLink}\n\nПросто перейдите по ней в назначенное время!`;
@@ -155,7 +167,8 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
           id: `parent-${idx}`,
           title: parentTitle,
           meta: getContactMeta(p.channel),
-          isParent: true
+          isParent: true,
+          parentName: p.name || ''
         });
       }
     });

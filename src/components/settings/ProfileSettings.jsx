@@ -27,6 +27,34 @@ export function ProfileSettings({ config, user, updateConfig }) {
             onSave={v => updateConfig("phone", v)} />
         </div>
         <div className="grid grid-cols-2 gap-3">
+          <div>
+            <FieldLabel>Пол</FieldLabel>
+            <select
+              value={config.gender || "unknown"}
+              onChange={e => updateConfig("gender", e.target.value)}
+              className={INPUT_CLS}
+            >
+              <option value="unknown">Не указан</option>
+              <option value="male">Мужской</option>
+              <option value="female">Женский</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <FieldLabel>Пол</FieldLabel>
+            <select
+              value={config.gender || "unknown"}
+              onChange={e => updateConfig("gender", e.target.value)}
+              className={INPUT_CLS}
+            >
+              <option value="unknown">Не указан</option>
+              <option value="male">Мужской</option>
+              <option value="female">Женский</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
           <SaveOnBlurInput label="Telegram"
             value={config.telegram || ""}
             onSave={v => updateConfig("telegram", v)}
@@ -36,6 +64,12 @@ export function ProfileSettings({ config, user, updateConfig }) {
             <input type="text" value={user?.email || ""} disabled
               className={`${INPUT_CLS} opacity-50 cursor-not-allowed`} />
           </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <SaveOnBlurInput label="MAX"
+            value={config.max || ""}
+            onSave={v => updateConfig("max", v)}
+            placeholder="Имя пользователя" />
         </div>
         <div>
           <FieldLabel>Предметы</FieldLabel>
