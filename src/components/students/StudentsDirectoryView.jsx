@@ -202,7 +202,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
                   key={`group-${group.id}`}
                   group={group}
                   studentsInGroup={studentsInGroup}
-                  onOpenDrawer={() => onEditGroup(group)}
+                  onOpenDrawer={() => onEditGroup(group.id)}
                   onOpenProgressModal={() => {}}
                   onOpenLessonHistory={onOpenGroupLessonHistory}
                   onOpenReport={onOpenGroupReport}

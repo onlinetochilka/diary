@@ -13,22 +13,29 @@ export default function StudentTileStats({
   return (
     <div className="grid grid-cols-2 gap-3 mb-5">
       {/* Посещаемость */}
-      <div className="flex flex-col p-3 bg-stone-50 rounded-xl ring-1 ring-black/[0.03]">
-        <div className="flex items-center gap-1.5 mb-2">
-          <CheckCircle2 size={14} className="text-blue-500" />
-          <span className="text-xs font-medium text-stone-500">Посещаемость</span>
-        </div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-lg font-bold text-stone-800">{subjectStats.attendanceRate != null ? `${subjectStats.attendanceRate}%` : '—'}</span>
-        </div>
-        <span className="text-[11px] text-stone-400 mt-0.5">
-          {subjectStats.attendanceRate == null 
-            ? 'Занятий пока не было'
-            : subjectStats.cancellationsCount > 0 
+      {subjectStats.attendanceRate != null ? (
+        <div className="flex flex-col p-3 bg-stone-50 rounded-xl ring-1 ring-black/[0.03]">
+          <div className="flex items-center gap-1.5 mb-2">
+            <CheckCircle2 size={14} className="text-blue-500" />
+            <span className="text-xs font-medium text-stone-500">Посещаемость</span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-lg font-bold text-stone-800">{subjectStats.attendanceRate}%</span>
+          </div>
+          <span className="text-[11px] text-stone-400 mt-0.5">
+            {subjectStats.cancellationsCount > 0 
               ? `${subjectStats.cancellationsCount} ${getPlural(subjectStats.cancellationsCount, 'отмена', 'отмены', 'отмен')}` 
               : 'Без пропусков'}
-        </span>
-      </div>
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center p-3 bg-stone-50/50 border border-dashed border-stone-200 rounded-xl h-[88px]">
+          <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center mb-1.5">
+            <CheckCircle2 size={14} className="text-stone-300" />
+          </div>
+          <span className="text-[9px] font-bold tracking-wider text-stone-400 uppercase text-center leading-tight">Занятий пока<br/>не было</span>
+        </div>
+      )}
 
       {/* Домашние задания */}
       {subjectStats.homeworkRate != null || subjectStats.pendingHomeworks > 0 ? (

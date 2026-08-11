@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Pencil, MessageCircle, Link2, FileText, Clock } from 'lucide-react';
 import { cn } from '../../../utils/cn.js';
 import Tooltip from '../../ui/Tooltip.jsx';
@@ -17,6 +17,64 @@ export default function StudentTileHeader({
   showTypeBadge,
   hasPendingHomework
 }) {
+  const [isContactMenuOpen, setIsContactMenuOpen] = useState(false);
+  const contactMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (contactMenuRef.current && !contactMenuRef.current.contains(e.target)) {
+        setIsContactMenuOpen(false);
+      }
+    };
+    if (isContactMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isContactMenuOpen]);
+
+  const validParents = student.contacts?.parents?.filter(p => p.channel && p.channel.value) || [];
+  const primaryChannel = student.contacts?.studentChannels?.[0];
+  const hasValidParents = validParents.length > 0;
+
+  const handleContactButtonClick = (e) => {
+    e.stopPropagation();
+    if (hasValidParents) {
+      setIsContactMenuOpen(!isContactMenuOpen);
+    } else {
+      onContactClick(e, primaryChannel);
+    }
+  };
+
+  const renderContactMenu = () => {
+    if (!hasValidParents || !isContactMenuOpen) return null;
+    return (
+      <div 
+        className="absolute top-full right-0 mt-1.5 min-w-[160px] max-w-[200px] bg-white rounded-lg shadow-lg ring-1 ring-black/5 z-50 py-1 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {primaryChannel && primaryChannel.value && (
+          <button 
+            className="w-full text-left px-3 py-1.5 text-[13px] text-stone-700 hover:bg-stone-50 hover:text-academic-blue transition-colors flex items-center justify-between gap-3"
+            onClick={(e) => { setIsContactMenuOpen(false); onContactClick(e, primaryChannel); }}
+          >
+            <span className="font-medium truncate">{student.name || 'Ученик'}</span>
+            <span className="text-[11px] text-stone-400 capitalize shrink-0">{primaryChannel.type}</span>
+          </button>
+        )}
+        {validParents.map((parent, idx) => (
+          <button 
+            key={idx}
+            className="w-full text-left px-3 py-1.5 text-[13px] text-stone-700 hover:bg-stone-50 hover:text-academic-blue transition-colors flex items-center justify-between gap-3 border-t border-stone-50"
+            onClick={(e) => { setIsContactMenuOpen(false); onContactClick(e, parent.channel); }}
+          >
+            <span className="font-medium truncate">{[parent.role, parent.name].filter(Boolean).join(' ') || 'Родитель'}</span>
+            <span className="text-[11px] text-stone-400 shrink-0 capitalize">{parent.channel.type}</span>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="flex items-start justify-between gap-4 mb-5">
       <div className="flex items-center gap-3 min-w-0">
@@ -130,20 +188,24 @@ export default function StudentTileHeader({
             </Button>
           </Tooltip>
 
-          <Tooltip text="Связаться" position="top">
-            <Button 
-              variant="ghost"
-              size="icon"
-              onClick={onContactClick}
-              className={cn(
-                "w-auto h-auto p-1.5 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
-                "focus-visible:ring-2 focus-visible:ring-academic-blue",
-                "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-              )}
-            >
-              <MessageCircle size={16} strokeWidth={2} />
-            </Button>
-          </Tooltip>
+          <div className="relative flex" ref={contactMenuRef}>
+            <Tooltip text={hasValidParents ? "Связаться с учеником или родителем" : "Связаться"} position="top">
+              <Button 
+                variant="ghost"
+                size="icon"
+                onClick={handleContactButtonClick}
+                className={cn(
+                  "w-auto h-auto p-1.5 border-none rounded-lg text-stone-400 transition-all duration-200 outline-none hover:bg-stone-100 hover:text-stone-700",
+                  "focus-visible:ring-2 focus-visible:ring-academic-blue",
+                  "opacity-100 sm:opacity-0 sm:group-hover:opacity-100",
+                  isContactMenuOpen && "bg-stone-100 text-stone-700 opacity-100 sm:opacity-100"
+                )}
+              >
+                <MessageCircle size={16} strokeWidth={2} />
+              </Button>
+            </Tooltip>
+            {renderContactMenu()}
+          </div>
           
           <Tooltip text="Редактировать профиль" position="top">
             <Button 

@@ -33,11 +33,12 @@ export default function StudentTile({ student, studentType, showTypeBadge, onEdi
     : { backgroundColor: '#e7e5e4', color: '#57534e' };
 
   // Умная маршрутизация контактов
-  const handleContactClick = (e) => {
+  const handleContactClick = (e, channel) => {
     e.stopPropagation();
-    if (!primaryChannel.value) return;
-    const value = primaryChannel.value;
-    switch (primaryChannel.type) {
+    const contact = channel || primaryChannel;
+    if (!contact || !contact.value) return;
+    const value = contact.value;
+    switch (contact.type) {
       case 'telegram':
         window.open(`https://t.me/${value.replace('@', '')}`, '_blank');
         break;
@@ -73,7 +74,7 @@ export default function StudentTile({ student, studentType, showTypeBadge, onEdi
         avatarStyle={avatarStyle}
         isDifferentTimezone={isDifferentTimezone}
         onContactClick={handleContactClick}
-        onEdit={() => onEdit(student)}
+        onEdit={() => onEdit(student.id)}
         onOpenGuestLink={() => onOpenGuestLink(student)}
         onOpenReport={() => onOpenReport(student)}
         onOpenLessonHistory={() => onOpenLessonHistory(student)}
