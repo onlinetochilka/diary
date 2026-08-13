@@ -63,6 +63,10 @@ function buildContactUrl(channel, text = '') {
       if (v.startsWith('+') || /^\d{7,}/.test(v)) return `tg://resolve?phone=${v.replace(/\D/g, '')}${encodedText}`;
       return `tg://resolve?domain=${v.replace(/^@/, '')}${encodedText}`;
     case 'whatsapp': return `whatsapp://send?phone=${v.replace(/\D/g, '')}${waText}`;
+    case 'max': {
+      if (v.startsWith('http')) return v;
+      return `https://max.ru/${v.replace(/^@/, '')}`;
+    }
     case 'vk': return v.startsWith('http') ? v : `https://vk.com/${v.replace(/^@/, '')}`;
     case 'phone': return `tel:${v}`;
     case 'email': return `mailto:${v}`;
@@ -74,6 +78,7 @@ function channelIcon(type) {
   switch (type) {
     case 'telegram': return <Send size={12} strokeWidth={2} />;
     case 'whatsapp': return <MessageCircle size={12} strokeWidth={2} />;
+    case 'max':      return <MessageCircle size={12} strokeWidth={2} />;
     case 'vk':       return <ExternalLink size={12} strokeWidth={2} />;
     case 'phone':    return <Phone size={12} strokeWidth={2} />;
     case 'email':    return <Mail size={12} strokeWidth={2} />;
@@ -81,7 +86,7 @@ function channelIcon(type) {
   }
 }
 function channelLabel(type) {
-  const m = { telegram: 'Telegram', whatsapp: 'WhatsApp', vk: 'ВКонтакте', phone: 'Телефон', email: 'Email' };
+  const m = { telegram: 'Telegram', whatsapp: 'WhatsApp', max: 'MAX', vk: 'ВКонтакте', phone: 'Телефон', email: 'Email' };
   return m[type] || type;
 }
 

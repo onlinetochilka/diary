@@ -42,7 +42,7 @@
  * │ }                                                                        │
  * │                                                                          │
  * │ ContactChannel: {                                                        │
- * │   type:  'telegram'|'whatsapp'|'vk'|'email'|'phone'|'none',             │
+ * │   type:  'telegram'|'whatsapp'|'max'|'vk'|'email'|'phone'|'none',       │
  * │   value: string,                     ← @username / номер / email        │
  * │ }                                                                        │
  * │                                                                          │

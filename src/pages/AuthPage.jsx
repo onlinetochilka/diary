@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import pb from "../services/pocketbase.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { generateDemoData } from "../utils/demoData.js";
-import { Eye, EyeOff, Loader2, ArrowLeft, Home } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft, Home, Crown } from "lucide-react";
 import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
 
@@ -24,6 +24,7 @@ export default function AuthPage() {
   
   const token = searchParams.get("token");
   const action = searchParams.get("action"); // 'reset-password' | 'verify-email' | 'confirm-email-change'
+  const plan = searchParams.get("plan");
   
   const getInitialMode = () => {
     if (token) {
@@ -115,6 +116,9 @@ export default function AuthPage() {
         else localStorage.removeItem("dont_remember_me");
       }
       refreshUser();
+      if (mode === "register" && plan === "pro") {
+        navigate('/billing?checkout=monthly');
+      }
     } catch (err) {
       console.error("[AuthPage] auth error:", err?.status, err?.message, JSON.stringify(err?.data));
       const msg = err?.message || err?.response?.message || "";
@@ -273,6 +277,13 @@ export default function AuthPage() {
         </div>
 
         {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center">{error}</div>}
+
+        {mode === "register" && plan === "pro" && (
+          <div className="mb-6 p-3 bg-[#164a63]/5 border border-[#164a63]/20 rounded-xl flex items-center justify-center gap-2 text-[#164a63]">
+            <Crown size={18} />
+            <span className="text-sm font-medium">Вы выбрали тариф: <b>Репетитор</b></span>
+          </div>
+        )}
 
         {mode === "register" && (
           <div className="space-y-1 mb-4">

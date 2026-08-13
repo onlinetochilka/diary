@@ -15,7 +15,7 @@ import {
   BookOpen,
   PlaySquare,
   LogOut,
-  Zap,
+  Crown,
   User
 } from "lucide-react";
 import pb from "../../services/pocketbase.js";
@@ -64,7 +64,7 @@ export const NAV_ITEMS = [
   {
     id:     "billing",
     label:  "Подписка",
-    icon:   Zap, // We can use Zap since CreditCard is not imported, or import CreditCard
+    icon:   Crown, 
     activeBg: "bg-indigo-100",
     activeText: "text-indigo-600",
   },
@@ -174,6 +174,8 @@ export default function Sidebar({ activePage, onNavigate }) {
       <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const isActive = activePage === item.id;
+          const isDemoHighlighted = item.id === 'billing' && isAnonymous;
+          const isHighlighted = isActive || isDemoHighlighted;
           const Icon = item.icon;
 
           return (
@@ -185,9 +187,9 @@ export default function Sidebar({ activePage, onNavigate }) {
               aria-current={isActive ? "page" : undefined}
               onClick={() => onNavigate(item.id)}
               className={cn(
-                "group nav-link w-full border-none",
+                "group nav-link w-full border-none flex items-center",
                 "transition-all duration-200 ease-out-quart",
-                isActive ? [
+                isHighlighted ? [
                   "active",
                   item.activeBg || "bg-stone-50",
                   "font-semibold",
@@ -201,16 +203,22 @@ export default function Sidebar({ activePage, onNavigate }) {
                 strokeWidth={1.5}
                 className={cn(
                   "shrink-0 transition-colors duration-200",
-                  isActive
+                  isHighlighted
                     ? item.activeText
-                    : "text-slate-400 group-hover:text-slate-500",
+                    : "text-slate-400 group-hover:text-slate-600"
                 )}
               />
               <span className={cn(
-                "transition-colors duration-200",
-                isActive ? `${item.activeText} font-bold` : "text-slate-500 group-hover:text-slate-700 font-medium",
+                "transition-colors duration-200 flex-1 text-left flex items-center justify-between",
+                isHighlighted ? `${item.activeText} font-bold` : "text-slate-600 group-hover:text-slate-900 font-medium"
               )}>
-                {item.label}
+                <span>{item.label}</span>
+                {item.id === 'billing' && isAnonymous && (
+                  <span className={cn(
+                    "text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-md ml-2 flex-shrink-0 font-bold",
+                    isHighlighted ? "bg-indigo-600 text-white" : "bg-stone-200 text-stone-600 group-hover:bg-stone-800 group-hover:text-white transition-colors"
+                  )}>PRO</span>
+                )}
               </span>
             </button>
           );

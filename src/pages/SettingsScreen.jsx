@@ -168,7 +168,7 @@ export default function SettingsPage() {
 
           {/* ── Колонка 3: Уведомления ── */}
           <SettingsCard className="lg:h-full">
-            <SectionHeader icon={Bell} title="Уведомления" description="Авторассылки через Telegram из карточки ученика" />
+            <SectionHeader icon={Bell} title="Уведомления" description="Авторассылки через Telegram и MAX из карточки ученика" />
             <NotificationsSettings
               value={config.notifications}
               onSave={v => updateConfig("notifications", v)}

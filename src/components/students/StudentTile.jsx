@@ -45,6 +45,9 @@ export default function StudentTile({ student, studentType, showTypeBadge, onEdi
       case 'whatsapp':
         window.open(`https://wa.me/${value.replace(/[^0-9]/g, '')}`, '_blank');
         break;
+      case 'max':
+        window.open(`https://max.ru/${value.replace('@', '')}`, '_blank');
+        break;
       case 'vk':
         window.open(`https://${value.replace(/^(https?:\/\/)?/, '')}`, '_blank');
         break;

@@ -280,6 +280,10 @@ export default function DashboardPage() {
           href = `https://wa.me/${s.whatsapp.replace(/\D/g, '')}`;
           Icon = Phone;
           color = 'text-emerald-500 hover:bg-emerald-50';
+        } else if (s.max) {
+          href = `https://max.ru/${s.max.replace(/^@/, '')}`;
+          Icon = MessageCircle;
+          color = 'text-blue-500 hover:bg-blue-50';
         }
         
         if (href) {

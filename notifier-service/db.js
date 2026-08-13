@@ -23,6 +23,21 @@ class DatabaseClient {
   }
 
   /**
+   * Получает настройки репетитора (user_config) по tutorId
+   */
+  async getTutorConfig(tutorId) {
+    try {
+      const records = await this.pb.collection("user_config").getFullList({
+        filter: `userId = "${tutorId}"`
+      });
+      return records.length > 0 ? records[0] : null;
+    } catch (err) {
+      console.error(`[DatabaseClient] Ошибка получения настроек репетитора ${tutorId}:`, err.message);
+      return null;
+    }
+  }
+
+  /**
    * Привязывает tgChatId к ученику
    */
   async linkStudentTelegram(studentId, chatId) {
@@ -37,6 +52,23 @@ class DatabaseClient {
       return student;
     } catch (err) {
       console.error(`[DatabaseClient] Ошибка привязки ученика ${studentId}:`, err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Привязывает maxChatId к ученику
+   */
+  async linkStudentMax(studentId, chatId) {
+    try {
+      const student = await this.pb.collection("students").getOne(studentId);
+      
+      await this.pb.collection("students").update(studentId, {
+        maxChatId: chatId
+      });
+      return student;
+    } catch (err) {
+      console.error(`[DatabaseClient] Ошибка привязки MAX для ученика ${studentId}:`, err.message);
       return null;
     }
   }
@@ -95,9 +127,11 @@ class DatabaseClient {
       });
 
       if (existing.length > 0) {
-        await this.pb.collection("community_news").update(existing[0].id, {
-          text: postData.text
-        });
+        const updateData = { text: postData.text };
+        if (postData.imageData) updateData.imageData = postData.imageData;
+        if (postData.isVideo !== undefined) updateData.isVideo = postData.isVideo;
+
+        await this.pb.collection("community_news").update(existing[0].id, updateData);
         console.log(`[DatabaseClient] Обновлена новость: ${postData.messageId}`);
       } else {
         await this.pb.collection("community_news").create(postData);

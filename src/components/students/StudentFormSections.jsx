@@ -359,6 +359,7 @@ export function ContactsSection({ formData, handleContactChange, showParent }) {
                   >
                     <option value="telegram">Telegram</option>
                     <option value="whatsapp">WhatsApp</option>
+                    <option value="max">MAX</option>
                     <option value="vk">ВКонтакте</option>
                     <option value="email">Email</option>
                     <option value="phone">Телефон</option>

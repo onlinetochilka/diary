@@ -51,11 +51,14 @@ export default function ActionItemCard({ item, onMarkDone }) {
   const encoded = encodeURIComponent(text);
   const tgChannel = item.student?.contacts?.studentChannels?.find(c => c.type === 'telegram');
   const waChannel = item.student?.contacts?.studentChannels?.find(c => c.type === 'whatsapp');
+  const maxChannel = item.student?.contacts?.studentChannels?.find(c => c.type === 'max');
   const tgValue = tgChannel?.value ? tgChannel.value.replace('@', '') : '';
   const waValue = waChannel?.value ? waChannel.value.replace(/[^0-9]/g, '') : '';
+  const maxValue = maxChannel?.value ? maxChannel.value.replace(/^@/, '') : '';
   
   const tgLink = tgValue ? `https://t.me/${tgValue}?text=${encoded}` : `tg://msg?text=${encoded}`;
   const waLink = waValue ? `https://wa.me/${waValue}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+  const maxLink = maxValue ? `https://max.ru/${maxValue}?text=${encoded}` : null;
 
   const btnClass = `w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#006584] transition-all ${
     !text.trim() 
@@ -163,6 +166,19 @@ export default function ActionItemCard({ item, onMarkDone }) {
                   <Mail size={16} />
                 </a>
               </Tooltip>
+              {maxLink && (
+                <Tooltip text="MAX" position="top-right">
+                  <a
+                    href={maxLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={btnClass}
+                    onClick={handleAction}
+                  >
+                    <MessageCircle size={16} />
+                  </a>
+                </Tooltip>
+              )}
               <Tooltip text="WhatsApp" position="top-right">
                 <a
                   href={waLink}

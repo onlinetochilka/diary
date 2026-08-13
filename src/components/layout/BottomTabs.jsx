@@ -71,15 +71,17 @@ export default function BottomTabs({ activePage, onNavigate }) {
     >
       {/* Demo mode banner — visible only when in demo */}
       {isAnonymous && (
-        <div className="flex items-center justify-between px-4 py-1.5 bg-amber-50 border-b border-amber-100">
-          <span className="text-xs font-medium text-amber-700">🎭 Деморежим</span>
+        <div className="flex items-center justify-between px-4 py-2.5 bg-indigo-600 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] relative z-50">
+          <span className="text-[13px] font-semibold text-white flex items-center gap-2">
+            <span className="text-base">🎭</span> Деморежим
+          </span>
           <button
             type="button"
             onClick={handleExitDemo}
             disabled={isExiting}
-            className="text-xs font-semibold text-rose-600 hover:text-rose-800 active:scale-95 transition-all px-2 py-0.5 rounded-md hover:bg-rose-50"
+            className="text-[13px] font-bold text-indigo-600 bg-white hover:bg-stone-100 active:scale-95 transition-all px-4 py-1.5 rounded-full shadow-sm"
           >
-            {isExiting ? "Выходим..." : "Выйти из демо"}
+            {isExiting ? "Выходим..." : "Завершить демо"}
           </button>
         </div>
       )}

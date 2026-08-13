@@ -22,6 +22,7 @@ export const getChannelPlaceholder = (type) => {
   switch (type) {
     case 'telegram': return 'Телефон или @username';
     case 'whatsapp': return 'Номер телефона';
+    case 'max': return 'Имя пользователя или телефон';
     case 'vk': return 'Ссылка на страницу';
     case 'email': return 'Адрес эл. почты';
     case 'phone': return 'Номер телефона';
@@ -172,6 +173,7 @@ export function ParentCard({ idx, parent, formData, handleContactChange }) {
           <Select value={parent.channel?.type || 'telegram'} onChange={e => updateChannel('type', e.target.value)}>
             <option value="telegram">Telegram</option>
             <option value="whatsapp">WhatsApp</option>
+            <option value="max">MAX</option>
             <option value="vk">ВКонтакте</option>
             <option value="email">Email</option>
             <option value="phone">Телефон</option>
