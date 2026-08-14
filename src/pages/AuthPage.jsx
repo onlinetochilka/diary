@@ -93,6 +93,11 @@ export default function AuthPage() {
     setSuccess("");
 
     try {
+      // Always clear demo state before real authentication —
+      // prevents residual isDemoMode from hijacking a real session
+      localStorage.removeItem("isDemoMode");
+      localStorage.removeItem("demo_db");
+
       if (mode === "reset") {
         await pb.collection("users").confirmPasswordReset(token, password, passwordConfirm);
         setSuccess("Пароль успешно изменён! Теперь вы можете войти.");

@@ -29,13 +29,26 @@ if (typeof window !== "undefined") {
 // components don't cancel each other.
 pb.autoCancellation(false);
 
-// Функция для динамической проверки деморежима
-function getIsDemoMode() {
-  return typeof window !== 'undefined' && localStorage.getItem('isDemoMode') === 'true';
-}
-
 // We need a structurally valid JWT token so PocketBase's authStore.isValid returns true
 const MOCK_TOKEN = "dummy.eyJleHAiOjE5OTk5OTk5OTl9.dummy";
+
+// Функция для динамической проверки деморежима
+function getIsDemoMode() {
+  if (typeof window === 'undefined') return false;
+  if (localStorage.getItem('isDemoMode') !== 'true') return false;
+
+  // Safety: if a real user is authenticated (non-mock token), the demo flag
+  // is stale — clear it so the Proxy doesn't hijack real API calls.
+  const token = pb.authStore.token;
+  if (token && token !== MOCK_TOKEN && pb.authStore.isValid) {
+    console.warn('[pocketbase] Clearing stale isDemoMode for authenticated user');
+    localStorage.removeItem('isDemoMode');
+    localStorage.removeItem('demo_db');
+    return false;
+  }
+
+  return true;
+}
 
 if (getIsDemoMode()) {
   try {
