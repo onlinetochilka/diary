@@ -5,20 +5,34 @@ import { cn } from "../../utils/cn.js";
 import { getPlural } from "../../utils/plural.js";
 import Tooltip from '../../components/ui/Tooltip.jsx';
 import Button from '../ui/Button.jsx';
+import { calcProgramProgress } from '../../services/studentsAdapter.js';
 
-export default function ProgramCard({ program, onOpenEditor, onDelete }) {
+export default function ProgramCard({ program, onOpenEditor, onDelete, students = [], groups = [] }) {
   const c = getEntityColorClasses();
   
-  // Детерминированный seed из program.id для стабильных mock-данных
-  const seed = (program.id || "").split("").reduce((acc, ch) => acc * 31 + ch.charCodeAt(0) | 0, 0);
-  const stableRand = (min, max, offset = 0) => {
-    const v = Math.abs((seed * 16807 + offset * 2654435761) % 2147483647);
-    return min + (v % (max - min + 1));
-  };
-  const mockPopularity = stableRand(1, 20, 1);
-  const mockProgress = stableRand(0, 99, 2);
-  const mockRevenue = (stableRand(0, 49, 3) * 1000).toLocaleString('ru-RU');
-  const mockHours = stableRand(0, 99, 4);
+  // Count students who have this program assigned in any subject
+  const studentCount = students.filter(s => 
+    s.subjects?.some(sub => sub.programs?.some(p => p.id === program.id))
+  ).length;
+  // Count groups that have this program
+  const groupCount = groups.filter(g => 
+    g.programs?.some(p => p.id === program.id)
+  ).length;
+  const totalLinked = studentCount + groupCount;
+
+  // Calculate average progress across all students with this program
+  const progresses = [];
+  students.forEach(s => {
+    s.subjects?.forEach(sub => {
+      const prog = sub.programs?.find(p => p.id === program.id);
+      if (prog) {
+        progresses.push(calcProgramProgress(prog, sub.completedTopics || {}));
+      }
+    });
+  });
+  const avgProgress = progresses.length > 0 
+    ? Math.round(progresses.reduce((a, b) => a + b, 0) / progresses.length) 
+    : 0;
 
   const count = program.topics?.length ?? 0;
   // Считаем реальные задания из homeworkBank каждой темы
@@ -117,7 +131,7 @@ export default function ProgramCard({ program, onOpenEditor, onDelete }) {
             <span className="text-xs font-medium text-blue-700/80">Популярность</span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-lg font-bold text-blue-900">{mockPopularity}</span>
+            <span className="text-lg font-bold text-blue-900">{totalLinked}</span>
           </div>
           <span className="text-[11px] text-blue-600/70 mt-0.5">учеников на курсе</span>
         </div>
@@ -129,7 +143,7 @@ export default function ProgramCard({ program, onOpenEditor, onDelete }) {
             <span className="text-xs font-medium text-emerald-700/80">Прогресс</span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-lg font-bold text-emerald-900">{mockProgress}%</span>
+            <span className="text-lg font-bold text-emerald-900">{avgProgress}%</span>
           </div>
           <span className="text-[11px] text-emerald-600/70 mt-0.5">среднее прохождение</span>
         </div>
@@ -138,15 +152,15 @@ export default function ProgramCard({ program, onOpenEditor, onDelete }) {
       {/* Футер */}
       <div className="flex items-center justify-between mt-auto pt-4 border-t border-stone-100">
         <div className="flex flex-col">
-          <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider mb-0.5">Общий доход</span>
+          <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider mb-0.5">Ученики</span>
           <span className="text-[13px] font-semibold text-stone-700">
-            {mockRevenue} ₽
+            {studentCount} {getPlural(studentCount, 'ученик', 'ученика', 'учеников')}
           </span>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider mb-0.5">Проведено</span>
+          <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider mb-0.5">Группы</span>
           <span className="text-[13px] font-semibold text-stone-700">
-            {mockHours} ч
+            {groupCount} {getPlural(groupCount, 'группа', 'группы', 'групп')}
           </span>
         </div>
       </div>

@@ -231,12 +231,18 @@ export async function getStudents(tutorId) {
   const programMap = new Map(allPrograms.map((p) => [p.id, p]));
   res.forEach((student) => {
     student.subjects?.forEach((sub) => {
+      const completedTopics = sub.completedTopics || {};
       sub.programs?.forEach((prog) => {
         const master = programMap.get(prog.id);
         if (master) {
           prog.name = master.name;
-          prog.topics = master.topics || [];
           prog.colorOklch = master.colorOklch;
+          // Merge master topics but apply per-student completion from completedTopics
+          const doneIds = completedTopics[prog.id] || [];
+          prog.topics = (master.topics || []).map(t => ({
+            ...t,
+            isCompleted: doneIds.includes(t.id)
+          }));
         }
       });
     });
@@ -526,8 +532,57 @@ export async function updateProgram(id, data) {
 }
 
 export async function deleteProgram(id) {
-  invalidateCache("programs");
-  await pb.collection("programs").delete(id);
+  // Clean up student references before deleting
+  const students = await pb.collection('students').getFullList({
+    filter: `tutorId = "${getCurrentUserId()}"`
+  });
+  
+  const studentUpdates = [];
+  students.forEach(student => {
+    const subjects = student.subjects || [];
+    let changed = false;
+    const updatedSubjects = subjects.map(sub => {
+      const newPrograms = (sub.programs || []).filter(p => p.id !== id);
+      const newCompletedTopics = { ...(sub.completedTopics || {}) };
+      delete newCompletedTopics[id];
+      
+      if (newPrograms.length !== (sub.programs || []).length || 
+          Object.keys(newCompletedTopics).length !== Object.keys(sub.completedTopics || {}).length) {
+        changed = true;
+        return { ...sub, programs: newPrograms, completedTopics: newCompletedTopics };
+      }
+      return sub;
+    });
+    
+    if (changed) {
+      studentUpdates.push(
+        pb.collection('students').update(student.id, { subjects: updatedSubjects })
+      );
+    }
+  });
+  
+  // Also clean up groups
+  const groups = await pb.collection('groups').getFullList({
+    filter: `tutorId = "${getCurrentUserId()}"`
+  });
+  
+  groups.forEach(group => {
+    const newPrograms = (group.programs || []).filter(p => p.id !== id);
+    if (newPrograms.length !== (group.programs || []).length) {
+      studentUpdates.push(
+        pb.collection('groups').update(group.id, { programs: newPrograms })
+      );
+    }
+  });
+  
+  if (studentUpdates.length > 0) {
+    await Promise.all(studentUpdates).catch(console.error);
+  }
+  
+  invalidateCache('students');
+  invalidateCache('groups');
+  invalidateCache('programs');
+  await pb.collection('programs').delete(id);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -632,6 +687,7 @@ export async function addThemeToSection(programId, sectionId, title) {
     order: migrated.topics.length,
     isCompleted: false,
     homeworkBank: [],
+    plannedDate: null,
   };
 
   const updatedTopics = [...migrated.topics, newTheme];
@@ -669,6 +725,37 @@ export async function updateTheme(programId, themeId, patch) {
 }
 
 /**
+ * Отмечает тему как пройденную для конкретного ученика.
+ * Обновляет completedTopics в subject ученика.
+ */
+export async function markTopicCompletedForStudent(studentId, programId, topicId) {
+  const student = await safeGetOne('students', studentId);
+  if (!student) return;
+
+  const subjects = student.subjects || [];
+  let changed = false;
+
+  const updatedSubjects = subjects.map(sub => {
+    const hasProgram = sub.programs?.some(p => p.id === programId);
+    if (!hasProgram) return sub;
+
+    const completedTopics = { ...(sub.completedTopics || {}) };
+    const done = completedTopics[programId] || [];
+    if (!done.includes(topicId)) {
+      completedTopics[programId] = [...done, topicId];
+      changed = true;
+      return { ...sub, completedTopics };
+    }
+    return sub;
+  });
+
+  if (changed) {
+    invalidateCache('students');
+    await pb.collection('students').update(studentId, { subjects: updatedSubjects });
+  }
+}
+
+/**
  * Удаляет тему из программы и из её раздела.
  */
 export async function deleteTheme(programId, themeId) {
@@ -685,6 +772,35 @@ export async function deleteTheme(programId, themeId) {
     sections: updatedSections,
     topics: updatedTopics,
   });
+
+  // Clean up orphaned completedTopics references in students
+  try {
+    const students = await pb.collection('students').getFullList({
+      filter: `tutorId = "${getCurrentUserId()}"`
+    });
+    const cleanups = [];
+    students.forEach(student => {
+      let changed = false;
+      const updatedSubjects = (student.subjects || []).map(sub => {
+        const completedTopics = { ...(sub.completedTopics || {}) };
+        for (const progId in completedTopics) {
+          const filtered = (completedTopics[progId] || []).filter(tid => tid !== themeId);
+          if (filtered.length !== (completedTopics[progId] || []).length) {
+            completedTopics[progId] = filtered;
+            changed = true;
+          }
+        }
+        return changed ? { ...sub, completedTopics } : sub;
+      });
+      if (changed) {
+        cleanups.push(pb.collection('students').update(student.id, { subjects: updatedSubjects }));
+      }
+    });
+    if (cleanups.length > 0) await Promise.all(cleanups).catch(console.error);
+    invalidateCache('students');
+  } catch (err) {
+    console.error('Failed to clean up orphaned completedTopics:', err);
+  }
 }
 
 // ─── Разделы ────────────────────────────────────────────────────────────────

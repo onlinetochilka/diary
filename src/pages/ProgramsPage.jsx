@@ -187,7 +187,7 @@ function ProgramAssignModal({ isOpen, onClose, programId, programName, programs 
 }
 
 // ─── Список карточек программ ─────────────────────────────────────────────────
-function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreateNew, onAssignProgram }) {
+function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreateNew, onAssignProgram, students = [], groups = [] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("name_asc");
 
@@ -291,6 +291,8 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
                  program={prog}
                  onOpenEditor={onOpenEditor}
                  onDelete={onDelete}
+                 students={students}
+                 groups={groups}
               />
               <div className="absolute top-[18px] right-[52px] opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
                 <Tooltip text="Назначить ученикам" position="top">
@@ -315,6 +317,8 @@ function ProgramsListView({ programs, isLoading, onOpenEditor, onDelete, onCreat
 // ─── Корневой компонент страницы ──────────────────────────────────────────────
 export default function ProgramsPage() {
   const { programs, isLoading, addProgram, deleteProgram } = usePrograms();
+  const { students } = useStudents();
+  const { groups } = useGroups();
   const navigate = useNavigate();
   const location = useLocation();
   const onNavigate = (path, state) => navigate(`/${path}`, { state });
@@ -411,6 +415,8 @@ export default function ProgramsPage() {
         onDelete={handleDelete}
         onCreateNew={handleCreate}
         onAssignProgram={setAssignProgramId}
+        students={students}
+        groups={groups}
       />
       <ProgramAssignModal
         isOpen={!!assignProgramId}

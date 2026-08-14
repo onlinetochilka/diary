@@ -66,8 +66,19 @@ export function useSchedule({ currentDate, view } = {}) {
       data.topicId
     ) {
       try {
-        const { updateTheme } = await import('../api/databaseApi.js');
-        await updateTheme(data.programId, data.topicId, { isCompleted: true });
+        const { markTopicCompletedForStudent } = await import('../api/databaseApi.js');
+        // For individual lessons, update the student's completedTopics
+        if (data.studentId) {
+          await markTopicCompletedForStudent(data.studentId, data.programId, data.topicId);
+        }
+        // For group lessons, update all present students
+        if (data.type === 'group' && data.presentStudentIds?.length > 0) {
+          await Promise.all(
+            data.presentStudentIds.map(sid =>
+              markTopicCompletedForStudent(sid, data.programId, data.topicId)
+            )
+          );
+        }
       } catch (err) {
         console.error('Failed to mark topic as completed:', err);
       }

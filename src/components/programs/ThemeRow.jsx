@@ -11,7 +11,7 @@
  *
  * НЕ управляет данными — только отображение и события.
  */
-import { GripVertical, CheckCircle2, Circle } from "lucide-react";
+import { GripVertical, CheckCircle2, Circle, CalendarDays } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "../../utils/cn.js";
@@ -55,6 +55,10 @@ export default function ThemeRow({
   };
 
   const hwCount = theme.homeworkBank?.length ?? 0;
+  const hasPlannedDate = !!theme.plannedDate;
+  const formattedDate = theme.plannedDate 
+    ? new Date(theme.plannedDate).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) 
+    : null;
 
   return (
     <div
@@ -116,6 +120,22 @@ export default function ThemeRow({
 
       {/* ── Правая зона: статус ДЗ + чекбокс завершения ─────────── */}
       <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
+        {hasPlannedDate && (
+          <Tooltip text={`План: ${new Date(theme.plannedDate).toLocaleDateString('ru-RU')}`}>
+            <span
+              className={cn(
+                "text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-1",
+                "bg-amber-100/50 text-amber-700",
+                "opacity-100",
+                "transition-opacity duration-150",
+              )}
+            >
+              <CalendarDays size={10} strokeWidth={2} />
+              {formattedDate}
+            </span>
+          </Tooltip>
+        )}
+
         {/* Бейдж банка ДЗ */}
         {hwCount > 0 && (
           <Tooltip text={`${hwCount} задани${hwCount === 1 ? "е" : hwCount < 5 ? "я" : "й"} в банке`}>
@@ -169,6 +189,10 @@ export default function ThemeRow({
  */
 export function ThemeRowOverlay({ theme, index }) {
   const hwCount = theme.homeworkBank?.length ?? 0;
+  const hasPlannedDate = !!theme.plannedDate;
+  const formattedDate = theme.plannedDate 
+    ? new Date(theme.plannedDate).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) 
+    : null;
   return (
     <div className="pe-theme-row pe-drag-overlay">
       <span className="pe-grip text-stone-400 opacity-100">
@@ -180,6 +204,12 @@ export function ThemeRowOverlay({ theme, index }) {
       <span className="flex-1 min-w-0 text-sm leading-snug line-clamp-2 text-stone-800">
         {theme.title}
       </span>
+      {hasPlannedDate && (
+        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-1 bg-amber-100/50 text-amber-700">
+          <CalendarDays size={10} strokeWidth={2} />
+          {formattedDate}
+        </span>
+      )}
       {hwCount > 0 && (
         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#1B4F72]/10 text-[#1B4F72]">
           {hwCount}

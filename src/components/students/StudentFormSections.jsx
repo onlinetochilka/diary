@@ -106,10 +106,13 @@ export function SubjectsSection({
       <div className="flex flex-col gap-6">
         {formData.subjects.map((subject, index) => {
           const currentSubjectName = (subject.name || '').trim().toLowerCase();
-          const filteredPrograms = availablePrograms.filter(p => {
-            if (!currentSubjectName) return true;
-            return p.subject && p.subject.toLowerCase().includes(currentSubjectName);
-          });
+          const filteredPrograms = currentSubjectName
+            ? [...availablePrograms].sort((a, b) => {
+                const aMatch = a.subject && (a.subject.toLowerCase().includes(currentSubjectName) || currentSubjectName.includes(a.subject.toLowerCase())) ? 0 : 1;
+                const bMatch = b.subject && (b.subject.toLowerCase().includes(currentSubjectName) || currentSubjectName.includes(b.subject.toLowerCase())) ? 0 : 1;
+                return aMatch - bMatch;
+              })
+            : availablePrograms;
 
           const duration = subject.duration || 60;
           const price = subject.price || 0;

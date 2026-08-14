@@ -28,9 +28,10 @@ import {
   FileSpreadsheet,
   Check,
   X,
+  Trash2,
 } from "lucide-react";
 import { cn } from "../../utils/cn.js";
-import { updateTheme, renameSection } from "../../services/database.js";
+import { updateTheme, renameSection, deleteTheme } from "../../services/database.js";
 import { useToast } from "../ui/Toast.jsx";
 import { SectionLabel, Divider, CountPill, getPlural } from "./InspectorPanelAtoms.jsx";
 import { TaskComposer, TaskCard } from "./TaskComposer.jsx";
@@ -331,15 +332,20 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
   const [bank, setBank]               = useState(theme.homeworkBank ?? []);
   const [isAdding, setIsAdding]       = useState(false);
   const [savingId, setSavingId]       = useState(null);
-  const [sessionDone, setSessionDone] = useState({});
   const addFormRef                    = useRef(null);
+  const [title, setTitle]             = useState(theme.title);
+  const [titleStatus, setTitleStatus] = useState("idle");
+  const savedTitle                    = useRef(theme.title);
+  const [isDeleting, setIsDeleting]   = useState(false);
 
   // При смене темы — сбрасываем форму и локальный банк
   useEffect(() => {
     setBank(theme.homeworkBank ?? []);
     setIsAdding(false);
-    setSessionDone({});
     setSavingId(null);
+    setTitle(theme.title);
+    savedTitle.current = theme.title;
+    setTitleStatus("idle");
   }, [theme.id]);
 
   // Синхронизируем bank с приходящими снаружи данными (после onProgramChange)
@@ -401,9 +407,22 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
     setSavingId(null);
   }, [bank, persistBank]);
 
-  /** Чекбокс «использовано сегодня» (только в памяти) */
-  const toggleSessionDone = (id) =>
-    setSessionDone((prev) => ({ ...prev, [id]: !prev[id] }));
+  /** Чекбокс «использовано сегодня» (сохраняется в базу) */
+  const toggleSessionDone = useCallback(async (id) => {
+    const today = new Date().toISOString().split('T')[0];
+    const item = bank.find(i => i.id === id);
+    if (!item) return;
+    
+    const isCurrentlyDone = item.lastUsedDate === today;
+    const snapshot = bank;
+    const newBank = bank.map(i => 
+      i.id === id 
+        ? { ...i, lastUsedDate: isCurrentlyDone ? null : today }
+        : i
+    );
+    setBank(newBank);
+    await persistBank(newBank, snapshot);
+  }, [bank, persistBank]);
 
   /** Переключение статуса завершения темы */
   const handleToggleComplete = useCallback(async () => {
@@ -421,33 +440,98 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
     }
   }, [programId, theme.id, theme.isCompleted, onProgramChange, showToast]);
 
-  const doneCount = Object.values(sessionDone).filter(Boolean).length;
+  const today = new Date().toISOString().split('T')[0];
+  const doneCount = bank.filter(item => item.lastUsedDate === today).length;
+
+  const handleTitleSave = useCallback(async () => {
+    const trimmed = title.trim();
+    if (!trimmed || trimmed === savedTitle.current) return;
+    setTitleStatus("saving");
+    try {
+      await updateTheme(programId, theme.id, { title: trimmed });
+      savedTitle.current = trimmed;
+      onProgramChange((prev) => ({
+        ...prev,
+        topics: prev.topics.map((t) =>
+          t.id === theme.id ? { ...t, title: trimmed } : t
+        ),
+      }));
+      setTitleStatus("success");
+      setTimeout(() => setTitleStatus("idle"), 1500);
+    } catch {
+      setTitleStatus("error");
+      showToast({ message: "Не удалось переименовать тему.", type: "error" });
+      setTimeout(() => setTitleStatus("idle"), 2000);
+    }
+  }, [title, theme.id, programId, onProgramChange, showToast]);
+
+  const handleDeleteTheme = useCallback(async () => {
+    setIsDeleting(true);
+    try {
+      await deleteTheme(programId, theme.id);
+      onProgramChange((prev) => {
+        const updatedTopics = prev.topics.filter((t) => t.id !== theme.id);
+        const updatedSections = prev.sections.map((s) => ({
+          ...s,
+          topicIds: s.topicIds.filter((id) => id !== theme.id),
+        }));
+        return { ...prev, topics: updatedTopics, sections: updatedSections };
+      });
+      showToast({ message: "Тема удалена", type: "success" });
+    } catch {
+      showToast({ message: "Не удалось удалить тему.", type: "error" });
+    }
+    setIsDeleting(false);
+  }, [programId, theme.id, onProgramChange, showToast]);
 
   return (
     <div className="flex flex-col animate-fade-in">
       {/* ── Шапка темы ──────────────────────────────────────────── */}
       <SectionLabel>Тема</SectionLabel>
       <div className="px-4 pb-3">
-        {/* Статус завершения */}
-        <div
-          onClick={handleToggleComplete}
-          className="flex items-start gap-2 cursor-pointer hover:opacity-80 transition-opacity duration-150 group/theme-header"
-        >
-          {theme.isCompleted ? (
-            <CheckCircle2 size={15} strokeWidth={2} className="text-emerald-500 mt-0.5 flex-shrink-0" />
-          ) : (
-            <Circle size={15} strokeWidth={2} className="text-stone-300 mt-0.5 flex-shrink-0 group-hover/theme-header:text-stone-400" />
-          )}
-          <p className={cn(
-            "text-sm font-semibold leading-snug",
-            theme.isCompleted ? "text-stone-400 line-through" : "text-stone-900",
-          )}>
-            {theme.title}
-          </p>
+        {/* Редактирование названия темы и статус завершения */}
+        <div className="flex items-start gap-2">
+          <div
+            onClick={handleToggleComplete}
+            className="cursor-pointer hover:opacity-80 transition-opacity duration-150 mt-1.5 flex-shrink-0"
+          >
+            {theme.isCompleted ? (
+              <CheckCircle2 size={15} strokeWidth={2} className="text-emerald-500" />
+            ) : (
+              <Circle size={15} strokeWidth={2} className="text-stone-300 hover:text-stone-400" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => { setTitle(e.target.value); setTitleStatus("idle"); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); handleTitleSave(); }
+                if (e.key === "Escape") { setTitle(savedTitle.current); }
+              }}
+              onBlur={handleTitleSave}
+              maxLength={200}
+              disabled={titleStatus === "saving"}
+              className={cn(
+                "w-full px-2 py-1 -ml-2 rounded-lg text-sm font-semibold leading-snug bg-transparent border border-transparent",
+                "transition-all duration-150",
+                "hover:border-stone-200 focus:border-stone-300 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72]",
+                theme.isCompleted ? "text-stone-400 line-through" : "text-stone-900",
+                titleStatus === "error" && "border-red-300 bg-red-50",
+                titleStatus === "success" && "border-emerald-300 bg-emerald-50"
+              )}
+            />
+            <p className="text-[10px] text-stone-400 h-3 ml-1 mt-0.5">
+              {titleStatus === "saving"  && "Сохраняем..."}
+              {titleStatus === "success" && "Название сохранено"}
+              {titleStatus === "error"   && "Не удалось сохранить"}
+            </p>
+          </div>
         </div>
 
-        {/* Плашка «Тема завершена» — интерактивный тумблер */}
-        <div className="mt-2 ml-5">
+        {/* Плашки действий */}
+        <div className="mt-1 ml-5 flex flex-wrap items-center gap-2">
           <Button
             variant="ghost"
             type="button"
@@ -466,6 +550,49 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
             />
             <span>{theme.isCompleted ? "Тема пройдена" : "Отметить пройденной"}</span>
           </Button>
+
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={handleDeleteTheme}
+            disabled={isDeleting}
+            className={cn(
+              "w-auto h-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-150 select-none",
+              "bg-stone-100 text-stone-500 border border-stone-200/60 hover:bg-red-50 hover:text-red-600 hover:border-red-200",
+              isDeleting && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <Trash2 size={13} strokeWidth={2} />
+            <span>Удалить тему</span>
+          </Button>
+        </div>
+
+        {/* Плановая дата */}
+        <div className="mt-3 ml-5">
+          <label className="text-[11px] font-medium text-stone-500 mb-1 block">Плановая дата</label>
+          <input
+            type="date"
+            value={theme.plannedDate || ''}
+            onChange={async (e) => {
+              const val = e.target.value || null;
+              try {
+                await updateTheme(programId, theme.id, { plannedDate: val });
+                onProgramChange(prev => ({
+                  ...prev,
+                  topics: prev.topics.map(t =>
+                    t.id === theme.id ? { ...t, plannedDate: val } : t
+                  )
+                }));
+              } catch {
+                showToast({ message: 'Не удалось сохранить дату.', type: 'error' });
+              }
+            }}
+            className={cn(
+              "px-2.5 py-1.5 rounded-lg text-xs text-stone-700",
+              "border border-stone-200/60 bg-stone-50 transition-all duration-150",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4F72] focus:bg-white",
+            )}
+          />
         </div>
       </div>
 
@@ -508,7 +635,7 @@ function ThemeInspector({ theme, programId, onProgramChange }) {
           <TaskCard
             key={item.id}
             item={item}
-            isDone={sessionDone[item.id] ?? false}
+            isDone={item.lastUsedDate === today}
             isDeleting={savingId === item.id}
             onToggleDone={toggleSessionDone}
             onDelete={handleDeleteItem}

@@ -81,10 +81,12 @@ export default function AuthPage() {
       setError("Пароли не совпадают");
       return;
     }
+
     if (mode === "register" && !agreed) {
       setError("Необходимо принять условия пользовательского соглашения");
       return;
     }
+
 
     setIsLoading(true);
     setError("");
@@ -277,6 +279,7 @@ export default function AuthPage() {
         </div>
 
         {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center">{error}</div>}
+        {success && <div className="p-3 bg-green-50 text-green-700 rounded-xl text-sm font-medium text-center">{success}</div>}
 
         {mode === "register" && plan === "pro" && (
           <div className="mb-6 p-3 bg-[#164a63]/5 border border-[#164a63]/20 rounded-xl flex items-center justify-center gap-2 text-[#164a63]">
@@ -317,6 +320,7 @@ export default function AuthPage() {
         <div className="space-y-1">
           <div className="flex justify-between items-center ml-1 mr-1">
             <label className="text-sm font-medium text-stone-700">{mode === "reset" ? "Новый пароль" : "Пароль"}</label>
+
             {mode === "login" && (
               <Button
                 variant="ghost"

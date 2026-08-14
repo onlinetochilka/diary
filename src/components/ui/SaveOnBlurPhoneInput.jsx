@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Pencil, Check } from 'lucide-react';
 import { FieldLabel } from './FieldLabel.jsx';
 
 const INPUT_CLS =
@@ -9,9 +10,16 @@ const INPUT_CLS =
 export function SaveOnBlurPhoneInput({ label, value, onSave, ...props }) {
   const [local, setLocal] = useState(value || "");
   const [status, setStatus] = useState("idle");
+  const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => { setLocal(value || ""); }, [value]);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
 
   const formatPhone = (val) => {
     const raw = val.replace(/\D/g, "");
@@ -33,11 +41,9 @@ export function SaveOnBlurPhoneInput({ label, value, onSave, ...props }) {
   };
 
   const handleChange = (e) => {
-    const input = e.target;
     const oldVal = local;
     const newVal = e.target.value;
     
-    // Simple logic: if deleting, just update. If typing, format.
     if (newVal.length < oldVal.length) {
       setLocal(newVal);
     } else {
@@ -45,27 +51,73 @@ export function SaveOnBlurPhoneInput({ label, value, onSave, ...props }) {
     }
   };
 
-  const handleBlur = async () => {
-    if (local === value) return;
+  const handleSave = async (newValue) => {
+    if (newValue === value) {
+      setIsEditing(false);
+      return;
+    }
     setStatus("saving");
-    await onSave(local);
-    setStatus("success");
+    try {
+      await onSave(newValue);
+      setStatus("success");
+    } catch {
+      setStatus("idle");
+    }
+    setIsEditing(false);
     setTimeout(() => setStatus("idle"), 2000);
+  };
+
+  const handleBlur = () => {
+    handleSave(local);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") {
+      setLocal(value || "");
+      setIsEditing(false);
+    } else if (e.key === "Enter") {
+      handleSave(local);
+    }
   };
 
   return (
     <div className="mb-4 last:mb-0">
       <FieldLabel status={status}>{label}</FieldLabel>
-      <input 
-        ref={inputRef}
-        type="tel" 
-        value={local}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        placeholder="+7 (900) 000-00-00"
-        className={INPUT_CLS} 
-        {...props} 
-      />
+      {!isEditing ? (
+        <div
+          onClick={() => setIsEditing(true)}
+          className="relative flex items-center justify-between w-full bg-stone-50 border border-stone-200/80 rounded-xl px-3.5 py-3 text-sm text-stone-900 cursor-pointer hover:border-stone-300 transition-all duration-200 group"
+        >
+          <div className={`flex-1 truncate ${!value ? 'text-stone-400' : ''}`}>
+            {value || "+7 (900) 000-00-00"}
+          </div>
+          <Pencil size={14} className="text-stone-300 group-hover:text-stone-500 transition-colors ml-2 shrink-0" />
+        </div>
+      ) : (
+        <div className="relative flex items-center">
+          <input 
+            ref={inputRef}
+            type="tel" 
+            value={local}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            placeholder="+7 (900) 000-00-00"
+            className={`${INPUT_CLS} pr-10`} 
+            {...props} 
+          />
+          <button 
+            onMouseDown={(e) => {
+              e.preventDefault();
+              handleSave(local);
+            }}
+            className="absolute right-3 top-3 text-stone-400 hover:text-emerald-500 transition-colors"
+            type="button"
+          >
+            <Check size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
