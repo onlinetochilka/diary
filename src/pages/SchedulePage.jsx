@@ -439,7 +439,7 @@ export default function SchedulePage() {
                   studentName: item.student.name,
                   amount:      parsedAmount,
                   paidAt:      new Date().toISOString(),
-                  note:        note || "Оплата с расписания",
+                  comment: note || "Оплата с расписания",
                 });
               } finally {
                 if (pageState?.refreshData) pageState.refreshData();

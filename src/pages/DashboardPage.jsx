@@ -68,7 +68,7 @@ export default function DashboardPage() {
         amount: amt,
         currency: "RUB",
         paidAt: new Date().toISOString(),
-        note: 'Оплата занятий'
+        comment: 'Оплата занятий'
       });
       showToast({ message: "Оплата успешно добавлена", type: "success" });
       setPaymentModalOpen(false);
@@ -676,7 +676,7 @@ export default function DashboardPage() {
                 studentName: item.student.name,
                 amount: validAmount,
                 paidAt: new Date().toISOString(),
-                note: note || "Оплата по долгу"
+                comment: note || "Оплата по долгу"
               });
             }
             await refresh();

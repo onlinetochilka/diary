@@ -521,6 +521,13 @@ export async function clearAllTutorData(tutorId) {
       await pb.collection("programs").delete(p.id);
     }
 
+    // 6. Delete Daily Notes
+    const notesFilter = `userId="${tutorId}"`;
+    const dailyNotes = await pb.collection("daily_notes").getFullList({ filter: notesFilter });
+    for (const n of dailyNotes) {
+      await pb.collection("daily_notes").delete(n.id);
+    }
+
     // Optional: reload page to clear all memory states
   } catch (err) {
     console.error("Failed to clear data from PocketBase", err);

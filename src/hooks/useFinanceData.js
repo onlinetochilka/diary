@@ -166,7 +166,7 @@ export function useFinanceData() {
           type: "payment",
           id: `p_${p.id}`,
           date: p.paidAt ? new Date(p.paidAt) : new Date(),
-          title: (p.note ? p.note.replace(/\[.*?\]\s*/g, '') : "") || "Оплата",
+          title: (p.comment ? p.comment.replace(/\[.*?\]\s*/g, '') : "") || "Оплата",
           amount: p.amount,
         })),
       ].sort((a, b) => b.date - a.date);

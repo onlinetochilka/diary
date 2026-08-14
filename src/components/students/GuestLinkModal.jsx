@@ -65,7 +65,7 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
 
   const botUsername = "tochilka_mail_bot";
   const botLink = `https://t.me/${botUsername}?start=student_${student.id}`;
-  const hash = student.linkHash || `guest-${student.id}`;
+  const hash = student.guestHash || `guest-${student.id}`;
   const guestLink = `${window.location.origin}/?guest=${hash}`;
   const videoLink = student.subjects?.find(s => s.videoLink)?.videoLink;
 
@@ -283,8 +283,8 @@ export default function GuestLinkModal({ isOpen, onClose, student }) {
                   setIsResetting(true);
                   try {
                     const newHash = Math.random().toString(36).substring(2, 15);
-                    await updateStudent(student.id, { linkHash: newHash });
-                    if (student) student.linkHash = newHash; 
+                    await updateStudent(student.id, { guestHash: newHash });
+                    if (student) student.guestHash = newHash; 
                     queryClient.invalidateQueries();
                     showToast({ message: 'Ссылка обновлена', type: 'success' });
                   } catch (err) {

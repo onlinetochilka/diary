@@ -264,7 +264,7 @@ export default function StudentsDirectoryView({ students = [], groups = [], onEd
               studentName: item.student.name,
               amount:      parsedAmount,
               paidAt:      new Date().toISOString(),
-              note:        note || 'Оплата занятий',
+              comment: note || 'Оплата занятий',
             });
           } finally {
             setPayModal({ isOpen: false, item: null });

@@ -13,6 +13,14 @@ export function SaveOnBlurInput({ label, value, onSave, multiline = false, place
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef(null);
 
+  // Refs for save-on-unmount (captures latest values without stale closures)
+  const localRef = useRef(local);
+  localRef.current = local;
+  const valueRef = useRef(value || "");
+  valueRef.current = value || "";
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
   useEffect(() => { setLocal(value || ""); }, [value]);
 
   useEffect(() => {
@@ -20,6 +28,15 @@ export function SaveOnBlurInput({ label, value, onSave, multiline = false, place
       inputRef.current.focus();
     }
   }, [isEditing]);
+
+  // Save unsaved changes when component unmounts (e.g. page navigation)
+  useEffect(() => {
+    return () => {
+      if (localRef.current !== valueRef.current) {
+        onSaveRef.current(localRef.current);
+      }
+    };
+  }, []);
 
   const handleSave = async (newValue) => {
     if (newValue === value) {

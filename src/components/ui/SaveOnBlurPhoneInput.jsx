@@ -13,6 +13,14 @@ export function SaveOnBlurPhoneInput({ label, value, onSave, ...props }) {
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef(null);
 
+  // Refs for save-on-unmount
+  const localRef = useRef(local);
+  localRef.current = local;
+  const valueRef = useRef(value || "");
+  valueRef.current = value || "";
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
   useEffect(() => { setLocal(value || ""); }, [value]);
 
   useEffect(() => {
@@ -20,6 +28,15 @@ export function SaveOnBlurPhoneInput({ label, value, onSave, ...props }) {
       inputRef.current.focus();
     }
   }, [isEditing]);
+
+  // Save unsaved changes when component unmounts
+  useEffect(() => {
+    return () => {
+      if (localRef.current !== valueRef.current) {
+        onSaveRef.current(localRef.current);
+      }
+    };
+  }, []);
 
   const formatPhone = (val) => {
     const raw = val.replace(/\D/g, "");

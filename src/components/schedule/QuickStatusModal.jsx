@@ -121,7 +121,7 @@ export default function QuickStatusModal({ isOpen, onClose, lesson, student, gro
         studentName: student.name,
         amount: Number(paymentAmount),
         paidAt: new Date().toISOString(),
-        note: `Оплата (через быструю отметку)`
+        comment: `Оплата (через быструю отметку)`
       });
       showToast({ message: "Оплата внесена", type: "success" });
       setPaymentAmount("");

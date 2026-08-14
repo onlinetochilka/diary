@@ -205,7 +205,7 @@ export default function GroupEditorView({
     setIsSaving(true);
     const payload = {
       name: formData.name,
-      subjectName: formData.subjectName,
+      subject: formData.subjectName,
       format: formData.format || 'online',
       programs: formData.programs,
       studentIds: formData.studentIds,

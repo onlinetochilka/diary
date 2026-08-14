@@ -10,6 +10,7 @@ import {
 import { getEntityStyle, getEntityColorClasses } from "../../utils/colors.js";
 import Button from '../ui/Button.jsx';
 import { usePayments } from "../../hooks/usePayments.js";
+import { useToast } from "../ui/Toast.jsx";
 
 function generateReminderText(student) {
   const debt      = Math.abs(student.balance || 0);
@@ -27,6 +28,7 @@ function SortIcon({ field, sortField, sortOrder }) {
 
 export default function DebtorsTab({ debtors, onRefresh }) {
   const { addPayment } = usePayments();
+  const { showToast } = useToast();
   const [sortField,   setSortField]   = useState("balance");
   const [sortOrder,   setSortOrder]   = useState("asc");
   const [activeAction, setActiveAction] = useState(null);   // { studentId, type: 'pay'|'remind' }
@@ -46,7 +48,10 @@ export default function DebtorsTab({ debtors, onRefresh }) {
       await navigator.clipboard.writeText(generateReminderText(student));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e);
+      showToast({ message: 'Не удалось выполнить операцию. Попробуйте ещё раз.', type: 'error' });
+    }
   };
 
   const handlePay = async (student) => {
@@ -58,7 +63,7 @@ export default function DebtorsTab({ debtors, onRefresh }) {
         amount:    Number(payAmount),
         currency:  "RUB",
         paidAt:    new Date().toISOString(),
-        note:      payNote.trim() || "Оплата занятий",
+        comment: payNote.trim() || "Оплата занятий",
       });
       if (onRefresh) await onRefresh();
       setShowSuccess(true);
@@ -66,6 +71,7 @@ export default function DebtorsTab({ debtors, onRefresh }) {
       setTimeout(() => { setShowSuccess(false); setActiveAction(null); }, 1000);
     } catch (e) {
       console.error(e);
+      showToast({ message: 'Не удалось выполнить операцию. Попробуйте ещё раз.', type: 'error' });
     } finally {
       setIsSubmitting(false);
     }

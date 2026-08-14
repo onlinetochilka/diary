@@ -10,6 +10,7 @@ import { usePayments } from "../../hooks/usePayments.js";
 import Button from '../ui/Button.jsx';
 import Tooltip from '../ui/Tooltip.jsx';
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
+import { useToast } from "../ui/Toast.jsx";
 
 export default function PaymentsTab({ students }) {
   const { 
@@ -22,6 +23,7 @@ export default function PaymentsTab({ students }) {
     updatePayment
   } = usePayments();
   const confirm = useConfirm();
+  const { showToast } = useToast();
   const [sortOrder, setSortOrder] = React.useState("desc");
   const [editModalData, setEditModalData] = React.useState(null);
 
@@ -37,6 +39,7 @@ export default function PaymentsTab({ students }) {
         await deletePayment(payment.id);
       } catch(e) {
         console.error(e);
+        showToast({ message: 'Не удалось выполнить операцию. Попробуйте ещё раз.', type: 'error' });
       }
     }
   };
@@ -46,13 +49,14 @@ export default function PaymentsTab({ students }) {
     try {
       await updatePayment(editModalData.id, {
         amount: Number(editModalData.amount),
-        note: editModalData.note,
+        comment: editModalData.comment,
         paidAt: editModalData.paidAt,
         studentId: editModalData.studentId
       });
       setEditModalData(null);
     } catch(e) {
       console.error(e);
+      showToast({ message: 'Не удалось выполнить операцию. Попробуйте ещё раз.', type: 'error' });
     }
   };
 
@@ -129,8 +133,8 @@ export default function PaymentsTab({ students }) {
                       </div>
                     </td>
                     <td className="py-3 px-5">
-                      {p.note
-                        ? <span className="text-sm font-medium text-stone-500">{p.note.replace(/\[.*?\]\s*/g, '') || "Оплата"}</span>
+                      {p.comment
+                        ? <span className="text-sm font-medium text-stone-500">{p.comment.replace(/\[.*?\]\s*/g, '') || "Оплата"}</span>
                         : <span className="text-stone-300">—</span>
                       }
                     </td>
@@ -222,8 +226,8 @@ export default function PaymentsTab({ students }) {
                 <label className="text-[11px] font-bold tracking-widest text-stone-400 uppercase mb-2 block">Комментарий</label>
                 <input 
                   type="text" 
-                  value={editModalData.note || ''} 
-                  onChange={e => setEditModalData({...editModalData, note: e.target.value})}
+                  value={editModalData.comment || ''} 
+                  onChange={e => setEditModalData({...editModalData, comment: e.target.value})}
                   className="w-full px-4 py-2.5 font-medium text-stone-700 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:border-academic-blue focus:ring-2 focus:ring-academic-blue/20 transition-all"
                 />
               </div>

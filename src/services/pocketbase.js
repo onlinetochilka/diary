@@ -29,6 +29,16 @@ if (typeof window !== "undefined") {
 // components don't cancel each other.
 pb.autoCancellation(false);
 
+pb.afterSend = function (response, data) {
+  if (response.status === 401 && pb.authStore.isValid && !response.url.includes('/auth-with-password')) {
+    pb.authStore.clear();
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  }
+  return data;
+};
+
 // We need a structurally valid JWT token so PocketBase's authStore.isValid returns true
 const MOCK_TOKEN = "dummy.eyJleHAiOjE5OTk5OTk5OTl9.dummy";
 

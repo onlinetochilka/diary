@@ -10,7 +10,7 @@ export async function findLessonPayment(lessonId, studentId) {
   const tag = lessonPaymentNote(lessonId, studentId);
   try {
     const results = await pb.collection("payments").getFullList({
-      filter: `note ~ "${tag}"`,
+      filter: `comment ~ "${tag}"`,
       limit: 1,
     });
     return results.length > 0 ? results[0] : null;
@@ -67,7 +67,7 @@ export async function applyLessonIncomeChange(oldData, newData, lessonId) {
           amount: newAmt,
           currency: "RUB",
           paidAt: new Date().toISOString(),
-          note: `${tag} Оплата с урока ${lessonDate}`,
+          comment: `${tag} Оплата с урока ${lessonDate}`,
         });
 
         // Update balance + ltv
@@ -138,7 +138,7 @@ export async function recalculateStudentBalance(studentId) {
     }
   });
 
-  // NOTE: Inline payments from DayInspector are now stored as proper payment
+  // comment: Inline payments from DayInspector are now stored as proper payment
   // records (via applyLessonIncomeChange → addPayment), so they are already
   // included in totalPayments above. No need to count them separately.
 

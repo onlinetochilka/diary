@@ -8,7 +8,7 @@ import Button from "../ui/Button.jsx";
 export default function LitePaymentModal({ isOpen, onClose, students, onConfirm }) {
   const [amount, setAmount] = useState("");
   const [studentId, setStudentId] = useState("");
-  const [note, setNote] = useState("");
+  const [comment, setNote] = useState("");
   const [showNote, setShowNote] = useState(false);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function LitePaymentModal({ isOpen, onClose, students, onConfirm 
             <Input 
               label="Комментарий (необязательно)"
               type="text" 
-              value={note} 
+              value={comment} 
               onChange={e => setNote(e.target.value)}
               placeholder="Например, оплата за сентябрь"
               rightIcon={
@@ -82,7 +82,7 @@ export default function LitePaymentModal({ isOpen, onClose, students, onConfirm 
           <Button 
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-sm" 
             disabled={!studentId || !amount || Number(amount) <= 0}
-            onClick={() => onConfirm(studentId, Number(amount), note)}
+            onClick={() => onConfirm(studentId, Number(amount), comment)}
           >
             Сохранить оплату
           </Button>

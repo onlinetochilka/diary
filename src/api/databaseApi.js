@@ -321,6 +321,7 @@ export async function deleteStudent(id) {
     }
   } catch (e) {
     console.error("Ошибка при каскадном удалении уроков ученика", e);
+    throw e;
   }
 
   // Каскадное удаление оплат
@@ -331,6 +332,7 @@ export async function deleteStudent(id) {
     }
   } catch (e) {
     console.error("Ошибка при каскадном удалении оплат ученика", e);
+    throw e;
   }
 
   await pb.collection("students").delete(id);
@@ -434,6 +436,7 @@ export async function deleteGroup(id) {
     }
   } catch (e) {
     console.error("Ошибка при каскадном удалении уроков группы", e);
+    throw e;
   }
 
   await pb.collection("groups").delete(id);
@@ -1127,7 +1130,7 @@ export async function getPayments({ tutorId, studentId, dateFrom, dateTo } = {})
 
 /**
  * Add a payment record.
- * @param {object} data — { tutorId, studentId, amount, currency, paidAt, note, ... }
+ * @param {object} data - { tutorId, studentId, amount, currency, paidAt, comment, ... }
  * @returns {Promise<string>} new record ID
  */
 export async function addPayment(data) {

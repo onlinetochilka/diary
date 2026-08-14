@@ -244,6 +244,7 @@ export function denormalizeStudent(normalized) {
   const {
     // eslint-disable-next-line no-unused-vars
     _isDebtor, _primarySubject, _extraSubjectsCount, _initials,
+    stats, globalColorVersion, createdAt, updatedAt,
     ...firestoreData
   } = normalized;
   return firestoreData;
