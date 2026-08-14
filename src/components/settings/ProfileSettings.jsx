@@ -3,7 +3,6 @@ import { User, Plus, Trash2, Check } from "lucide-react";
 import { SettingsCard } from "../ui/SettingsCard.jsx";
 import { SectionHeader } from "../ui/SectionHeader.jsx";
 import { SaveOnBlurInput } from "../ui/SaveOnBlurInput.jsx";
-import { SaveOnBlurPhoneInput } from "../ui/SaveOnBlurPhoneInput.jsx";
 import { FieldLabel } from "../ui/FieldLabel.jsx";
 import { SettingsTagsInput } from "./SettingsTagsInput.jsx";
 
@@ -139,29 +138,24 @@ export function ProfileSettings({ config, user, updateConfig }) {
     <SettingsCard>
       <SectionHeader icon={User} title="Профиль" description="Данные для учеников и клиентов" />
       <div className="space-y-4">
-        {/* Row 1: Name + Phone */}
-        <div className="grid grid-cols-2 gap-3">
-          <SaveOnBlurInput label="Имя репетитора"
-            value={config.displayName || user?.displayName || ""}
-            onSave={v => updateConfig("displayName", v)}
-            placeholder="Как вас называют" />
-          <SaveOnBlurPhoneInput label="Телефон"
-            value={config.phone || ""}
-            onSave={v => updateConfig("phone", v)} />
-        </div>
-
-        {/* Row 2: Gender (single instance) */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
+        {/* Row 1: Name + Gender */}
+        <div className="flex gap-3">
+          <div className="flex-1 min-w-0">
+            <SaveOnBlurInput label="Имя репетитора"
+              value={config.displayName || user?.displayName || ""}
+              onSave={v => updateConfig("displayName", v)}
+              placeholder="Как вас называют" />
+          </div>
+          <div className="w-[120px] shrink-0">
             <FieldLabel>Пол</FieldLabel>
             <select
               value={config.gender || "unknown"}
               onChange={e => updateConfig("gender", e.target.value)}
               className={INPUT_CLS}
             >
-              <option value="unknown">Не указан</option>
-              <option value="male">Мужской</option>
-              <option value="female">Женский</option>
+              <option value="unknown">—</option>
+              <option value="male">Муж</option>
+              <option value="female">Жен</option>
             </select>
           </div>
         </div>
