@@ -47,8 +47,9 @@ export function SaveOnBlurInput({ label, value, onSave, multiline = false, place
     try {
       await onSave(newValue);
       setStatus("success");
-    } catch {
-      setStatus("idle");
+    } catch (err) {
+      console.error("[SaveOnBlurInput] Save failed:", err);
+      setStatus("error");
     }
     setIsEditing(false);
     setTimeout(() => setStatus("idle"), 2000);
