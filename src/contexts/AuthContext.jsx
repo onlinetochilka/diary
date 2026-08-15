@@ -41,22 +41,42 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // Re-check validity after hydration
-    // NOTE: do NOT call pb.authStore.clear() here — in React StrictMode this runs
-    // twice (mount → unmount → mount) and would wipe a freshly obtained token.
-    if (pb.authStore.isValid) {
-      setUser(pb.authStore.record);
-    } else {
-      setUser(null);
-    }
-    setIsLoading(false);
-
     // Subscribe to ALL auth state changes (login, logout, token refresh)
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       setUser(record ?? null);
     });
 
-    return unsubscribe;
+    if (!pb.authStore.isValid) {
+      setUser(null);
+      setIsLoading(false);
+      return () => unsubscribe();
+    }
+
+    // Token is locally valid — verify with server via authRefresh.
+    // This catches stale tokens (e.g. after PocketBase update changes JWT secret).
+    // If server rejects the token, we log the user out to force re-login.
+    const isDemo = pb.authStore.record?.email?.startsWith("demo_");
+    if (isDemo) {
+      setUser(pb.authStore.record);
+      setIsLoading(false);
+      return () => unsubscribe();
+    }
+
+    pb.collection("users").authRefresh()
+      .then((result) => {
+        // Token refreshed successfully — authStore.onChange fires automatically
+        setUser(result.record);
+      })
+      .catch((err) => {
+        console.warn("[AuthContext] authRefresh failed, logging out:", err?.status, err?.message);
+        pb.authStore.clear();
+        setUser(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+
+    return () => unsubscribe();
   }, []);
 
   const value = {
