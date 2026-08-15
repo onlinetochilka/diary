@@ -49,11 +49,13 @@ const cache = {
   lessons: null,
   payments: null,
   config: null,
+  configRecordId: null, // cached PocketBase record ID for user_config
 };
 
 export function invalidateCache(collectionName) {
   if (collectionName) {
     cache[collectionName] = null;
+    if (collectionName === "config") cache.configRecordId = null;
   } else {
     for (let key in cache) cache[key] = null;
   }
@@ -1283,6 +1285,8 @@ export async function getUserConfig(uid) {
 
     if (records.length > 0) {
       const res = records[0];
+      // Cache the record ID so updateUserConfig can skip getFullList
+      cache.configRecordId = res.id;
       if (!res.dashboardMetrics) {
         res.dashboardMetrics = [
           "todayCount",
@@ -1294,7 +1298,8 @@ export async function getUserConfig(uid) {
       cache.config = res;
       return res;
     }
-  } catch {
+  } catch (err) {
+    console.warn("[getUserConfig] Could not fetch config, using defaults:", err?.message || err);
     // Fall through to defaults
   }
 
@@ -1324,27 +1329,46 @@ export async function getUserConfig(uid) {
  */
 export async function updateUserConfig(uid, data) {
   const currentUid = uid || getCurrentUserId();
-  if (!currentUid) return;
-  invalidateCache("config");
+  if (!currentUid) {
+    console.warn("[updateUserConfig] No user ID — skipping save");
+    return;
+  }
 
   try {
-    // Try to find existing config
+    // If we have the record ID cached, use it directly (fast path)
+    if (cache.configRecordId) {
+      await pb.collection("user_config").update(cache.configRecordId, data);
+      // Merge into cache without invalidating so other fields stay intact
+      if (cache.config) {
+        cache.config = { ...cache.config, ...data };
+      }
+      return;
+    }
+
+    // Slow path: look up the record first
     const records = await pb.collection("user_config").getFullList({
       filter: `userId = "${currentUid}"`,
     });
 
     if (records.length > 0) {
-      // Update existing
+      cache.configRecordId = records[0].id;
       await pb.collection("user_config").update(records[0].id, data);
+      if (cache.config) {
+        cache.config = { ...cache.config, ...data };
+      }
     } else {
-      // Create new
-      await pb.collection("user_config").create({
+      // No record yet — create one
+      const created = await pb.collection("user_config").create({
         ...data,
         userId: currentUid,
       });
+      cache.configRecordId = created.id;
+      cache.config = { ...data, userId: currentUid, id: created.id };
     }
   } catch (err) {
-    console.error("[updateUserConfig] Error:", err);
+    console.error("[updateUserConfig] Error saving config:", err);
+    // Invalidate cache so next read re-fetches fresh data
+    invalidateCache("config");
     throw err;
   }
 }

@@ -37,10 +37,14 @@ class MockCollection {
     }
     
     // Naive filter implementation for demo
-    // The real app mostly filters by tutorId, which is safe to ignore here since demo DB is isolated.
     if (options.filter) {
+      // userId = "..."  (used by user_config lookup)
+      const userIdMatch = options.filter.match(/userId\s*=\s*"([^"]+)"/);
+      if (userIdMatch) {
+        result = result.filter(item => item.userId === userIdMatch[1] || item.user === userIdMatch[1]);
+      }
+
       if (options.filter.includes("date >=")) {
-        // e.g. date >= "2026-08-01"
         const match = options.filter.match(/date >= "([^"]+)"/);
         if (match) {
           result = result.filter(item => item.date >= match[1]);

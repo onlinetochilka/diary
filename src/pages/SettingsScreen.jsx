@@ -74,10 +74,17 @@ export default function SettingsPage() {
   }, [user, authLoading]);
 
   const updateConfig = useCallback(async (key, value) => {
-    const next = { ...config, [key]: value };
-    setConfig(next);
-    if (user?.id) await updateUserConfig(user.id, { [key]: value });
-  }, [config, user]);
+    setConfig(prev => ({ ...prev, [key]: value }));
+    if (user?.id) {
+      try {
+        await updateUserConfig(user.id, { [key]: value });
+      } catch (err) {
+        console.error(`[SettingsScreen] Failed to save config key "${key}":`, err);
+        // Revert on failure
+        setConfig(prev => ({ ...prev }));
+      }
+    }
+  }, [user]);
 
   const handleResetConfirm = async () => {
     setIsResetting(true);
