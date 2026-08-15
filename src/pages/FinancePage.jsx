@@ -46,6 +46,32 @@ export default function FinancePage() {
     );
   }
 
+  if (data.isError) {
+    return (
+      <PageWrapper
+        title="Управление балансом"
+        icon={Wallet}
+        iconBgClass="bg-[#426B5C]/10"
+        iconTextClass="text-[#426B5C]"
+      >
+        <div className="flex flex-col items-center justify-center h-64 gap-4 text-stone-500">
+          <Loader2 size={24} className="text-stone-300" />
+          <div className="text-center">
+            <p className="font-medium text-stone-700">Не удалось загрузить данные</p>
+            <p className="text-sm mt-1">Проверьте подключение к интернету и попробуйте снова</p>
+          </div>
+          <button
+            onClick={() => data.onRefresh?.()}
+            className="text-sm text-[#426B5C] hover:underline font-medium"
+          >
+            Повторить загрузку
+          </button>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+
   const {
     students, payments, chartData, maxMonthIncome, incomeGrowthPct,
     studentData, debtors, onRefresh,

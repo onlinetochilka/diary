@@ -46,22 +46,23 @@ export function useFinanceData() {
     };
   }, []);
 
-  const { data: students = [], isLoading: loadingStudents } = useQuery({
+  const { data: students = [], isLoading: loadingStudents, isError: errorStudents } = useQuery({
     queryKey: ['students'],
     queryFn: () => getStudents(),
   });
 
-  const { data: payments = [], isLoading: loadingPayments } = useQuery({
+  const { data: payments = [], isLoading: loadingPayments, isError: errorPayments } = useQuery({
     queryKey: ['payments', { dateFrom: sixMonthsAgoStr }],
     queryFn: () => getPayments({ dateFrom: sixMonthsAgoStr }),
   });
 
-  const { data: lessons = [], isLoading: loadingLessons } = useQuery({
+  const { data: lessons = [], isLoading: loadingLessons, isError: errorLessons } = useQuery({
     queryKey: ['lessons', { dateFrom: currentMonthStartStr, dateTo: nextMonthStartStr }],
     queryFn: () => getLessons({ dateFrom: currentMonthStartStr, dateTo: nextMonthStartStr }),
   });
 
   const loading = loadingStudents || loadingPayments || loadingLessons;
+  const isError = errorStudents || errorPayments || errorLessons;
 
   const onRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['students'] });
@@ -177,7 +178,7 @@ export function useFinanceData() {
         subjectName,
         totalLessons: stLessons.length, // Only reflects lessons this month now
         totalPaymentsCount: stPayments.length,
-        totalPaymentsSum: stPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0),
+        totalPaymentsSum: stPayments.reduce((acc, p) => acc + (Number(p?.amount) || 0), 0),
         ledger,
       };
     }),
@@ -193,6 +194,7 @@ export function useFinanceData() {
 
   return {
     loading,
+    isError,
     students,
     payments,
     lessons,

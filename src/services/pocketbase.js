@@ -30,7 +30,13 @@ if (typeof window !== "undefined") {
 pb.autoCancellation(false);
 
 pb.afterSend = function (response, data) {
-  if (response.status === 401 && pb.authStore.isValid && !response.url.includes('/auth-with-password')) {
+  // 401 = token expired/invalid, 403 = forbidden (e.g. rule violation with stale token)
+  // Both indicate the session is no longer trusted — force logout.
+  const isAuthError = (response.status === 401 || response.status === 403) &&
+    pb.authStore.isValid &&
+    !response.url.includes('/auth-with-password') &&
+    !response.url.includes('/users/auth-refresh');
+  if (isAuthError) {
     pb.authStore.clear();
     if (typeof window !== "undefined") {
       window.location.href = "/login";

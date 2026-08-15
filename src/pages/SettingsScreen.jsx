@@ -53,24 +53,29 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       if (authLoading) return;
       try {
         if (user?.id) {
           const [c, s] = await Promise.all([getUserConfig(user.id), fetchStudents(user.id)]);
+          if (cancelled) return;
           setConfig(c || {});
           setStudents((s || []).filter(st => !st.isArchived));
         } else {
+          if (cancelled) return;
           setConfig({});
         }
       } catch (e) {
         console.error("Failed to load config:", e);
+        if (cancelled) return;
         setConfig({});
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     load();
+    return () => { cancelled = true; };
   }, [user, authLoading]);
 
   const updateConfig = useCallback(async (key, value) => {
