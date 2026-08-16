@@ -9,9 +9,12 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    // NEVER auto-login demo accounts — they should not persist across page loads.
-    // Users must explicitly click "Попробовать демоверсию" each time.
-    if (pb.authStore.record?.email?.startsWith("demo_")) {
+    // Demo accounts are managed by pocketbase.js and isDemoMode flag.
+    // If authStore has a demo account but isDemoMode is false, it's stale.
+    const isDemoAccount = pb.authStore.record?.email?.startsWith("demo@");
+    const isDemoModeActive = typeof window !== "undefined" && localStorage.getItem("isDemoMode") === "true";
+    
+    if (isDemoAccount && !isDemoModeActive) {
       pb.authStore.clear();
       return null;
     }
@@ -30,6 +33,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("isDemoMode");
+      localStorage.removeItem("demo_db");
+    }
     pb.authStore.clear();
     setUser(null);
   }, []);
@@ -55,8 +62,8 @@ export function AuthProvider({ children }) {
     // Token is locally valid — verify with server via authRefresh.
     // This catches stale tokens (e.g. after PocketBase update changes JWT secret).
     // If server rejects the token, we log the user out to force re-login.
-    const isDemo = pb.authStore.record?.email?.startsWith("demo_");
-    if (isDemo) {
+    const isDemoModeActive = typeof window !== "undefined" && localStorage.getItem("isDemoMode") === "true";
+    if (isDemoModeActive) {
       setUser(pb.authStore.record);
       setIsLoading(false);
       return () => unsubscribe();
