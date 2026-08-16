@@ -1,22 +1,12 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-if (typeof onRecordCreateRequest !== "undefined") {
-    onRecordCreateRequest((e) => {
-        const now = new Date();
-        now.setMonth(now.getMonth() + 3);
-        e.record.set("subscription_status", "active");
-        e.record.set("subscription_until", now.toISOString().replace("T", " ").substring(0, 19) + "Z");
-        e.next();
-    }, "users");
-} else if (typeof onRecordAfterCreateRequest !== "undefined") {
-    onRecordAfterCreateRequest((e) => {
-        const now = new Date();
-        now.setMonth(now.getMonth() + 3);
-        e.record.set("subscription_status", "active");
-        e.record.set("subscription_until", now.toISOString().replace("T", " ").substring(0, 19) + "Z");
-        try { e.app.save(e.record); } catch (err) { $app.dao().saveRecord(e.record); }
-    }, "users");
-}
+onRecordCreateRequest((e) => {
+    const now = new Date();
+    now.setMonth(now.getMonth() + 3);
+    e.record.set("subscription_status", "active");
+    e.record.set("subscription_until", now.toISOString().replace("T", " ").substring(0, 19) + "Z");
+    e.next();
+}, "users");
 
 routerAdd("POST", "/api/payments/create", (c) => {
     let step = "init";
@@ -27,12 +17,6 @@ routerAdd("POST", "/api/payments/create", (c) => {
             if (typeof $os !== 'undefined' && typeof $os.getenv === 'function') {
                 SHOP_ID = $os.getenv("YOOKASSA_SHOP_ID") || SHOP_ID;
                 SECRET_KEY = $os.getenv("YOOKASSA_SECRET_KEY") || SECRET_KEY;
-            } else if (typeof require !== 'undefined') {
-                let os = require("os");
-                if (os && typeof os.getenv === 'function') {
-                    SHOP_ID = os.getenv("YOOKASSA_SHOP_ID") || SHOP_ID;
-                    SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY") || SECRET_KEY;
-                }
             }
         } catch(e) {}
 
@@ -49,35 +33,12 @@ routerAdd("POST", "/api/payments/create", (c) => {
             userId = c.auth.id;
             userEmail = c.auth.get("email");
         } else {
-            const admin = typeof c.get === "function" ? c.get("admin") : null;
-            const user = typeof c.get === "function" ? c.get("authRecord") : null;
-            if (admin) {
-                userId = admin.get("id");
-                userEmail = admin.get("email");
-            } else if (user) {
-                userId = user.get("id");
-                userEmail = user.get("email");
-            } else {
-                return c.json(401, { error: "Unauthorized" });
-            }
+            return c.json(401, { error: "Unauthorized" });
         }
         
         step = "read_body";
         const body = new DynamicModel({ plan: "", return_url: "" });
-        if (typeof c.bind === "function") {
-            c.bind(body);
-        } else if (typeof c.bindBody === "function") {
-            c.bindBody(body);
-        } else {
-            let data;
-            if (typeof c.requestInfo === "function") {
-                data = c.requestInfo().body;
-            } else {
-                data = $apis.requestInfo(c).data;
-            }
-            body.plan = data.plan;
-            body.return_url = data.return_url;
-        }
+        c.bindBody(body);
 
         const planKey = body.plan;
         const returnUrl = body.return_url;
@@ -121,12 +82,7 @@ routerAdd("POST", "/api/payments/create", (c) => {
         const authHeader = "Basic " + b64Encode(SHOP_ID + ":" + SECRET_KEY);
 
         step = "send_http";
-        let sendFunc = typeof $http !== "undefined" ? $http.send : require("http").send;
-        if (!sendFunc) {
-            return c.json(500, { error: "HTTP client not available" });
-        }
-
-        const res = sendFunc({
+        const res = $http.send({
             url: "https://api.yookassa.ru/v3/payments",
             method: "POST",
             headers: {
@@ -168,29 +124,20 @@ routerAdd("POST", "/api/payments/webhook", (c) => {
         };
 
         step = "read_body";
-        let payload;
-        if (typeof c.bind === "function") {
-            payload = new DynamicModel({ event: "", object: {} });
-            c.bind(payload);
-        } else {
-            if (typeof c.requestInfo === "function") {
-                payload = c.requestInfo().body;
-            } else {
-                try {
-                    payload = $apis.requestInfo(c).data;
-                } catch(e) {
-                    payload = JSON.parse(require("io/ioutil").readAll(c.request().body));
-                }
-            }
-        }
-        
-        if (!payload || !payload.event) {
+        const body = new DynamicModel({ event: "", object: "" });
+        c.bindBody(body);
+
+        const event = body.event;
+        const payment = typeof body.object === "string"
+            ? JSON.parse(body.object)
+            : body.object;
+
+        if (!event) {
             return c.json(400, { error: "Empty payload" });
         }
         
-        if (payload.event === "payment.succeeded") {
+        if (event === "payment.succeeded") {
             step = "process_payment";
-            const payment = payload.object;
             const userId = payment.metadata.userId;
             const planKey = payment.metadata.plan;
             
@@ -199,12 +146,7 @@ routerAdd("POST", "/api/payments/webhook", (c) => {
             }
             
             step = "update_user";
-            let userRecord;
-            try {
-                userRecord = $app.findRecordById("users", userId);
-            } catch(err) {
-                userRecord = $app.dao().findRecordById("users", userId);
-            }
+            const userRecord = $app.findRecordById("users", userId);
             
             let currentValidUntil = userRecord.get("subscription_until");
             let dateObj = new Date();
@@ -220,11 +162,7 @@ routerAdd("POST", "/api/payments/webhook", (c) => {
             userRecord.set("subscription_until", dateObj.toISOString().replace("T", " ").substring(0, 19) + "Z");
             userRecord.set("yookassa_payment_id", payment.id);
             
-            if (typeof $app.save === "function") {
-                $app.save(userRecord);
-            } else {
-                $app.dao().saveRecord(userRecord);
-            }
+            $app.save(userRecord);
         }
         return c.json(200, { success: true });
     } catch (err) {
