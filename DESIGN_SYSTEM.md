@@ -90,6 +90,104 @@
 
 ## 4. Специфические правила
 
+### Запрет на нативные UI-элементы
+**Строгое правило:** В приложении запрещено использовать стандартные браузерные элементы интерфейса там, где предусмотрены кастомные компоненты.
+- **Тултипы:** Никогда не используйте нативный HTML-атрибут `title="..."`. Всегда применяйте кастомные React-тултипы из библиотеки компонентов.
+- **Выпадающие списки (Selects):** Запрещено использование нативного тега `<select>`. Всегда используйте кастомные Dropdown-компоненты или UI-библиотеку (например, Headless UI / Radix / React Select), стилизованную под дизайн-систему.
+- **Уведомления и алерты:** Запрещено использовать встроенные браузерные `alert()`, `confirm()` или `prompt()`. Используйте только кастомные Modals и Toasts.
+
 ### Правило дизайна персонажей (Аватары)
 **Строгое ограничение:** Если в приложении используются персонажи (в качестве пресетов аватаров), они **обязательно должны оставаться в форме деревянных карандашей**. Использование аватаров с человеческими лицами недопустимо! 
 Если у пользователя не загружен аватар и не выбран пресет, используется квадратная градиентная монограмма с первой буквой имени.
+
+## 5. Сложные компоненты и состояния
+
+### Empty States (Пустые состояния)
+Используются, когда нет данных (учеников, заявок, графиков).
+- **Фон и контейнер:** Встраиваются в стандартные карточки (Flat или Elevated). Контейнер имеет flex-центрирование (`flex flex-col items-center justify-center p-8`).
+- **Иллюстрации/Иконки:** Строгий запрет на иллюстрации с персонажами/пухлыми телами. Используются только линейные иконки или монограммы.
+  - Цвет иконки: `text-stone-300`.
+  - Размер иконки: `w-12 h-12` или `w-16 h-16`, опциональный фон `bg-stone-50 rounded-full p-4`.
+- **Текст:**
+  - Заголовок: `text-sm font-semibold text-stone-600 mt-4`.
+  - Подзаголовок (опционально): `text-xs text-stone-400 text-center max-w-sm mt-1`.
+
+### Skeletons (Скелетоны загрузки)
+Применяются для имитации контента при асинхронной загрузке.
+- **Анимация:** Обязательный класс `animate-pulse`.
+- **Цвета:** Базовый фон `bg-stone-200` (или `bg-stone-100` для более светлых областей).
+- **Формы:** 
+  - Аватары: `rounded-full w-10 h-10 bg-stone-200`.
+  - Строки текста: `h-4 bg-stone-200 rounded w-3/4`.
+  - Заголовки: `h-5 bg-stone-200 rounded w-1/2`.
+  - Блоки/Графики: `h-32 bg-stone-100 rounded-xl`.
+
+### Toasts / Snackbars (Уведомления)
+Всплывающие сообщения об успехе (сохранение онбординга) или ошибке.
+- **Позиционирование:** `fixed bottom-4 right-4` или `top-4 right-4`, `z-50`.
+- **Стили контейнера:** 
+  - `bg-white`, `rounded-xl`, `shadow-md`, `border border-stone-100`.
+  - Внутренние отступы: `px-4 py-3`.
+  - Flex-контейнер для иконки и текста: `flex items-start gap-3`.
+- **Цвета иконок (статусные):**
+  - Успех: `text-emerald-600` (на фоне `bg-emerald-50`).
+  - Ошибка: `text-red-600` (на фоне `bg-red-50`).
+  - Инфо: `text-indigo-600` (на фоне `bg-indigo-50`).
+- **Текст:** `text-sm text-stone-800 font-medium`.
+- **Анимация:** `animate-in slide-in-from-bottom-5 fade-in duration-300 ease-out-quart`.
+
+### Tooltips (Тултипы)
+Микро-подсказки при наведении на графики (Recharts) или элементы интерфейса.
+- **Контейнер (Тёмный):** `bg-stone-800 text-white`.
+- **Контейнер (Светлый/Glass):** `bg-white/90 backdrop-blur shadow-sm border border-stone-200 text-stone-800`.
+- **Типографика:** `text-xs font-medium`.
+- **Отступы и скругления:** `px-2.5 py-1.5 rounded-lg`.
+- **Стрелка (опционально):** CSS-треугольник в цвет фона тултипа.
+
+### Dropdowns & Selects (Выпадающие списки)
+Меню выбора (предметов, планов).
+- **Контейнер меню:** 
+  - `absolute z-40 mt-1`.
+  - `bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-stone-100`.
+  - `min-w-[12rem] py-1`.
+- **Пункты меню (Items):**
+  - `px-3 py-2 text-sm text-stone-700 cursor-pointer transition-colors duration-200`.
+  - Hover: `hover:bg-stone-50 hover:text-stone-900`.
+  - Активный/Выбранный пункт: `bg-brand-blue/5 text-brand-blue font-medium`.
+- **Скроллбар:** Тонкий кастомный скроллбар (`scrollbar-thin scrollbar-thumb-stone-200`).
+
+### Modals & Drawers (Оверлеи)
+Окна для просмотра деталей заявок или создания сущностей.
+- **Фон затемнения (Backdrop):** `fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-sm`.
+  - Анимация появления: `animate-in fade-in duration-200`.
+- **Контейнер модального окна:**
+  - `fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]`.
+  - `bg-white rounded-2xl shadow-xl w-full max-w-lg`.
+  - Анимация: `animate-in zoom-in-95 fade-in duration-200 ease-out-quart`.
+- **Контейнер Drawer (Шторка):**
+  - `fixed inset-y-0 right-0 z-50 w-full max-w-md`.
+  - `bg-white shadow-2xl border-l border-stone-200`.
+  - Анимация: `animate-in slide-in-from-right duration-300 ease-out-quart`.
+
+### Badges / Tags (Бейджи и теги)
+Метки категорий или дополнительных статусов (помимо базовой палитры).
+- **Размеры:** `px-2.5 py-0.5 text-xs font-medium rounded-full`.
+- **Варианты:**
+  - Outline: `border border-stone-200 text-stone-600 bg-transparent`.
+  - Glass: `bg-white/50 backdrop-blur text-stone-700 border border-stone-200/50`.
+
+### Tabs (Вкладки)
+Переключение контекста внутри страницы.
+- **Контейнер (List):** `flex space-x-1 border-b border-stone-200 p-1` (или `bg-stone-100/50 rounded-xl p-1` для сегментированного контрола).
+- **Вкладка (Trigger):**
+  - Базовый: `px-3 py-1.5 text-sm font-medium text-stone-500 rounded-lg transition-all duration-200 ease-out-quart`.
+  - Hover: `hover:text-stone-700 hover:bg-stone-100`.
+  - Активная: `bg-white text-brand-blue shadow-sm ring-1 ring-slate-200` (в сегментированном виде) или `border-b-2 border-brand-blue text-brand-blue` (в классическом виде).
+
+### Toggles (Переключатели)
+- **Контейнер (Track):** `w-11 h-6 rounded-full transition-colors duration-200 ease-in-out cursor-pointer`.
+  - Inactive: `bg-stone-200`.
+  - Active: `bg-brand-blue`.
+- **Ползунок (Thumb):** `w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out`.
+  - Inactive: `translate-x-0.5`.
+  - Active: `translate-x-5.5`.

@@ -1282,11 +1282,13 @@ export async function getUserConfig(uid) {
     const records = await pb.collection("user_config").getFullList({
       filter: `userId = "${currentUid}"`,
     });
+    console.log(`[getUserConfig] uid=${currentUid} filter-found=${records.length}`);
 
     if (records.length > 0) {
       const res = records[0];
       // Cache the record ID so updateUserConfig can skip getFullList
       cache.configRecordId = res.id;
+      res._recordId = res.id;
       if (!res.dashboardMetrics) {
         res.dashboardMetrics = [
           "todayCount",
@@ -1298,8 +1300,23 @@ export async function getUserConfig(uid) {
       cache.config = res;
       return res;
     }
+
+    // Filter returned 0 — try without filter (listRule already scopes to current user)
+    console.warn(`[getUserConfig] Filter found 0 results, retrying without filter...`);
+    const all = await pb.collection("user_config").getFullList();
+    console.log(`[getUserConfig] No-filter found=${all.length}`);
+    if (all.length > 0) {
+      const res = all[0];
+      cache.configRecordId = res.id;
+      res._recordId = res.id;
+      if (!res.dashboardMetrics) {
+        res.dashboardMetrics = ["todayCount","activeStudentsCount","hoursWorkedThisMonth","incomeMonth"];
+      }
+      cache.config = res;
+      return res;
+    }
   } catch (err) {
-    console.warn("[getUserConfig] Could not fetch config, using defaults:", err?.message || err);
+    console.warn("[getUserConfig] Error:", err?.status, err?.message || err);
     // Fall through to defaults
   }
 
@@ -1318,6 +1335,7 @@ export async function getUserConfig(uid) {
     ],
   };
   cache.config = defaults;
+  console.warn("[getUserConfig] Using defaults — no record found or access denied");
   return defaults;
 }
 
@@ -1335,39 +1353,43 @@ export async function updateUserConfig(uid, data) {
   }
 
   try {
-    // If we have the record ID cached, use it directly (fast path)
+    // Fast path: use cached record ID
     if (cache.configRecordId) {
+      console.log(`[updateUserConfig] fast-path update recordId=${cache.configRecordId}`, Object.keys(data));
       await pb.collection("user_config").update(cache.configRecordId, data);
-      // Merge into cache without invalidating so other fields stay intact
-      if (cache.config) {
-        cache.config = { ...cache.config, ...data };
-      }
+      if (cache.config) cache.config = { ...cache.config, ...data };
       return;
     }
 
-    // Slow path: look up the record first
+    // Slow path: find record by userId filter
+    console.log(`[updateUserConfig] slow-path lookup uid=${currentUid}`, Object.keys(data));
     const records = await pb.collection("user_config").getFullList({
       filter: `userId = "${currentUid}"`,
     });
+    console.log(`[updateUserConfig] lookup found=${records.length}`);
 
     if (records.length > 0) {
       cache.configRecordId = records[0].id;
       await pb.collection("user_config").update(records[0].id, data);
-      if (cache.config) {
-        cache.config = { ...cache.config, ...data };
-      }
+      if (cache.config) cache.config = { ...cache.config, ...data };
     } else {
-      // No record yet — create one
-      const created = await pb.collection("user_config").create({
-        ...data,
-        userId: currentUid,
-      });
-      cache.configRecordId = created.id;
-      cache.config = { ...data, userId: currentUid, id: created.id };
+      // Try without filter — listRule may return records
+      const all = await pb.collection("user_config").getFullList();
+      console.log(`[updateUserConfig] no-filter found=${all.length}`);
+      if (all.length > 0) {
+        cache.configRecordId = all[0].id;
+        await pb.collection("user_config").update(all[0].id, data);
+        if (cache.config) cache.config = { ...cache.config, ...data };
+      } else {
+        // Truly no record — create one
+        console.warn(`[updateUserConfig] Creating new user_config for uid=${currentUid}`);
+        const created = await pb.collection("user_config").create({ ...data, userId: currentUid });
+        cache.configRecordId = created.id;
+        cache.config = { ...data, userId: currentUid, id: created.id, _recordId: created.id };
+      }
     }
   } catch (err) {
-    console.error("[updateUserConfig] Error saving config:", err);
-    // Invalidate cache so next read re-fetches fresh data
+    console.error("[updateUserConfig] Error:", err?.status, err?.message, Object.keys(data));
     invalidateCache("config");
     throw err;
   }
