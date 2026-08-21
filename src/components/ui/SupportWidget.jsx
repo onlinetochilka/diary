@@ -43,8 +43,15 @@ export default function SupportWidget() {
     }
   };
 
+  const isDemoMode = typeof window !== 'undefined' && localStorage.getItem("isDemoMode") === "true";
+
   return (
-    <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end">
+    <div className={cn(
+      "fixed right-4 lg:right-6 z-[60] flex flex-col items-end",
+      isDemoMode 
+        ? "bottom-[calc(7.5rem+env(safe-area-inset-bottom))] lg:bottom-6" 
+        : "bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6"
+    )}>
       {isOpen && (
         <div className="mb-4 w-80 bg-white rounded-2xl shadow-float border border-stone-200 overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
           <div className="bg-brand-blue p-4 text-white flex justify-between items-center">

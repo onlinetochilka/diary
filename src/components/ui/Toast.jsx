@@ -207,10 +207,17 @@ function ToastItem({ toast, onUndo, onExpire, onDismiss }) {
 function ToastContainer({ toasts, onUndo, onExpire, onDismiss }) {
   if (toasts.length === 0) return null;
 
+  const isDemoMode = typeof window !== 'undefined' && localStorage.getItem("isDemoMode") === "true";
+
   return (
     <div
       aria-label="Уведомления"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col-reverse gap-2 pointer-events-none"
+      className={cn(
+        "fixed left-1/2 -translate-x-1/2 z-[9999] flex flex-col-reverse gap-2 pointer-events-none",
+        isDemoMode 
+          ? "bottom-[calc(7.5rem+env(safe-area-inset-bottom))] lg:bottom-6" 
+          : "bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6"
+      )}
     >
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
